@@ -93,6 +93,16 @@
 -define(DELETE_TOKEN, delete).
 -define(DELETE_CLAUSE(TokenChars), {?DELETE_TOKEN, TokenChars}).
 
+% begin transaction
+-define(BEGIN_TOKEN, 'begin').
+-define(BEGIN_CLAUSE(TokenChars), {?BEGIN_TOKEN, TokenChars}).
+% commit transaction
+-define(COMMIT_TOKEN, commit).
+-define(COMMIT_CLAUSE(TokenChars), {?COMMIT_TOKEN, TokenChars}).
+% transaction
+-define(TRANSACTION_TOKEN, transaction).
+-define(TRANSACTION_KEY(TokenChars), {?TRANSACTION_TOKEN, TokenChars}).
+
 %terms
 -define(PARSER_BOOLEAN_TOKEN, boolean).
 -define(PARSER_ATOM_TOKEN, atom_value).

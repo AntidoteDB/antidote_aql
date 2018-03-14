@@ -20,6 +20,8 @@ create_query create_keys attribute attribute_constraint
 attribute_name
 %update
 update_query set_clause set_assignments set_assignment
+%txs
+begin_transaction commit_transaction
 %utils
 value atom number_unwrap
 .
@@ -45,6 +47,8 @@ create table table_policy primary foreign key references default check
 attribute_type dep_policy
 %update
 update set
+%tx
+begin commit transaction
 %types
 atom_value string number boolean
 %expression
@@ -79,6 +83,10 @@ statement -> delete_query : ['$1'].
 statement -> update_query :	['$1'].
 
 statement -> create_query :	['$1'].
+
+statement -> begin_transaction : ['$1'].
+
+statement -> commit_transaction : ['$1'].
 
 admin -> show_query : ['$1'].
 
@@ -273,6 +281,18 @@ delete_query ->
 delete_query ->
 	delete from atom where where_clauses :
 	?DELETE_CLAUSE({'$3', '$5'}).
+
+%%--------------------------------------------------------------------
+%% transactions
+%%--------------------------------------------------------------------
+
+begin_transaction ->
+	begin transaction :
+	?BEGIN_CLAUSE(?TRANSACTION_TOKEN).
+
+commit_transaction ->
+    commit transaction :
+    ?COMMIT_CLAUSE(?TRANSACTION_TOKEN).
 
 %%--------------------------------------------------------------------
 %% utils

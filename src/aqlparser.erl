@@ -9,21 +9,24 @@
 -include("parser.hrl").
 
 %% Application callbacks
--export([parse/2, start_shell/0]).
+-export([parse/2, parse/3, start_shell/0]).
 
 %%====================================================================
 %% API
 %%====================================================================
 
 -spec parse(input(), node()) -> queryResult() | {err, term()}.
-parse({str, Query}, Node) ->
+parse(Input, Node) ->
+	parse(Input, Node, undefined).
+
+parse({str, Query}, Node, Tx) ->
 	TokensRes = scanner:string(Query),
 	case TokensRes of
 		{ok, Tokens, _} ->
 			ParseRes = parser:parse(Tokens),
 			case ParseRes of
 				{ok, ParseTree} ->
-					try exec(ParseTree, [], Node) of
+					try exec(ParseTree, [], Node, Tx) of
 						Ok -> Ok
 					catch
 						Reason ->
@@ -36,37 +39,42 @@ parse({str, Query}, Node) ->
 		_Else ->
 			TokensRes
 	end;
-parse({file, Filename}, Node) ->
+parse({file, Filename}, Node, Tx) ->
 	{ok, File} = file:read_file(Filename),
 	Content = unicode:characters_to_list(File),
-	parse({str, Content}, Node).
+	parse({str, Content}, Node, Tx).
 
 start_shell() ->
 	io:fwrite("Welcome to the AQL Shell.~n"),
-	read_and_exec().
+	read_and_exec(undefined).
 
-read_and_exec() ->
+read_and_exec(Tx) ->
 	Line = io:get_line("AQL>"),
-	{ok, Res} = parse({str, Line}, 'antidote@127.0.0.1'),
+	{ok, Res, RetTx} = parse({str, Line}, 'antidote@127.0.0.1', Tx),
 	io:fwrite("~p~n", [Res]),
-	read_and_exec().
+	read_and_exec(RetTx).
 
 %%====================================================================
 %% Internal functions
 %%====================================================================
 
-exec([Query | Tail], Acc, Node) ->
-	Res = exec(Query, Node),
+exec([Query | Tail], Acc, Node, Tx) ->
+	Res = exec(Query, Node, Tx),
 	case Res of
 		ok ->
-			exec(Tail, Acc, Node);
+			exec(Tail, Acc, Node, Tx);
+		{ok, {begin_tx, Tx2}} ->
+			exec(Tail, lists:append(Acc, [{ok, begin_tx}]), Node, Tx2);
+		{ok, {commit_tx, Tx2}} ->
+			CommitRes = commit_transaction({ok, commit_tx}, Tx2),
+			exec(Tail, lists:append(Acc, [CommitRes]), Node, undefined);
 		{ok, NewNode} ->
-			exec(Tail, Acc, NewNode);
-		_Else ->
-			exec(Tail, lists:append(Acc, [Res]), Node)
+			exec(Tail, Acc, NewNode, Tx);
+		Res ->
+			exec(Tail, lists:append(Acc, [Res]), Node, Tx)
 	end;
-exec([], Acc, _Node) ->
-	{ok, Acc}.
+exec([], Acc, _Node, Tx) ->
+	{ok, Acc, Tx}.
 
 commit_transaction(Res, Tx) ->
 	CommitRes = antidote:commit_transaction(Tx),
@@ -77,7 +85,23 @@ commit_transaction(Res, Tx) ->
 			{error, CommitRes}
 	end.
 
-exec(Query, Node) when is_atom(Node) ->
+exec(?BEGIN_CLAUSE(?TRANSACTION_TOKEN), Node, PassedTx) when is_atom(Node) ->
+	case PassedTx of
+		undefined ->
+			{ok, Tx} = antidote:start_transaction(Node),
+			{ok, {begin_tx, Tx}};
+		_Else ->
+			{error, "There's already an ongoing transaction"}
+	end;
+exec(?COMMIT_CLAUSE(?TRANSACTION_TOKEN), Node, PassedTx) when is_atom(Node) ->
+	case PassedTx of
+		undefined ->
+			{error, "There's no current ongoing transaction"};
+		_Else ->
+			{ok, {commit_tx, PassedTx}}
+	end;
+
+exec(Query, Node, undefined) when is_atom(Node) ->
 	{ok, Tx} = antidote:start_transaction(Node),
 	Res = exec(Query, Tx),
 	case Res of
@@ -86,6 +110,9 @@ exec(Query, Node) when is_atom(Node) ->
 		_Else ->
 			commit_transaction(Res, Tx)
 	end;
+exec(Query, Node, PassedTx) when is_atom(Node) ->
+	exec(Query, PassedTx).
+
 exec(?SHOW_CLAUSE(?TABLES_TOKEN), Tx) ->
 	Tables = table:read_tables(Tx),
 	TNames = lists:map(fun({{Name, _Type}, _Value}) -> Name end, Tables),

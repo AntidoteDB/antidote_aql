@@ -46,6 +46,11 @@ Rules.
 % delete query related tokens
 (delete|DELETE) : {token, ?DELETE_CLAUSE(TokenChars)}.
 
+% transaction related tokens
+(begin|BEGIN) : {token, ?BEGIN_CLAUSE(TokenChars)}.
+(commit|COMMIT) : {token, ?COMMIT_CLAUSE(TokenChars)}.
+(transaction|TRANSACTION) : {token, ?TRANSACTION_KEY(TokenChars)}.
+
 % conflict resolution policies
 (@aw|@AW) : {token, ?TABLE_POLICY_KEY(?ADD_WINS)}.
 (@rw|@RW) : {token, ?TABLE_POLICY_KEY(?REMOVE_WINS)}.
