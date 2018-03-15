@@ -21,7 +21,7 @@ attribute_name
 %update
 update_query set_clause set_assignments set_assignment
 %txs
-begin_transaction commit_transaction
+begin_transaction commit_transaction abort_transaction
 %utils
 value atom number_unwrap
 .
@@ -48,7 +48,7 @@ attribute_type dep_policy
 %update
 update set
 %tx
-begin commit transaction
+begin commit abort transaction
 %types
 atom_value string number boolean
 %expression
@@ -87,6 +87,8 @@ statement -> create_query :	['$1'].
 statement -> begin_transaction : ['$1'].
 
 statement -> commit_transaction : ['$1'].
+
+statement -> abort_transaction : ['$1'].
 
 admin -> show_query : ['$1'].
 
@@ -293,6 +295,10 @@ begin_transaction ->
 commit_transaction ->
     commit transaction :
     ?COMMIT_CLAUSE(?TRANSACTION_TOKEN).
+
+abort_transaction ->
+    abort transaction :
+    ?ABORT_CLAUSE(?TRANSACTION_TOKEN).
 
 %%--------------------------------------------------------------------
 %% utils

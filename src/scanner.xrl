@@ -49,6 +49,7 @@ Rules.
 % transaction related tokens
 (begin|BEGIN) : {token, ?BEGIN_CLAUSE(TokenChars)}.
 (commit|COMMIT) : {token, ?COMMIT_CLAUSE(TokenChars)}.
+(abort|ABORT) : {token, ?ABORT_CLAUSE(TokenChars)}.
 (transaction|TRANSACTION) : {token, ?TRANSACTION_KEY(TokenChars)}.
 
 % conflict resolution policies

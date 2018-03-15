@@ -34,7 +34,7 @@
 %% ====================================================================
 -export([start_transaction/1, start_transaction/3,
 				read_objects/2,
-				commit_transaction/1,
+				commit_transaction/1, abort_transaction/1,
 		 		update_objects/2]).
 
 -export([handleBadRpc/1]).
@@ -55,6 +55,11 @@ start_transaction(Node, Snapshot, Props) ->
 -spec commit_transaction(ref()) -> {ok, vectorclock()} | {error, reason()}.
 commit_transaction({Node, TxId}) ->
 	Res = call(Node, commit_transaction, [TxId]),
+	Res.
+
+-spec abort_transaction(ref()) -> {ok, vectorclock()} | {error, reason()}.
+abort_transaction({Node, TxId}) ->
+	Res = call(Node, abort_transaction, [TxId]),
 	Res.
 
 -spec read_objects(bound_objects(), ref()) -> {ok, [term()]}.

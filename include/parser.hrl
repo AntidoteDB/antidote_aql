@@ -99,6 +99,9 @@
 % commit transaction
 -define(COMMIT_TOKEN, commit).
 -define(COMMIT_CLAUSE(TokenChars), {?COMMIT_TOKEN, TokenChars}).
+% abort transaction
+-define(ABORT_TOKEN, abort).
+-define(ABORT_CLAUSE(TokenChars), {?ABORT_TOKEN, TokenChars}).
 % transaction
 -define(TRANSACTION_TOKEN, transaction).
 -define(TRANSACTION_KEY(TokenChars), {?TRANSACTION_TOKEN, TokenChars}).

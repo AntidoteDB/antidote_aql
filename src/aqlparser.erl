@@ -68,6 +68,9 @@ exec([Query | Tail], Acc, Node, Tx) ->
 		{ok, {commit_tx, Tx2}} ->
 			CommitRes = commit_transaction({ok, commit_tx}, Tx2),
 			exec(Tail, lists:append(Acc, [CommitRes]), Node, undefined);
+		{ok, {abort_tx, Tx2}} ->
+			AbortRes = abort_transaction({ok, abort_tx}, Tx2),
+			exec(Tail, lists:append(Acc, [AbortRes]), Node, undefined);
 		{ok, NewNode} ->
 			exec(Tail, Acc, NewNode, Tx);
 		Res ->
@@ -85,6 +88,15 @@ commit_transaction(Res, Tx) ->
 			{error, CommitRes}
 	end.
 
+abort_transaction(Res, Tx) ->
+	AbortRes = antidote:abort_transaction(Tx),
+	case AbortRes of
+		{ok, _CT} ->
+			Res;
+		_Else ->
+			{error, AbortRes}
+	end.
+
 exec(?BEGIN_CLAUSE(?TRANSACTION_TOKEN), Node, PassedTx) when is_atom(Node) ->
 	case PassedTx of
 		undefined ->
@@ -99,6 +111,13 @@ exec(?COMMIT_CLAUSE(?TRANSACTION_TOKEN), Node, PassedTx) when is_atom(Node) ->
 			{error, "There's no current ongoing transaction"};
 		_Else ->
 			{ok, {commit_tx, PassedTx}}
+	end;
+exec(?ABORT_CLAUSE(?TRANSACTION_TOKEN), Node, PassedTX) when is_atom(Node) ->
+	case PassedTX of
+		undefined ->
+			{error, "There's no current ongoing transaction"};
+		_Else ->
+			{ok, {abort_tx, PassedTX}}
 	end;
 
 exec(Query, Node, undefined) when is_atom(Node) ->
