@@ -1,4 +1,5 @@
 %% @author Joao
+%% @author Pedro Lopes
 %% @doc @todo Add description to tables.
 
 -module(table).
@@ -16,12 +17,14 @@
 				write_table/2,
 				lookup/2, lookup/3,
 				dependants/2,
-				prepare_table/3]).
+				prepare_table/3,
+				create_table_update/1]).
 
 -export([name/1,
 				policy/1,
 				columns/1,
-				shadow_columns/1]).
+				shadow_columns/1,
+				indexes/1]).
 
 exec(Table, TxId) ->
 	write_table(Table, TxId).
@@ -100,7 +103,8 @@ prepare_foreign_keys(Table, Tables) ->
 				lists:append([ShFk], ParentFks)
 		end
 	end, FKs),
-	set_shadow_columns(lists:flatten(ShadowCols), Table).
+	Table2 = set_shadow_columns(lists:flatten(ShadowCols), Table),
+	set_indexes([], Table2).
 
 create_table_update(Table) ->
 	Name = name(Table),
@@ -149,22 +153,27 @@ references(_TName, [], Acc) -> Acc.
 %% Table Props functions
 %% ====================================================================
 
-name(?T_TABLE(Name, _Policy, _Cols, _SCols)) -> Name.
+name(?T_TABLE(Name, _Policy, _Cols, _SCols, _Idx)) -> Name.
 
-policy(?T_TABLE(_Name, Policy, _Cols, _SCols)) -> Policy.
+policy(?T_TABLE(_Name, Policy, _Cols, _SCols, _Idx)) -> Policy.
 
-set_policy(Policy, ?T_TABLE(Name, _Policy, Cols, SCols)) ->
-	?T_TABLE(Name, Policy, Cols, SCols).
+set_policy(Policy, ?T_TABLE(Name, _Policy, Cols, SCols, Idx)) ->
+	?T_TABLE(Name, Policy, Cols, SCols, Idx).
 
-columns(?T_TABLE(_Name, _Policy, Cols, _SCols)) -> Cols.
+columns(?T_TABLE(_Name, _Policy, Cols, _SCols, _Idx)) -> Cols.
 
-set_columns(Cols, ?T_TABLE(Name, Policy, _Cols, SCols)) ->
-	?T_TABLE(Name, Policy, Cols, SCols).
+set_columns(Cols, ?T_TABLE(Name, Policy, _Cols, SCols, Idx)) ->
+	?T_TABLE(Name, Policy, Cols, SCols, Idx).
 
-shadow_columns(?T_TABLE(_Name, _Policy, _Cols, SCols)) -> SCols.
+shadow_columns(?T_TABLE(_Name, _Policy, _Cols, SCols, _Idx)) -> SCols.
 
-set_shadow_columns(SCols, ?T_TABLE(Name, Policy, Cols, _SCols)) ->
-	?T_TABLE(Name, Policy, Cols, SCols).
+set_shadow_columns(SCols, ?T_TABLE(Name, Policy, Cols, _SCols, Idx)) ->
+	?T_TABLE(Name, Policy, Cols, SCols, Idx).
+
+indexes(?T_TABLE(_Name, _Policy, _Cols, _SCols, Idx)) -> Idx.
+
+set_indexes(Idx, ?T_TABLE(Name, Policy, Cols, SCols, _Idx)) ->
+	?T_TABLE(Name, Policy, Cols, SCols, Idx).
 
 %% ====================================================================
 %% Internal functions

@@ -1,4 +1,6 @@
 %%%-------------------------------------------------------------------
+%% @author Joao
+%% @author Pedro Lopes
 %% @doc aqlparser public API
 %% @end
 %%%-------------------------------------------------------------------
@@ -7,6 +9,7 @@
 
 -include("aql.hrl").
 -include("parser.hrl").
+-include("types.hrl").
 
 %% Application callbacks
 -export([parse/2, parse/3, start_shell/0]).
@@ -143,8 +146,10 @@ exec(?SHOW_CLAUSE({?INDEX_TOKEN, TName}), Tx) ->
 		io:fwrite("{key: ~p, table: ~p}~n", [Key, TName])
 	end, Keys),
 	Keys;
-exec(?CREATE_CLAUSE(Table), Tx) ->
+exec(?CREATE_CLAUSE(Table), Tx) when ?is_table(Table) ->
 	eval("Create Table", Table, table, Tx);
+exec(?CREATE_CLAUSE(Index), Tx) when ?is_index(Index) ->
+	eval("Create Index", Index, index, Tx);
 exec(?INSERT_CLAUSE(Insert), Tx) ->
 	eval("Insert", Insert, insert, Tx);
 exec(?DELETE_CLAUSE(Delete), Tx) ->

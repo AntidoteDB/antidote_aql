@@ -1,11 +1,15 @@
 %% @author Joao
+%% @author Pedro Lopes
 %% @doc @todo Add description to select.
-
 
 -module(select).
 
 -include_lib("parser.hrl").
 -include_lib("aql.hrl").
+
+-ifdef(TEST).
+-include_lib("eunit/include/eunit.hrl").
+-endif.
 
 %% ====================================================================
 %% API functions
@@ -22,6 +26,7 @@ exec({Table, _Tables}, Select, TxId) ->
 	Projection = projection(Select),
 	% TODO validate projection fields
 	Condition = where(Select),
+	_Conjunctions = group_conjunctions(Condition),
 	Keys = where:scan(TName, Condition, TxId),
 	case Keys of
 		[] -> {ok, []};
@@ -114,3 +119,68 @@ get_value(Key, [{{Name, _Type}, _Value} = H| T]) ->
 	end;
 get_value(_Key, []) ->
 	undefined.
+
+group_conjunctions(?PARSER_WILDCARD) ->
+  [];
+group_conjunctions(WhereClause) when is_list(WhereClause) ->
+	BoolConnectors = lists:filter(fun(Elem) ->
+			case Elem of
+				{Type, _} when (Type == disjunctive) or (Type == conjunctive)
+					-> true;
+				_Else -> false
+			end
+		end, WhereClause),
+  FilterClause = lists:filter(fun(Elem) ->
+		case Elem of
+			{_Attr, _Comp, _Val} -> true;
+			_Else -> false
+		end
+  end, WhereClause),
+	[First | Tail] = FilterClause,
+	group_conjunctions(Tail, BoolConnectors, [First], []).
+
+group_conjunctions([Comp | Tail], [{conjunctive, _} | Tail2], Curr, Final) ->
+	group_conjunctions(Tail, Tail2, lists:append(Curr, [Comp]), Final);
+group_conjunctions([Comp | Tail], [{disjunctive, _} | Tail2], Curr, Final) ->
+	group_conjunctions(Tail, Tail2, [Comp], lists:append(Final, [Curr]));
+%group_conjunctions([_ | Tail], Conn, Curr, Final) ->
+%	group_conjunctions(Tail, Conn, Curr, Final);
+group_conjunctions([], [], Curr, Final) ->
+	lists:append(Final, [Curr]).
+
+%%====================================================================
+%% Eunit tests
+%%====================================================================
+
+-ifdef(TEST).
+
+conjunction_test() ->
+  DefaultComp = {attr, [{equality, ignore}], val},
+  TestClause1 = [
+    DefaultComp,
+    {conjunctive, ignore},
+    DefaultComp,
+    {disjunctive, ignore},
+    DefaultComp],
+  TestClause2 = [
+    DefaultComp,
+    {disjunctive, ignore},
+    DefaultComp,
+    {disjunctive, ignore},
+    DefaultComp
+  ],
+  TestClause3 = [
+    DefaultComp,
+    {conjunctive, ignore},
+    DefaultComp,
+    {conjunctive, ignore},
+    DefaultComp
+  ],
+  Res1 = group_conjunctions(TestClause1),
+  Res2 = group_conjunctions(TestClause2),
+  Res3 = group_conjunctions(TestClause3),
+  ?assertEqual(Res1, [[DefaultComp, DefaultComp], [DefaultComp]]),
+  ?assertEqual(Res2, [[DefaultComp], [DefaultComp], [DefaultComp]]),
+  ?assertEqual(Res3, [[DefaultComp, DefaultComp, DefaultComp]]).
+
+-endif.
