@@ -144,12 +144,20 @@ select_fields ->
 %%--------------------------------------------------------------------
 
 where_clauses ->
-    where_clauses conjunctive where_clause :
-    lists:append(['$1', ['$2'], ['$3']]).
+    where_clauses conjunctive where_clauses :
+    lists:append(['$1', ['$2'], '$3']).
 
 where_clauses ->
-    where_clauses disjunctive where_clause :
-    lists:append(['$1', ['$2'], ['$3']]).
+    where_clauses disjunctive where_clauses :
+    lists:append(['$1', ['$2'], '$3']).
+
+where_clauses ->
+    start_list where_clauses conjunctive where_clauses end_list :
+    [lists:append(['$2', ['$3'], '$4'])].
+
+where_clauses ->
+    start_list where_clauses disjunctive where_clauses end_list :
+    [lists:append(['$2', ['$3'], '$4'])].
 
 where_clauses ->
     where_clause :
@@ -444,6 +452,9 @@ select_where_test() ->
 	test_parser("SELECT a FROM Test WHERE b =2"),
 	test_parser("SELECT a FROM Test WHERE b = 2 AND c =3 AND d= 4"),
 	test_parser("SELECT a FROM Test WHERE b >= 2 OR c <= 3 AND d = 4"),
-	test_parser("SELECT a FROM Test WHERE b > 2 AND c < 3 OR d <> 4").
+	test_parser("SELECT a FROM Test WHERE b > 2 AND c < 3 OR d <> 4"),
+	test_parser("SELECT a FROM Test WHERE b = 2 AND (c <= 3 OR d = 4)"),
+	test_parser("SELECT a FROM Test WHERE (b >= 2 AND c = 3 OR d <> 4)"),
+	test_parser("SELECT a FROM Test WHERE (b <> 2 AND c < 3) OR d > 4").
 
 -endif.

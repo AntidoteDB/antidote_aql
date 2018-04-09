@@ -6,6 +6,7 @@
 
 -include_lib("parser.hrl").
 -include_lib("aql.hrl").
+-include_lib("types.hrl").
 
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
@@ -26,17 +27,19 @@ exec({Table, _Tables}, Select, TxId) ->
 	Projection = projection(Select),
 	% TODO validate projection fields
 	Condition = where(Select),
-	_Conjunctions = group_conjunctions(Condition),
-	Keys = where:scan(TName, Condition, TxId),
-	case Keys of
-		[] -> {ok, []};
-		_Else ->
-			{ok, Results} = antidote:read_objects(Keys, TxId),
-			VisibleResults = filter_visible(Results, Table, TxId),
-			ProjectionResult = project(Projection, VisibleResults, [], Cols),
-			ActualRes = apply_offset(ProjectionResult, Cols, []),
-			{ok, ActualRes}
-	end.
+	Conjunctions = group_conjunctions(Condition),
+	Filter = prepare_filter(TName, Projection, Conjunctions),
+	antidote:query_objects(Filter, TxId).
+	%%Keys = where:scan(TName, Condition, TxId),
+	%%case Keys of
+	%%	[] -> {ok, []};
+	%%	_Else ->
+	%%		{ok, Results} = antidote:read_objects(Keys, TxId),
+	%%		VisibleResults = filter_visible(Results, Table, TxId),
+	%%		ProjectionResult = project(Projection, VisibleResults, [], Cols),
+	%%		ActualRes = apply_offset(ProjectionResult, Cols, []),
+	%%		{ok, ActualRes}
+	%%end.
 
 table({TName, _Projection, _Where}) -> TName.
 
@@ -47,6 +50,16 @@ where({_TName, _Projection, Where}) -> Where.
 %% ====================================================================
 %% Private functions
 %% ====================================================================
+
+prepare_filter(TableName, Projection, Conjunctions) ->
+	TablesField = ?T_FILTER(tables, [TableName]),
+	ProjectionField = ?T_FILTER(projection, Projection),
+	VisibilityConds = build_visibility_conditions(),
+	ConditionsField = ?T_FILTER(conditions, lists:append(VisibilityConds, Conjunctions)),
+	[TablesField, ProjectionField, ConditionsField].
+
+build_visibility_conditions() ->
+	[]. %% TODO
 
 filter_visible(Results, Table, TxId) ->
 	filter_visible(Results, Table, TxId, []).
@@ -132,17 +145,28 @@ group_conjunctions(WhereClause) when is_list(WhereClause) ->
 		end, WhereClause),
   FilterClause = lists:filter(fun(Elem) ->
 		case Elem of
-			{_Attr, _Comp, _Val} -> true;
-			_Else -> false
+			{_Type, _} -> false;
+			_Else -> true
 		end
   end, WhereClause),
 	[First | Tail] = FilterClause,
-	group_conjunctions(Tail, BoolConnectors, [First], []).
+	case is_list(First) of
+		true -> group_conjunctions(Tail, BoolConnectors, [group_conjunctions(First)], []);
+		false -> group_conjunctions(Tail, BoolConnectors, [First], [])
+	end.
 
 group_conjunctions([Comp | Tail], [{conjunctive, _} | Tail2], Curr, Final) ->
-	group_conjunctions(Tail, Tail2, lists:append(Curr, [Comp]), Final);
+	Conj = case is_list(Comp) of
+					 true -> group_conjunctions(Comp);
+					 false -> Comp
+				 end,
+	group_conjunctions(Tail, Tail2, lists:append(Curr, [Conj]), Final);
 group_conjunctions([Comp | Tail], [{disjunctive, _} | Tail2], Curr, Final) ->
-	group_conjunctions(Tail, Tail2, [Comp], lists:append(Final, [Curr]));
+	Conj = case is_list(Comp) of
+					 true -> group_conjunctions(Comp);
+					 false -> Comp
+				 end,
+	group_conjunctions(Tail, Tail2, [Conj], lists:append(Final, [Curr]));
 %group_conjunctions([_ | Tail], Conn, Curr, Final) ->
 %	group_conjunctions(Tail, Conn, Curr, Final);
 group_conjunctions([], [], Curr, Final) ->
@@ -161,7 +185,8 @@ conjunction_test() ->
     {conjunctive, ignore},
     DefaultComp,
     {disjunctive, ignore},
-    DefaultComp],
+    DefaultComp
+	],
   TestClause2 = [
     DefaultComp,
     {disjunctive, ignore},
@@ -182,5 +207,19 @@ conjunction_test() ->
   ?assertEqual(Res1, [[DefaultComp, DefaultComp], [DefaultComp]]),
   ?assertEqual(Res2, [[DefaultComp], [DefaultComp], [DefaultComp]]),
   ?assertEqual(Res3, [[DefaultComp, DefaultComp, DefaultComp]]).
+
+conjunction_parenthesis_test() ->
+	DefaultComp = {attr, [{equality, ignore}], val},
+	TestClause1 = [
+		[DefaultComp,
+		{conjunctive, ignore},
+		DefaultComp,
+		{disjunctive, ignore},
+		DefaultComp],
+		{conjunctive, ignore},
+		DefaultComp
+	],
+	Res1 = group_conjunctions(TestClause1),
+	?assertEqual(Res1, [[[DefaultComp, DefaultComp], [DefaultComp]], [DefaultComp]]).
 
 -endif.

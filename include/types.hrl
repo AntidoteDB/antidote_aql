@@ -16,3 +16,6 @@
 
 -define(T_INDEX(Name, TName, Cols), {Name, TName, Cols}).
 -define(is_index(Index), is_tuple(Index) andalso tuple_size(Index) =:= 3).
+
+-define(T_FILTER(Type, Content), {Type, Content}).
+-define(is_filter(Filter), is_tuple(Filter) andalso tuple_size(Filter) =:= 2).
