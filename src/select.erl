@@ -8,6 +8,8 @@
 -include_lib("aql.hrl").
 -include_lib("types.hrl").
 
+-define(CONDITION(FieldName, Comparator, Value), {FieldName, Comparator, Value}).
+
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
 -endif.
@@ -27,19 +29,21 @@ exec({Table, _Tables}, Select, TxId) ->
 	Projection = projection(Select),
 	% TODO validate projection fields
 	Condition = where(Select),
-	Conjunctions = group_conjunctions(Condition),
-	Filter = prepare_filter(TName, Projection, Conjunctions),
-	antidote:query_objects(Filter, TxId).
-	%%Keys = where:scan(TName, Condition, TxId),
-	%%case Keys of
-	%%	[] -> {ok, []};
-	%%	_Else ->
-	%%		{ok, Results} = antidote:read_objects(Keys, TxId),
-	%%		VisibleResults = filter_visible(Results, Table, TxId),
-	%%		ProjectionResult = project(Projection, VisibleResults, [], Cols),
-	%%		ActualRes = apply_offset(ProjectionResult, Cols, []),
-	%%		{ok, ActualRes}
-	%%end.
+	NewCondition = send_offset(Condition, Cols, []),
+	Filter = prepare_filter(Table, Projection, NewCondition, TxId),
+	{ok, Result} = antidote:query_objects(Filter, TxId),
+	FinalResult = apply_offset(Result, Cols, []),
+	{ok, FinalResult}.
+	%Keys = where:scan(TName, Condition, TxId),
+	%case Keys of
+	%	[] -> {ok, []};
+	%	_Else ->
+	%		{ok, Results} = antidote:read_objects(Keys, TxId),
+	%		VisibleResults = filter_visible(Results, Table, TxId),
+	%		ProjectionResult = project(Projection, VisibleResults, [], Cols),
+	%		ActualRes = apply_offset(ProjectionResult, Cols, []),
+	%		{ok, ActualRes}
+	%end.
 
 table({TName, _Projection, _Where}) -> TName.
 
@@ -50,16 +54,68 @@ where({_TName, _Projection, Where}) -> Where.
 %% ====================================================================
 %% Private functions
 %% ====================================================================
+%% TODO send to Antidote new calculated values on conditions that regard bounded counter columns
+send_offset([{disjunctive, _} = Cond | Conds], Cols, Acc) ->
+	send_offset(Conds, Cols, lists:append(Acc, [Cond]));
+send_offset([{conjunctive, _} = Cond | Conds], Cols, Acc) ->
+	send_offset(Conds, Cols, lists:append(Acc, [Cond]));
+send_offset([Condition | Conds], Cols, Acc) ->
+	?CONDITION(FieldName, Comparator, Value) = Condition,
+	Column = maps:get(FieldName, Cols),
+	Constraint = column:constraint(Column),
+	Type = column:type(Column),
+	case {Type, Constraint} of
+		{?AQL_COUNTER_INT, ?CHECK_KEY({?COMPARATOR_KEY(Comp), Offset})} ->
+			AQLCounterValue = bcounter:from_bcounter(Comp, Value, Offset),
+			NewCond = ?CONDITION(FieldName, invert_comparator(Comparator), AQLCounterValue),
+			send_offset(Conds, Cols, lists:append(Acc, [NewCond]));
+		_Else ->
+			send_offset(Conds, Cols, lists:append(Acc, [Condition]))
+	end;
+send_offset([], _Cols, Acc) -> Acc.
 
-prepare_filter(TableName, Projection, Conjunctions) ->
+invert_comparator(?PARSER_EQUALITY) -> ?PARSER_NEQ;
+invert_comparator(?PARSER_NEQ) -> ?PARSER_EQUALITY;
+invert_comparator(?PARSER_GREATER) -> ?PARSER_LESSER;
+invert_comparator(?PARSER_LESSER) -> ?PARSER_GREATER;
+invert_comparator(?PARSER_GEQ) -> ?PARSER_LEQ;
+invert_comparator(?PARSER_LEQ) -> ?PARSER_GEQ.
+
+prepare_filter(Table, Projection, Conditions, TxId) ->
+	Conjunctions = group_conjunctions(Conditions),
+
+	TableName = table:name(Table),
 	TablesField = ?T_FILTER(tables, [TableName]),
 	ProjectionField = ?T_FILTER(projection, Projection),
-	VisibilityConds = build_visibility_conditions(),
-	ConditionsField = ?T_FILTER(conditions, lists:append(VisibilityConds, Conjunctions)),
+	%VisibilityConds = build_visibility_conditions(Table, Conditions, TxId),
+	%ConditionsField = ?T_FILTER(conditions, lists:append([VisibilityConds], [Conjunctions])),
+	ConditionsField = ?T_FILTER(conditions, Conjunctions),
 	[TablesField, ProjectionField, ConditionsField].
 
-build_visibility_conditions() ->
-	[]. %% TODO
+%% The idea is to build additional conditions that concern visibility.
+%% Those conditions are posteriorly sent to the Antidote node.
+%% Form: (#st = i OR #st = t) AND (fk_col1 <> dc AND fk_col2 <> dc AND ...)
+%% TODO
+build_visibility_conditions(Table, Conditions, TxId) ->
+	ExplicitConds = explicit_state_conds(),
+	ImplicitConds = implicit_state_conds(Table, Conditions, TxId),
+	lists:append([ExplicitConds], [ImplicitConds]).
+
+explicit_state_conds() ->
+	ICond = {'#st', ?PARSER_EQUALITY, i},
+	TCond = {'#st', ?PARSER_EQUALITY, t},
+	[[ICond], [TCond]].
+
+implicit_state_conds(Table, _Conditions, TxId) ->
+	TName = table:name(Table),
+	ShCols = table:shadow_columns(Table),
+	lists:map(fun(?T_FK(FkName, _FkType, _RefTable, _RefCol)) ->
+		%Key = index:tag_key(TName, FkName),
+		%{ok, [Map]} = antidote:read_objects(Key, TxId),
+		%Map
+		ColName = index:tag_name(TName, FkName),
+		{ColName, ?PARSER_NEQ, dc}
+	end, ShCols).
 
 filter_visible(Results, Table, TxId) ->
 	filter_visible(Results, Table, TxId, []).
@@ -83,7 +139,7 @@ apply_offset([{{Key, Type}, V} | Values], Cols, Acc) ->
   Col = maps:get(Key, Cols),
   Cons = column:constraint(Col),
 	case {Type, Cons} of
-    {?AQL_COUNTER_INT, ?CHECK_KEY({?COMPARATOR_KEY(Comp), Offset})} ->
+    {?CRDT_BCOUNTER_INT, ?CHECK_KEY({?COMPARATOR_KEY(Comp), Offset})} ->
 			AQLCounterValue = bcounter:from_bcounter(Comp, V, Offset),
 			NewAcc = lists:append(Acc, [{Key, AQLCounterValue}]),
       apply_offset(Values, Cols, NewAcc);
@@ -151,19 +207,19 @@ group_conjunctions(WhereClause) when is_list(WhereClause) ->
   end, WhereClause),
 	[First | Tail] = FilterClause,
 	case is_list(First) of
-		true -> group_conjunctions(Tail, BoolConnectors, [group_conjunctions(First)], []);
+		true -> group_conjunctions(Tail, BoolConnectors, [{sub, group_conjunctions(First)}], []);
 		false -> group_conjunctions(Tail, BoolConnectors, [First], [])
 	end.
 
 group_conjunctions([Comp | Tail], [{conjunctive, _} | Tail2], Curr, Final) ->
 	Conj = case is_list(Comp) of
-					 true -> group_conjunctions(Comp);
+					 true -> {sub, group_conjunctions(Comp)};
 					 false -> Comp
 				 end,
 	group_conjunctions(Tail, Tail2, lists:append(Curr, [Conj]), Final);
 group_conjunctions([Comp | Tail], [{disjunctive, _} | Tail2], Curr, Final) ->
 	Conj = case is_list(Comp) of
-					 true -> group_conjunctions(Comp);
+					 true -> {sub, group_conjunctions(Comp)};
 					 false -> Comp
 				 end,
 	group_conjunctions(Tail, Tail2, [Conj], lists:append(Final, [Curr]));
@@ -171,6 +227,11 @@ group_conjunctions([Comp | Tail], [{disjunctive, _} | Tail2], Curr, Final) ->
 %	group_conjunctions(Tail, Conn, Curr, Final);
 group_conjunctions([], [], Curr, Final) ->
 	lists:append(Final, [Curr]).
+
+%tag_conditions(?PARSER_WILDCARD) ->
+%	[];
+%tag_conditions(WhereClause) ->
+
 
 %%====================================================================
 %% Eunit tests

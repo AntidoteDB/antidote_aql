@@ -163,6 +163,11 @@ where_clauses ->
     where_clause :
 	['$1'].
 
+% Uncomment to support this
+%where_clauses ->
+%    start_list where_clause end_list :
+%    ['$2'].
+
 where_clause ->
 	atom comparison value :
 	{'$1', '$2', '$3'}.
