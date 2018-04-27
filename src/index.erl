@@ -49,9 +49,7 @@ exec({Table, _Tables}, Props, TxId) ->
   end,
   Table2 = set_table_index(lists:append(TIndexes, [Props]), Table),
   TableUpdate = table:create_table_update(Table2),
-  antidote:update_objects(TableUpdate, TxId)
-  % TODO update the index with new entries OR do it in the Antidote
-.
+  antidote:update_objects(TableUpdate, TxId).
 
 index({Name, _TName, _Cols}) -> Name.
 

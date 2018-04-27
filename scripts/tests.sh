@@ -66,6 +66,12 @@ function start_antidote {
 
 ## Creating new tables into the database
 function create_db {
+	## Creating a new transaction
+	#aql_func="Res = aqlparser:parse({str, \"BEGIN TRANSACTION\"}, '\''$NODE'\'', $TX), {ok, [{ok,{begin_tx, Tx}}], _} = Res, io:format(\"~p\", [Tx])"
+	#cmd="$EXEC_CMD '$aql_func' -s erlang halt"
+	#TX=$(eval $cmd)
+	#TX=$(echo "$TX" | sed "s/\x27/'\\\''/g")
+	
 	echo "> Creating the database..."
 	array=("${!1}")
 	for k in $(seq 0 $((${#array[@]}-1))); do

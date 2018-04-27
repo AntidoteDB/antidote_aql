@@ -9,6 +9,9 @@
 -include_lib("types.hrl").
 
 -define(CONDITION(FieldName, Comparator, Value), {FieldName, Comparator, Value}).
+-define(CONJUNCTION, ?CONJUNCTIVE_KEY("AND")).
+-define(DISJUNCTION, ?DISJUNCTIVE_KEY("OR")).
+-define(FUNCTION(Name, Args), {func, Name, Args}).
 
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
@@ -30,7 +33,7 @@ exec({Table, _Tables}, Select, TxId) ->
 	% TODO validate projection fields
 	Condition = where(Select),
 	NewCondition = send_offset(Condition, Cols, []),
-	Filter = prepare_filter(Table, Projection, NewCondition, TxId),
+	Filter = prepare_filter(Table, Projection, NewCondition),
 	{ok, Result} = antidote:query_objects(Filter, TxId),
 	FinalResult = apply_offset(Result, Cols, []),
 	{ok, FinalResult}.
@@ -55,10 +58,14 @@ where({_TName, _Projection, Where}) -> Where.
 %% Private functions
 %% ====================================================================
 %% TODO send to Antidote new calculated values on conditions that regard bounded counter columns
+send_offset(?PARSER_WILDCARD, _Cols, Acc) -> Acc;
 send_offset([{disjunctive, _} = Cond | Conds], Cols, Acc) ->
 	send_offset(Conds, Cols, lists:append(Acc, [Cond]));
 send_offset([{conjunctive, _} = Cond | Conds], Cols, Acc) ->
 	send_offset(Conds, Cols, lists:append(Acc, [Cond]));
+send_offset([Condition | Conds], Cols, Acc) when is_list(Condition) ->
+	NewAcc = send_offset(Condition, Cols, []),
+	send_offset(Conds, Cols, lists:append(Acc, [NewAcc]));
 send_offset([Condition | Conds], Cols, Acc) ->
 	?CONDITION(FieldName, Comparator, Value) = Condition,
 	Column = maps:get(FieldName, Cols),
@@ -74,48 +81,62 @@ send_offset([Condition | Conds], Cols, Acc) ->
 	end;
 send_offset([], _Cols, Acc) -> Acc.
 
-invert_comparator(?PARSER_EQUALITY) -> ?PARSER_NEQ;
-invert_comparator(?PARSER_NEQ) -> ?PARSER_EQUALITY;
 invert_comparator(?PARSER_GREATER) -> ?PARSER_LESSER;
 invert_comparator(?PARSER_LESSER) -> ?PARSER_GREATER;
 invert_comparator(?PARSER_GEQ) -> ?PARSER_LEQ;
-invert_comparator(?PARSER_LEQ) -> ?PARSER_GEQ.
+invert_comparator(?PARSER_LEQ) -> ?PARSER_GEQ;
+invert_comparator(Comp) -> Comp.
 
-prepare_filter(Table, Projection, Conditions, TxId) ->
-	Conjunctions = group_conjunctions(Conditions),
+prepare_filter(Table, Projection, Conditions) ->
+	VisibilityConds = build_visibility_conditions(Table),
+	NewConditions = case Conditions of
+										[] -> VisibilityConds;
+										Conditions -> lists:append([VisibilityConds, [?CONJUNCTION], [Conditions]])
+									end,
+
+	Conjunctions = group_conjunctions(NewConditions),
 
 	TableName = table:name(Table),
 	TablesField = ?T_FILTER(tables, [TableName]),
 	ProjectionField = ?T_FILTER(projection, Projection),
-	%VisibilityConds = build_visibility_conditions(Table, Conditions, TxId),
+
 	%ConditionsField = ?T_FILTER(conditions, lists:append([VisibilityConds], [Conjunctions])),
 	ConditionsField = ?T_FILTER(conditions, Conjunctions),
 	[TablesField, ProjectionField, ConditionsField].
 
 %% The idea is to build additional conditions that concern visibility.
 %% Those conditions are posteriorly sent to the Antidote node.
-%% Form: (#st = i OR #st = t) AND (fk_col1 <> dc AND fk_col2 <> dc AND ...)
+%% Form: (#st = i OR #st = t) AND fk_col1 <> dc AND fk_col2 <> dc AND ...
 %% TODO
-build_visibility_conditions(Table, Conditions, TxId) ->
-	ExplicitConds = explicit_state_conds(),
-	ImplicitConds = implicit_state_conds(Table, Conditions, TxId),
-	lists:append([ExplicitConds], [ImplicitConds]).
+build_visibility_conditions(Table) ->
+  Policy = table:policy(Table),
+  Rule = crp:get_rule(Policy),
+	ExplicitConds = [explicit_state_conds(Rule)],
+	ImplicitConds = implicit_state_conds(Table, Rule),
+	case ImplicitConds of
+		[] -> ExplicitConds;
+		_Else -> lists:append([ExplicitConds, [?CONJUNCTION], ImplicitConds])
+	end.
 
-explicit_state_conds() ->
-	ICond = {'#st', ?PARSER_EQUALITY, i},
-	TCond = {'#st', ?PARSER_EQUALITY, t},
-	[[ICond], [TCond]].
+explicit_state_conds(Rule) ->
+  Func = ?FUNCTION(find_first, ['#st', Rule]),
+	ICond = {Func, ?PARSER_EQUALITY, i},
+	TCond = {Func, ?PARSER_EQUALITY, t},
+	[ICond, ?DISJUNCTION, TCond].
 
-implicit_state_conds(Table, _Conditions, TxId) ->
-	TName = table:name(Table),
+implicit_state_conds(Table, Rule) ->
+	%TName = table:name(Table),
 	ShCols = table:shadow_columns(Table),
-	lists:map(fun(?T_FK(FkName, _FkType, _RefTable, _RefCol)) ->
-		%Key = index:tag_key(TName, FkName),
-		%{ok, [Map]} = antidote:read_objects(Key, TxId),
-		%Map
-		ColName = index:tag_name(TName, FkName),
-		{ColName, ?PARSER_NEQ, dc}
-	end, ShCols).
+	implicit_state_conds(ShCols, Rule, []).
+
+implicit_state_conds([?T_FK(FkName, _, _, _) | []], Rule, Acc) ->
+  Func = ?FUNCTION(find_first, [FkName, Rule]),
+	lists:append(Acc, [{Func, ?PARSER_NEQ, dc}]);
+implicit_state_conds([?T_FK(FkName, _, _, _) | Tail], Rule, Acc) ->
+  Func = ?FUNCTION(find_first, [FkName, Rule]),
+	NewAcc = lists:append(Acc, [{Func, ?PARSER_NEQ, dc}, ?CONJUNCTION]),
+	implicit_state_conds(Tail, Rule, NewAcc);
+implicit_state_conds([], _Rule, Acc) -> Acc.
 
 filter_visible(Results, Table, TxId) ->
 	filter_visible(Results, Table, TxId, []).
@@ -281,6 +302,6 @@ conjunction_parenthesis_test() ->
 		DefaultComp
 	],
 	Res1 = group_conjunctions(TestClause1),
-	?assertEqual(Res1, [[[DefaultComp, DefaultComp], [DefaultComp]], [DefaultComp]]).
+	?assertEqual([[{sub, [[DefaultComp, DefaultComp], [DefaultComp]]}, DefaultComp]], Res1).
 
 -endif.
