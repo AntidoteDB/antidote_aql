@@ -91,7 +91,7 @@ prepare_filter(Table, Projection, Conditions) ->
 	VisibilityConds = build_visibility_conditions(Table),
 	NewConditions = case Conditions of
 										[] -> VisibilityConds;
-										Conditions -> lists:append([VisibilityConds, [?CONJUNCTION], [Conditions]])
+										Conditions -> lists:append([[Conditions], [?CONJUNCTION], [VisibilityConds]])
 									end,
 
 	Conjunctions = group_conjunctions(NewConditions),
@@ -106,7 +106,7 @@ prepare_filter(Table, Projection, Conditions) ->
 
 %% The idea is to build additional conditions that concern visibility.
 %% Those conditions are posteriorly sent to the Antidote node.
-%% Form: (#st = i OR #st = t) AND fk_col1 <> dc AND fk_col2 <> dc AND ...
+%% Form: ((#st = i OR #st = t) AND fk_col1 <> dc AND fk_col2 <> dc AND ...)
 %% TODO
 build_visibility_conditions(Table) ->
   Policy = table:policy(Table),
