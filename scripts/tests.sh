@@ -15,38 +15,6 @@ TESTCONTENT=TEST$TESTNUM[@]
 TEST=("${!TESTCONTENT}")
 
 EXEC_CMD="erl -pa $AQL_DIR/_build/default/lib/aql/ebin -name $AQL_NAME -setcookie antidote -noshell -eval "
-
-CREATE_DB=(
-	"CREATE @AW TABLE Artist(Name VARCHAR PRIMARY KEY, Age INT, Country VARCHAR DEFAULT '\''ENG'\'')"
-	"CREATE @RW TABLE Album(Title VARCHAR PRIMARY KEY, Art VARCHAR FOREIGN KEY @FR REFERENCES Artist(Name), Year INT)"
-	"CREATE @AW TABLE Track(Title VARCHAR PRIMARY KEY, Alb VARCHAR FOREIGN KEY @IR REFERENCES Album(Title))"
-)
-
-INIT_DB=(
-	"INSERT INTO Artist (Name, Age) VALUES ('\''Sam'\'', 22)"
-	"INSERT INTO Artist (Name, Age, Country) VALUES ('\''Rob'\'', 25, '\''ITA'\'')"
-	"INSERT INTO Artist (Name, Age, Country) VALUES ('\''Jon'\'', 40, '\''USA'\'')"
-	"INSERT INTO Artist (Name, Age, Country) VALUES ('\''Ken'\'', 33, '\''AUS'\'')"
-	
-	"INSERT INTO Album (Title, Art, Year) VALUES ('\''A0'\'', '\''Sam'\'', 2016)"
-	"INSERT INTO Album (Title, Art, Year) VALUES ('\''A1'\'', '\''Sam'\'', 2008)"
-	"INSERT INTO Album (Title, Art, Year) VALUES ('\''A2'\'', '\''Rob'\'', 2012)"
-	"INSERT INTO Album (Title, Art, Year) VALUES ('\''A3'\'', '\''Jon'\'', 1998)"
-	"INSERT INTO Album (Title, Art, Year) VALUES ('\''A4'\'', '\''Jon'\'', 2005)"
-	"INSERT INTO Album (Title, Art, Year) VALUES ('\''A5'\'', '\''Jon'\'', 2001)"
-	"INSERT INTO Album (Title, Art, Year) VALUES ('\''A6'\'', '\''Ken'\'', 2006)"
-	
-	"INSERT INTO Track (Title, Alb) VALUES ('\''Hello'\'', '\''A0'\'')"
-	"INSERT INTO Track (Title, Alb) VALUES ('\''World'\'', '\''A0'\'')"
-	"INSERT INTO Track (Title, Alb) VALUES ('\''Goodbye'\'', '\''A1'\'')"
-)
-
-QUERIES=(
-	"SELECT \* FROM Album WHERE Year > 2000 AND Art = '\''Jon'\'' OR Year < 2018 AND Year > 2002;"
-	"SELECT \* FROM Album WHERE Year > 2010 OR Art = '\''Jon'\'' AND Year < 2018 AND Art = '\''Ken'\'';"
-	"SELECT \* FROM Album WHERE Year > 2010 OR (Art = '\''Jon'\'' AND Year < 2018 AND Art = '\''Ken'\'');"
-	"SELECT \* FROM Album WHERE ((Year > 2000 AND Art = '\''Jon'\'') OR Year < 2018) AND Year > 2002;"
-)
 	
 ## Deleting the old database state
 function reset_db {
