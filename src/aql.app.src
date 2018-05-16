@@ -7,7 +7,8 @@
    [kernel,
     stdlib,
     crypto,
-    antidote_crdt
+    antidote_crdt,
+    elli
    ]},
   {env,[]},
   {modules, []},

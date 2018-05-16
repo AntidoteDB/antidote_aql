@@ -1,8 +1,16 @@
+{"1.1.0",
 [{<<"antidote_crdt">>,
-  {git,"https://github.com/SyncFree/antidote_crdt.git",
-       {ref,"9637edea6f7a4ef2386760ca14626f3a056ffecc"}},
+  {git,"https://github.com/syncfree/antidote_crdt",
+       {ref,"656a8c645154f15f6be3cb2b0fe009e4918fbdba"}},
   0},
+ {<<"elli">>,{pkg,<<"elli">>,<<"3.0.0">>},0},
+ {<<"jsx">>,{pkg,<<"jsx">>,<<"2.9.0">>},0},
  {<<"riak_dt">>,
   {git,"git://github.com/aletomsic/riak_dt",
        {ref,"86cfe29db5495eaafdb241f168d27a29db90e4cf"}},
-  1}].
+  1}]}.
+[
+{pkg_hash,[
+ {<<"elli">>, <<"D7CC24CFA886AC6A51D369B2C974392BEC9CD1E1CAA3931194D2BF52B763D82F">>},
+ {<<"jsx">>, <<"D2F6E5F069C00266CAD52FB15D87C428579EA4D7D73A33669E12679E203329DD">>}]}
+].

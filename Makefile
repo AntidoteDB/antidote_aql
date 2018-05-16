@@ -12,8 +12,7 @@ SCRIPTS = ./scripts
 .PHONY: all test clean antidote
 
 shell: compile
-	chmod u+x $(SCRIPTS)/start_shell.sh
-	$(SCRIPTS)/start_shell.sh
+	$(REBAR) shell
 
 dev_public:
 	chmod u+x $(SCRIPTS)/start_dev_public.sh
