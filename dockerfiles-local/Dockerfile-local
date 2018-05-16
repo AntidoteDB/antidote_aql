@@ -11,6 +11,9 @@ ADD . /opt/AQL/
 # RUN ls -l /opt/AQL
 
 ADD dockerfiles-local/start_and_attach.sh /opt/
-RUN chmod a+x /opt/start_and_attach.sh
+ADD dockerfiles-local/entrypoint.sh /
+
+RUN chmod a+x /opt/start_and_attach.sh \
+	&& chmod a+x /entrypoint.sh
 
 ENTRYPOINT ["/entrypoint.sh", "/opt/start_and_attach.sh"]

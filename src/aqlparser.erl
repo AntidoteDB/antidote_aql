@@ -11,8 +11,10 @@
 -include("parser.hrl").
 -include("types.hrl").
 
+-define(DEFAULT_NODE, 'antidote@127.0.0.1').
+
 %% Application callbacks
--export([parse/2, parse/3, start_shell/0]).
+-export([parse/2, parse/3, start_shell/0, start_shell/1]).
 
 %%====================================================================
 %% API
@@ -48,14 +50,18 @@ parse({file, Filename}, Node, Tx) ->
 	parse({str, Content}, Node, Tx).
 
 start_shell() ->
-	io:fwrite("Welcome to the AQL Shell.~n"),
-	read_and_exec(undefined).
+	start_shell(?DEFAULT_NODE).
 
-read_and_exec(Tx) ->
+start_shell(Node) when is_atom(Node) ->
+	io:fwrite("Welcome to the AQL Shell.~n"),
+	io:format("(connected to node ~p)~n", [Node]),
+	read_and_exec(Node, undefined).
+
+read_and_exec(Node, Tx) ->
 	Line = io:get_line("AQL>"),
-	{ok, Res, RetTx} = parse({str, Line}, 'antidote@127.0.0.1', Tx),
+	{ok, Res, RetTx} = parse({str, Line}, Node, Tx),
 	io:fwrite("~p~n", [Res]),
-	read_and_exec(RetTx).
+	read_and_exec(Node, RetTx).
 
 %%====================================================================
 %% Internal functions
