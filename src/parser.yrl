@@ -10,16 +10,18 @@ show_query
 %select
 select_query projection select_fields
 %where
-where_clauses where_clause
+where_clauses where_clause comparison
 %insert
 insert_query insert_keys_clause insert_keys insert_values_clause insert_values
 %delete
 delete_query
 %create
-create_query create_keys attribute attribute_constraint
+create_query create_keys attribute attribute_constraint create_index_keys
 attribute_name
 %update
 update_query set_clause set_assignments set_assignment
+%txs
+begin_transaction commit_transaction abort_transaction
 %utils
 value atom number_unwrap
 .
@@ -31,11 +33,13 @@ Terminals
 %show
 show tables
 %index
-index
+index on
 %select
 select wildcard from
 %where
 where
+%comparison
+equality notequality greater lesser greatereq lessereq
 %insert
 insert into values
 %delete
@@ -45,10 +49,12 @@ create table table_policy primary foreign key references default check
 attribute_type dep_policy
 %update
 update set
+%tx
+begin commit abort transaction
 %types
 atom_value string number boolean
 %expression
-assign increment decrement equality comparator conjunctive
+assign increment decrement comparator conjunctive disjunctive
 %list
 sep start_list end_list semi_colon
 .
@@ -79,6 +85,19 @@ statement -> delete_query : ['$1'].
 statement -> update_query :	['$1'].
 
 statement -> create_query :	['$1'].
+
+statement -> begin_transaction : ['$1'].
+
+statement -> commit_transaction : ['$1'].
+
+statement -> abort_transaction : ['$1'].
+
+comparison -> equality : '$1'.
+comparison -> notequality : '$1'.
+comparison -> greater : '$1'.
+comparison -> lesser : '$1'.
+comparison -> greatereq : '$1'.
+comparison -> lessereq : '$1'.
 
 admin -> show_query : ['$1'].
 
@@ -125,15 +144,32 @@ select_fields ->
 %%--------------------------------------------------------------------
 
 where_clauses ->
-   where_clauses conjunctive where_clause :
-   lists:append('$1', ['$3']).
+    where_clauses conjunctive where_clauses :
+    lists:append(['$1', ['$2'], '$3']).
 
- where_clauses ->
-	 where_clause :
-	 ['$1'].
+where_clauses ->
+    where_clauses disjunctive where_clauses :
+    lists:append(['$1', ['$2'], '$3']).
+
+where_clauses ->
+    start_list where_clauses conjunctive where_clauses end_list :
+    [lists:append(['$2', ['$3'], '$4'])].
+
+where_clauses ->
+    start_list where_clauses disjunctive where_clauses end_list :
+    [lists:append(['$2', ['$3'], '$4'])].
+
+where_clauses ->
+    where_clause :
+	['$1'].
+
+% Uncomment to support this
+%where_clauses ->
+%    start_list where_clause end_list :
+%    ['$2'].
 
 where_clause ->
-	atom equality value :
+	atom comparison value :
 	{'$1', '$2', '$3'}.
 
 %%--------------------------------------------------------------------
@@ -224,7 +260,11 @@ set_assignment ->
 %%--------------------------------------------------------------------
 create_query ->
 	create table_policy table atom start_list create_keys end_list :
-	?CREATE_CLAUSE(?T_TABLE('$4', crp:set_table_level(unwrap_type('$2'), crp:new()), '$6', [])).
+	?CREATE_CLAUSE(?T_TABLE('$4', crp:set_table_level(unwrap_type('$2'), crp:new()), '$6', [], [])).
+
+create_query ->
+    create index atom on atom start_list create_index_keys end_list :
+    ?CREATE_CLAUSE(?T_INDEX('$3', '$5', '$7')).
 
 create_keys ->
 	create_keys sep attribute :
@@ -262,6 +302,14 @@ attribute_name ->
 	atom :
 	'$1'.
 
+create_index_keys ->
+	create_index_keys sep atom :
+	lists:append('$1', ['$3']).
+
+create_index_keys ->
+	atom :
+	['$1'].
+
 %%--------------------------------------------------------------------
 %% delete
 %%--------------------------------------------------------------------
@@ -273,6 +321,22 @@ delete_query ->
 delete_query ->
 	delete from atom where where_clauses :
 	?DELETE_CLAUSE({'$3', '$5'}).
+
+%%--------------------------------------------------------------------
+%% transactions
+%%--------------------------------------------------------------------
+
+begin_transaction ->
+	begin transaction :
+	?BEGIN_CLAUSE(?TRANSACTION_TOKEN).
+
+commit_transaction ->
+    commit transaction :
+    ?COMMIT_CLAUSE(?TRANSACTION_TOKEN).
+
+abort_transaction ->
+    abort transaction :
+    ?ABORT_CLAUSE(?TRANSACTION_TOKEN).
 
 %%--------------------------------------------------------------------
 %% utils
@@ -347,6 +411,10 @@ create_table_check_test() ->
 create_table_fk_test() ->
 	test_parser("CREATE @AW TABLE Test (a VARCHAR, b INTEGER FOREIGN KEY @FR REFERENCES TestB(b))").
 
+create_index_simple_test() ->
+    test_parser("CREATE INDEX TestIdx ON Table (a)"),
+    test_parser("CREATE INDEX TestIdx ON Table (a, b)").
+
 update_simple_test() ->
 	test_parser("UPDATE Test SET name ASSIGN 'aaa'"),
 	test_parser("UPDATE Test SET name ASSIGN 'a';UPDATE Test SET name ASSIGN 'b'").
@@ -387,6 +455,11 @@ select_projection_test() ->
 
 select_where_test() ->
 	test_parser("SELECT a FROM Test WHERE b =2"),
-	test_parser("SELECT a FROM Test WHERE b = 2 AND c =3 AND d= 4").
+	test_parser("SELECT a FROM Test WHERE b = 2 AND c =3 AND d= 4"),
+	test_parser("SELECT a FROM Test WHERE b >= 2 OR c <= 3 AND d = 4"),
+	test_parser("SELECT a FROM Test WHERE b > 2 AND c < 3 OR d <> 4"),
+	test_parser("SELECT a FROM Test WHERE b = 2 AND (c <= 3 OR d = 4)"),
+	test_parser("SELECT a FROM Test WHERE (b >= 2 AND c = 3 OR d <> 4)"),
+	test_parser("SELECT a FROM Test WHERE (b <> 2 AND c < 3) OR d > 4").
 
 -endif.

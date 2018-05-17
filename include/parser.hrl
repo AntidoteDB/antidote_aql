@@ -12,6 +12,9 @@
 % index
 -define(INDEX_TOKEN, index).
 -define(INDEX_CLAUSE(TokenChars), {?INDEX_TOKEN, TokenChars}).
+% on
+-define(ON_TOKEN, on).
+-define(ON_KEY(TokenChars), {?ON_TOKEN, TokenChars}).
 
 % select
 -define(SELECT_TOKEN, select).
@@ -26,6 +29,9 @@
 %% and
 -define(CONJUNCTIVE_TOKEN, conjunctive).
 -define(CONJUNCTIVE_KEY(TokenChars), {?CONJUNCTIVE_TOKEN, TokenChars}).
+%% or
+-define(DISJUNCTIVE_TOKEN, disjunctive).
+-define(DISJUNCTIVE_KEY(TokenChars), {?DISJUNCTIVE_TOKEN, TokenChars}).
 
 % insert
 -define(INSERT_TOKEN, insert).
@@ -74,7 +80,7 @@
 -define(DEP_POLICY_TOKEN, dep_policy).
 -define(DEP_POLICY_KEY(Crp), {?DEP_POLICY_TOKEN, Crp}).
 
-% udpate
+% update
 -define(UPDATE_TOKEN, update).
 -define(UPDATE_CLAUSE(TokenChars), {?UPDATE_TOKEN, TokenChars}).
 %% set
@@ -93,6 +99,19 @@
 -define(DELETE_TOKEN, delete).
 -define(DELETE_CLAUSE(TokenChars), {?DELETE_TOKEN, TokenChars}).
 
+% begin transaction
+-define(BEGIN_TOKEN, 'begin').
+-define(BEGIN_CLAUSE(TokenChars), {?BEGIN_TOKEN, TokenChars}).
+% commit transaction
+-define(COMMIT_TOKEN, commit).
+-define(COMMIT_CLAUSE(TokenChars), {?COMMIT_TOKEN, TokenChars}).
+% abort transaction
+-define(ABORT_TOKEN, abort).
+-define(ABORT_CLAUSE(TokenChars), {?ABORT_TOKEN, TokenChars}).
+% transaction
+-define(TRANSACTION_TOKEN, transaction).
+-define(TRANSACTION_KEY(TokenChars), {?TRANSACTION_TOKEN, TokenChars}).
+
 %terms
 -define(PARSER_BOOLEAN_TOKEN, boolean).
 -define(PARSER_ATOM_TOKEN, atom_value).
@@ -108,6 +127,11 @@
 
 % extras
 -define(PARSER_EQUALITY, {equality, ignore}).
+-define(PARSER_NEQ, {notequality, ignore}).
+-define(PARSER_GREATER, {greater, ignore}).
+-define(PARSER_LESSER, {lesser, ignore}).
+-define(PARSER_GEQ, {greatereq, ignore}).
+-define(PARSER_LEQ, {lessereq, ignore}).
 -define(PARSER_WILDCARD, {wildcard, ignore}).
 
 -define(PARSER_SLIST, {start_list, ignore}).

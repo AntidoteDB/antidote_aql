@@ -1,0 +1,19 @@
+FROM pedromslopes/antidotedb
+
+MAINTAINER Pedro Lopes <pms.lopes@campus.fct.unl.pt>
+
+ENV AQL_NAME "aql@127.0.0.1"
+
+#AQL
+ADD . /opt/AQL/
+# ADD scripts /opt/AQL/scripts
+
+# RUN ls -l /opt/AQL
+
+ADD dockerfiles-local/start_and_attach.sh /opt/
+ADD dockerfiles-local/entrypoint.sh /
+
+RUN chmod a+x /opt/start_and_attach.sh \
+	&& chmod a+x /entrypoint.sh
+
+ENTRYPOINT ["/entrypoint.sh", "/opt/start_and_attach.sh"]

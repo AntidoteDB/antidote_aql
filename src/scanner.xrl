@@ -5,6 +5,11 @@ Definitions.
 
 WhiteSpace = ([\000-\s]|%.*)
 Equality = =
+NotEquality = (<>)
+Greater = >
+Lesser = <
+GreaterEq = (>=)
+LesserEq = (<=)
 CharValues = [A-Za-z]
 WildCard = \*
 IntegerValues = [0-9]
@@ -25,6 +30,7 @@ Rules.
 
 % index related tokens
 (index|INDEX) : {token, ?INDEX_CLAUSE(TokenChars)}.
+(on|ON) : {token, ?ON_KEY(TokenChars)}.
 
 % select query related tokens
 (select|SELECT) : {token, ?SELECT_CLAUSE(TokenChars)}.
@@ -33,6 +39,7 @@ Rules.
 % where clause related tokens
 (where|WHERE) : {token, ?WHERE_CLAUSE(TokenChars)}.
 (and|AND) : {token, ?CONJUNCTIVE_KEY(TokenChars)}.
+(or|OR) : {token, ?DISJUNCTIVE_KEY(TokenChars)}.
 
 % insert query related tokens
 (insert|INSERT) : {token, ?INSERT_CLAUSE(TokenChars)}.
@@ -45,6 +52,12 @@ Rules.
 
 % delete query related tokens
 (delete|DELETE) : {token, ?DELETE_CLAUSE(TokenChars)}.
+
+% transaction related tokens
+(begin|BEGIN) : {token, ?BEGIN_CLAUSE(TokenChars)}.
+(commit|COMMIT) : {token, ?COMMIT_CLAUSE(TokenChars)}.
+(abort|ABORT) : {token, ?ABORT_CLAUSE(TokenChars)}.
+(transaction|TRANSACTION) : {token, ?TRANSACTION_KEY(TokenChars)}.
 
 % conflict resolution policies
 (@aw|@AW) : {token, ?TABLE_POLICY_KEY(?ADD_WINS)}.
@@ -96,6 +109,11 @@ Rules.
 				{token, ?PARSER_NUMBER(N)}.
 
 {Equality} : {token, ?PARSER_EQUALITY}.
+{NotEquality} : {token, ?PARSER_NEQ}.
+{Greater} : {token, ?PARSER_GREATER}.
+{Lesser} : {token, ?PARSER_LESSER}.
+{GreaterEq} : {token, ?PARSER_GEQ}.
+{LesserEq} : {token, ?PARSER_LEQ}.
 {WildCard} : {token, ?PARSER_WILDCARD}.
 {WhiteSpace}+ : skip_token.
 
