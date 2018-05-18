@@ -194,7 +194,7 @@ eval_status(Query, Status) ->
 			%io:fwrite("[Err] ~p: ~p~n", [AQuery, Msg]),
 			{error, Msg};
 		{badrpc, Msg} ->
-			{Error, Desc} = antidote:handleBadRpc(Msg),
+			{_Error, Desc} = antidote:handleBadRpc(Msg),
 			%io:fwrite("[Err] ~p: ~p~n", [Error, Desc]),
 			{error, Desc};
 		Msg ->

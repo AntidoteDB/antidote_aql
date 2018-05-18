@@ -28,7 +28,15 @@ start_link() ->
 
 %% Child :: {Id,StartFunc,Restart,Shutdown,Type,Modules}
 init([]) ->
-    {ok, { {one_for_all, 0, 1}, []} }.
+    ElliOpts = [{callback, aql_http_handler}, {port, 3002}],
+    ElliSpec = {
+        fancy_http,
+        {elli, start_link, [ElliOpts]},
+        permanent,
+        5000,
+        worker,
+        [elli]},
+    {ok, { {one_for_one, 5, 10}, [ElliSpec]} }.
 
 %%====================================================================
 %% Internal functions
