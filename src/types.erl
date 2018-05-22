@@ -5,17 +5,17 @@
 -include("aql.hrl").
 -include_lib("parser.hrl").
 
--export([to_aql/1,
+-export([%to_aql/1,
         to_crdt/2,
         to_parser/1,
         to_insert_op/2]).
 
-to_aql(?CRDT_INTEGER) -> ?AQL_INTEGER;
-to_aql(?CRDT_BOOLEAN) -> ?AQL_BOOLEAN;
-to_aql(?CRDT_BCOUNTER_INT) -> ?AQL_COUNTER_INT;
-to_aql(?CRDT_COUNTER_INT) -> ?AQL_COUNTER_INT;
-to_aql(?CRDT_VARCHAR) -> ?AQL_VARCHAR;
-to_aql(Invalid) -> throw(lists:concat(["No mapping available for: ", Invalid])).
+%%to_aql(?CRDT_INTEGER) -> ?AQL_INTEGER;
+%%to_aql(?CRDT_BOOLEAN) -> ?AQL_BOOLEAN;
+%%to_aql(?CRDT_BCOUNTER_INT) -> ?AQL_COUNTER_INT;
+%%to_aql(?CRDT_COUNTER_INT) -> ?AQL_COUNTER_INT;
+%%to_aql(?CRDT_VARCHAR) -> ?AQL_VARCHAR;
+%%to_aql(Invalid) -> throw(lists:concat(["No mapping available for: ", Invalid])).
 
 to_crdt(?AQL_INTEGER, _) -> ?CRDT_INTEGER;
 to_crdt(?AQL_BOOLEAN, _) -> ?CRDT_BOOLEAN;

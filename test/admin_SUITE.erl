@@ -38,14 +38,14 @@ all() ->
 
 show_tables(_Config) ->
   tutils:create_single_table("ShowTablesTest"),
-  {ok, [Res]} = tutils:aql("SHOW TABLES"),
+  {ok, [Res], _Tx} = tutils:aql("SHOW TABLES"),
   io:fwrite("~p~n", [Res]),
   ?assertEqual(true, is_list(Res)).
 
 show_index(_Config) ->
   tutils:create_single_table("ShowIndexTest"),
-  {ok, []} = tutils:aql("INSERT INTO ShowIndexTest VALUES (1)"),
-  {ok, []} = tutils:aql("INSERT INTO ShowIndexTest VALUES (2)"),
-  {ok, []} = tutils:aql("INSERT INTO ShowIndexTest VALUES (3)"),
-  {ok, [Index]} = tutils:aql("SHOW INDEX FROM ShowIndexTest"),
+  {ok, [], _Tx} = tutils:aql("INSERT INTO ShowIndexTest VALUES (1)"),
+  {ok, [], _Tx} = tutils:aql("INSERT INTO ShowIndexTest VALUES (2)"),
+  {ok, [], _Tx} = tutils:aql("INSERT INTO ShowIndexTest VALUES (3)"),
+  {ok, [Index], _Tx} = tutils:aql("SHOW INDEX FROM ShowIndexTest"),
   ?assertEqual(3, length(Index)).

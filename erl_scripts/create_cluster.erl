@@ -1,13 +1,13 @@
 #!/usr/bin/env escript
-%%! -smp enable -sname cluster -mnesia debug verbose
+%%! -smp enable -name cluster@172.18.0.10 -setcookie antidote
 
--mode(compile).
+%-mode(compile).
 
 main(ConfigFile) ->
 	%% Receives a cluster.config file
 	ReadParameters = read_from_file(hd(ConfigFile), [read], []),
 	
-	{antidote_nodes, Nodes} = lists:keyfind(antidotec_nodes, 1, ReadParameters),
+	{antidote_nodes, Nodes} = lists:keyfind(antidote_nodes, 1, ReadParameters),
 	
 	%% Starting processes
 	lists:foreach(fun(Node) ->

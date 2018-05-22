@@ -13,17 +13,17 @@
 
 % AQL -> CRDT mappings
 -define(AQL_INTEGER, integer).
--define(CRDT_INTEGER, antidote_crdt_integer).
+-define(CRDT_INTEGER, antidote_crdt_register_lww).
 
 -define(AQL_VARCHAR, varchar).
--define(CRDT_VARCHAR, antidote_crdt_lwwreg).
+-define(CRDT_VARCHAR, antidote_crdt_register_lww).
 
 -define(AQL_BOOLEAN, boolean).
 -define(CRDT_BOOLEAN, antidote_crdt_flag_ew).
 
 -define(AQL_COUNTER_INT, counter_int).
--define(CRDT_BCOUNTER_INT, antidote_crdt_bcounter).
--define(CRDT_COUNTER_INT, antidote_crdt_counter).
+-define(CRDT_BCOUNTER_INT, antidote_crdt_counter_b).
+-define(CRDT_COUNTER_INT, antidote_crdt_counter_pn).
 
 % types
 -export_type([]).%complete with private types

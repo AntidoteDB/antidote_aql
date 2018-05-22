@@ -26,27 +26,27 @@
           reference_deleted_fail/1]).
 
 init_per_suite(Config) ->
-  {ok, []} = tutils:create_single_table("FkA"),
-  {ok, []} = tutils:create_fk_table("FkB", "FkA"),
-  {ok, []} = tutils:create_fk_table("FkC", "FkB"),
-  {ok, []} = tutils:create_fk_table("FkD", "FkC"),
+  {ok, [], _Tx} = tutils:create_single_table("FkA"),
+  {ok, [], _Tx} = tutils:create_fk_table("FkB", "FkA"),
+  {ok, [], _Tx} = tutils:create_fk_table("FkC", "FkB"),
+  {ok, [], _Tx} = tutils:create_fk_table("FkD", "FkC"),
   Config.
 
 end_per_suite(Config) ->
   Config.
 
 init_per_testcase(_Case, Config) ->
-    {ok, []} = tutils:aql("INSERT INTO FkA VALUES (1)"),
-    {ok, []} = tutils:aql("INSERT INTO FkB VALUES (1, 1)"),
-    {ok, []} = tutils:aql("INSERT INTO FkB VALUES (2, 1)"),
-    {ok, []} = tutils:aql("INSERT INTO FkC VALUES (1, 1)"),
-    {ok, []} = tutils:aql("INSERT INTO FkC VALUES (2, 1)"),
-    {ok, []} = tutils:aql("INSERT INTO FkD VALUES (1, 1)"),
-    {ok, []} = tutils:aql("INSERT INTO FkD VALUES (2, 1)"),
+    {ok, [], _Tx} = tutils:aql("INSERT INTO FkA VALUES (1)"),
+    {ok, [], _Tx} = tutils:aql("INSERT INTO FkB VALUES (1, 1)"),
+    {ok, [], _Tx} = tutils:aql("INSERT INTO FkB VALUES (2, 1)"),
+    {ok, [], _Tx} = tutils:aql("INSERT INTO FkC VALUES (1, 1)"),
+    {ok, [], _Tx} = tutils:aql("INSERT INTO FkC VALUES (2, 1)"),
+    {ok, [], _Tx} = tutils:aql("INSERT INTO FkD VALUES (1, 1)"),
+    {ok, [], _Tx} = tutils:aql("INSERT INTO FkD VALUES (2, 1)"),
     Config.
 
 end_per_testcase(_, _) ->
-  {ok, []} = tutils:aql("DELETE FROM FkA WHERE ID = 1"),
+  {ok, [], _Tx} = tutils:aql("DELETE FROM FkA WHERE ID = 1"),
   ok.
 
 all() ->
@@ -99,12 +99,12 @@ insert_multilevel(_Config) ->
   tutils:assertState(true, "FkC", "2").
 
 delete_basic(_Config) ->
-  {ok, []} = tutils:delete_by_key("FkA", "1"),
+  {ok, [], _Tx} = tutils:delete_by_key("FkA", "1"),
   tutils:assertState(false, "FkA", "1"),
   tutils:assertState(false, "FkB", "1").
 
 delete_multilevel(_Config) ->
-  {ok, []} = tutils:delete_by_key("FkA", "1"),
+  {ok, [], _Tx} = tutils:delete_by_key("FkA", "1"),
   tutils:assertState(false, "FkA", "1"),
   tutils:assertState(false, "FkB", "1"),
   tutils:assertState(false, "FkB", "2"),
@@ -113,6 +113,6 @@ delete_multilevel(_Config) ->
   tutils:assertState(false, "FkD", "1").
 
 reference_deleted_fail(_Config) ->
-  {ok, []} = tutils:delete_by_key("FkA", "1"),
+  {ok, [], _Tx} = tutils:delete_by_key("FkA", "1"),
   ?assertEqual({error, "Cannot find row 1 in table FkA"}, tutils:aql("INSERT INTO FkB VALUES (2, 1)")),
   ?assertEqual({error, "Cannot find row 1 in table FkB"}, tutils:aql("INSERT INTO FkC VALUES (1, 1)")).

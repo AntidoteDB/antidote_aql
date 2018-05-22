@@ -11,8 +11,10 @@ if [ ! -f /opt/antidote/releases/0.0.1/setup_ok ]; then
   
   cd /opt/AQL/scripts
   cp start_shell.sh start_shell_backup.sh
+  cp rebar_shell.sh rebar_shell_backup.sh
   if [ "$SHORT_NAME" = "true" ]; then
   	sed "s/-name /-sname /" start_shell_backup.sh > start_shell.sh
+  	sed "s/--name=/--sname=/" rebar_shell_backup.sh > rebar_shell.sh
   fi
 fi
 

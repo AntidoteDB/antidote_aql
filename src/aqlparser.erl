@@ -73,7 +73,7 @@ exec([Query | Tail], Acc, Node, Tx) ->
 		ok ->
 			exec(Tail, Acc, Node, Tx);
 		{ok, {begin_tx, Tx2}} ->
-			exec(Tail, lists:append(Acc, [{ok, begin_tx}]), Node, Tx2);
+			exec(Tail, lists:append(Acc, [Res]), Node, Tx2);
 		{ok, {commit_tx, Tx2}} ->
 			CommitRes = commit_transaction({ok, commit_tx}, Tx2),
 			exec(Tail, lists:append(Acc, [CommitRes]), Node, undefined);

@@ -98,7 +98,7 @@ single_map_update(BoundObject, Key, FieldOp) ->
 %% ====================================================================
 
 set_integer(Value) when is_integer(Value) ->
-	{set, Value}.
+	{assign, Value}.
 
 %% ====================================================================
 %% Lwwreg functions

@@ -9,7 +9,7 @@
 -include_lib("eunit/include/eunit.hrl").
 -endif.
 
--define(CRDT_TYPE, antidote_crdt_gmap).
+-define(CRDT_TYPE, antidote_crdt_map_go).
 -define(EL_ANON, none).
 
 -export([primary_key/1, set_primary_key/2,
@@ -58,7 +58,7 @@ create_key(Key, TName) ->
   crdt:create_bound_object(KeyAtom, ?CRDT_TYPE, TName).
 
 st_key() ->
-  ?MAP_KEY('#st', antidote_crdt_mvreg).
+  ?MAP_KEY('#st', antidote_crdt_register_mv).
 
 explicit_state(Data, Rule) ->
   Value = proplists:get_value(st_key(), Data),

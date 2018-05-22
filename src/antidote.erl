@@ -5,19 +5,21 @@
 -module(antidote).
 
 -type key() :: atom().
--type crdt_type() :: antidote_crdt_bcounter % valid antidote_crdt types
-									| antidote_crdt_counter
-									| antidote_crdt_fat_counter
-									| antidote_crdt_gmap
-									| antidote_crdt_gset
-									| antidote_crdt_integer
-									| antidote_crdt_lwwreg
-									| antidote_crdt_map_aw
+-type crdt_type() :: antidote_crdt_counter_b % valid antidote_crdt types
+									| antidote_crdt_counter_pn
+									| antidote_crdt_counter_fat
+									| antidote_crdt_map_go
+									| antidote_crdt_set_go
+									% | antidote_crdt_integer = deprecated
+									| antidote_crdt_register_lww
 									| antidote_crdt_map_rr
-									| antidote_crdt_mvreg
-									| antidote_crdt_orset
-									| antidote_crdt_rga
-									| antidote_crdt_set_rw.
+									| antidote_crdt_register_mv
+									| antidote_crdt_set_aw
+									% | antidote_crdt_rga = deprecated
+									| antidote_crdt_set_rw
+									| antidote_crdt_flag_ew
+									| antidote_crdt_flag_dw.
+
 -type bucket() :: atom().
 -type bound_object() :: {key(), crdt_type(), bucket()}.
 -type bound_objects() :: [bound_object()] | bound_object().

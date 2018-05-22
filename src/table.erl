@@ -8,8 +8,8 @@
 -include("aql.hrl").
 -include("types.hrl").
 
--define(TABLE_META, ?BOUND_OBJECT('#tables', antidote_crdt_gmap, ?METADATA_BUCKET)).
--define(CRDT_TYPE, antidote_crdt_lwwreg).
+-define(TABLE_META, ?BOUND_OBJECT('#tables', antidote_crdt_map_go, ?METADATA_BUCKET)).
+-define(CRDT_TYPE, antidote_crdt_register_lww).
 
 -export([exec/2]).
 

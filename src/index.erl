@@ -7,9 +7,9 @@
 -include("aql.hrl").
 -include("types.hrl").
 
--define(INDEX_CRDT, antidote_crdt_gset).
--define(ITAG_CRDT, antidote_crdt_gmap).
--define(ITAG_KEY_CRDT, antidote_crdt_mvreg).
+-define(INDEX_CRDT, antidote_crdt_set_go).
+-define(ITAG_CRDT, antidote_crdt_map_go).
+-define(ITAG_KEY_CRDT, antidote_crdt_register_mv).
 -define(INDEX_TOKEN, "#_").
 -define(SECONDARY_INDEX_TOKEN, "#2i_").
 -define(TAG_TOKEN, "#__").

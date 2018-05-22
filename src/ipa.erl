@@ -78,9 +78,13 @@ status_test() ->
   List2 = [i, d, tc],
   List3 = [d, d, dc],
   List4 = [i, d, d],
+  List5 = [tc, i, d],
+  List6 = [dc, i, t],
   ?assertEqual(status([d, i, tc, dc, t], List1), d),
   ?assertEqual(status([d, tc, i, t, dc], List2), i),
   ?assertEqual(status([dc, d, tc, t, i], List3), d),
-  ?assertEqual(status([tc, dc, t, d, i], List4), i).
+  ?assertEqual(status([tc, dc, t, d, i], List4), i),
+  ?assertEqual(status([t, dc, tc, i, d], List5), d),
+  ?assertEqual(status([t, dc, tc, i, d], List6), i).
 
 -endif.

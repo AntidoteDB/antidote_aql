@@ -37,13 +37,13 @@ init_per_suite(Config) ->
   TNameTrack = "TrackTest",
   DefaultArtist = 0,
   DefaultAlbum = false,
-  {ok, []} = tutils:aql(lists:concat(["CREATE @AW TABLE ", TNameArtist,
+  {ok, [], _Tx} = tutils:aql(lists:concat(["CREATE @AW TABLE ", TNameArtist,
     " (Name VARCHAR PRIMARY KEY, City VARCHAR,",
     " Awards INTEGER DEFAULT ", DefaultArtist, ");"])),
-  {ok, []} = tutils:aql(lists:concat(["CREATE @AW TABLE ", TNameAlbum,
+  {ok, [], _Tx} = tutils:aql(lists:concat(["CREATE @AW TABLE ", TNameAlbum,
     " (Name VARCHAR PRIMARY KEY,",
     " IsSingle BOOLEAN DEFAULT ", DefaultAlbum, ");"])),
-  {ok, []} = tutils:aql(lists:concat(["CREATE @AW TABLE ", TNameTrack,
+  {ok, [], _Tx} = tutils:aql(lists:concat(["CREATE @AW TABLE ", TNameTrack,
     " (Name VARCHAR PRIMARY KEY, Plays COUNTER_INT CHECK GREATER 0);"
   ])),
   lists:append(Config, [
@@ -89,13 +89,13 @@ all() ->
 select_all(_Config) ->
   TNameEmpty = "EmptyTableTest",
   TNameFull = "FullTableTest",
-  {ok, []} = tutils:create_single_table(TNameEmpty),
-  {ok, []} = tutils:create_single_table(TNameFull),
-  {ok, [[]]} = tutils:select_all(TNameEmpty),
-  {ok, []} = tutils:insert_single(TNameFull, 1),
-  {ok, []} = tutils:insert_single(TNameFull, 2),
-  {ok, []} = tutils:insert_single(TNameFull, 3),
-  {ok, [Res]} = tutils:select_all(TNameFull),
+  {ok, [], _Tx} = tutils:create_single_table(TNameEmpty),
+  {ok, [], _Tx} = tutils:create_single_table(TNameFull),
+  {ok, [[]], _Tx} = tutils:select_all(TNameEmpty),
+  {ok, [], _Tx} = tutils:insert_single(TNameFull, 1),
+  {ok, [], _Tx} = tutils:insert_single(TNameFull, 2),
+  {ok, [], _Tx} = tutils:insert_single(TNameFull, 3),
+  {ok, [Res], _Tx} = tutils:select_all(TNameFull),
   ?assertEqual(3, length(Res)).
 
 insert_artist(Config) ->
@@ -103,7 +103,7 @@ insert_artist(Config) ->
   Artist = "Sam",
   City = "NY",
   Awards = 1,
-  {ok, []} = tutils:aql(?format(insert_artist, [Artist, City, Awards], Config)),
+  {ok, [], _Tx} = tutils:aql(?format(insert_artist, [Artist, City, Awards], Config)),
   SearchKey = lists:concat(["'", Artist, "'"]),
   [Artist, City, Awards] = tutils:read_keys(TName, "Name", SearchKey, ["Name", "City", "Awards"]).
 
@@ -112,7 +112,7 @@ insert_with_default_artist(Config) ->
   Artist = "Mike",
   City = "LS",
   Awards = ?value(default_artist, Config),
-  {ok, []} = tutils:aql(?format(insert_artist_def, [Artist, City], Config)),
+  {ok, [], _Tx} = tutils:aql(?format(insert_artist_def, [Artist, City], Config)),
   SearchKey = lists:concat(["'", Artist, "'"]),
   [Artist, City, Awards] = tutils:read_keys(TName, "Name", SearchKey, ["Name", "City", "Awards"]).
 
@@ -122,19 +122,19 @@ insert_duplicate(Config) ->
   City = "NY",
   Awards = 1,
   Query = ?format(insert_artist, [Artist, City, Awards], Config),
-  {ok, []} = tutils:aql(lists:concat([Query, Query])),
+  {ok, [], _Tx} = tutils:aql(lists:concat([Query, Query])),
   SearchKey = lists:concat(["'", Artist, "'"]),
   [Artist, City, Awards] = tutils:read_keys(TName, "Name", SearchKey, ["Name", "City", "Awards"]).
 
 delete_album(Config) ->
   TName = ?value(tname_album, Config),
   Album = "Hello",
-  {ok, []} = tutils:aql(?format(insert_album, [Album, true], Config)),
-  {ok, []} = tutils:aql(?format(delete_album, [Album], Config)),
+  {ok, [], _Tx} = tutils:aql(?format(insert_album, [Album, true], Config)),
+  {ok, [], _Tx} = tutils:aql(?format(delete_album, [Album], Config)),
   tutils:assertState(false, list_to_atom(TName), Album).
 
 delete_non_existent_album(Config) ->
   TName = ?value(tname_album, Config),
   Album = "IDontExist",
-  {ok, []} = tutils:aql(?format(delete_album, [Album], Config)),
+  {ok, [], _Tx} = tutils:aql(?format(delete_album, [Album], Config)),
   tutils:assertState(false, list_to_atom(TName), Album).

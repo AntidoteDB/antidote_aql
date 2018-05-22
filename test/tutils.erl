@@ -102,7 +102,7 @@ assertNotExists(Key) ->
 read_keys(Table, IdName, ID, Keys) ->
   Join = join_keys(Keys, []),
   Query = ["SELECT ", Join, " FROM ", Table, " WHERE ", IdName, " = ", ID],
-  {ok, [[Res]]} = aql(lists:concat(Query)),
+  {ok, [[Res]], _Tx} = aql(lists:concat(Query)),
   lists:map(fun({_k, V}) -> V end, Res).
 
 read_keys(Table, ID, Keys) ->

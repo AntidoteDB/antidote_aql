@@ -73,7 +73,7 @@ one_level(_Config) ->
   RWTName = "LARw",
   AWQuery = create_query(AWTName, "@AW"),
   RWQuery = create_query(RWTName, "@RW"),
-  {ok, []} = tutils:aql(lists:concat([AWQuery, RWQuery])),
+  {ok, [], _Tx} = tutils:aql(lists:concat([AWQuery, RWQuery])),
   tutils:assert_table_policy(create_crp(?ADD_WINS), AWTName),
   tutils:assert_table_policy(create_crp(?REMOVE_WINS), RWTName).
 
@@ -84,7 +84,7 @@ two_levels(_Config) ->
   AwIrTName = "LBBAwIr",
   RwFrTName = "LBBRwFr",
   RwIrTName = "LBBRwIr",
-  {ok, []} = tutils:aql(lists:concat([
+  {ok, [], _Tx} = tutils:aql(lists:concat([
     create_query(AwTName, "@AW"),
     create_query(RwTName, "@RW"),
     create_query(AwFrTName, AwTName, "@AW", "@FR"),
@@ -112,7 +112,7 @@ three_levels(_Config) ->
   RwIr2TName = "LCCRwIr",
   AwFr2TName = "LCCAwFr",
   RwFr2TName = "LCCRwFr",
-  {ok, []} = tutils:aql(lists:concat([
+  {ok, [], _Tx} = tutils:aql(lists:concat([
     create_query(AwTName, "@AW"),
     create_query(RwTName, "@RW"),
     create_query(AwFr1TName, RwTName, "@AW", "@FR"),
