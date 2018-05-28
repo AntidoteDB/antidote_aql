@@ -1,5 +1,5 @@
 #!/usr/bin/env escript
-%%! -smp enable -name cluster@172.18.0.10 -setcookie antidote
+%%! -smp enable -name cluster@127.0.0.1 -setcookie antidote
 
 %-mode(compile).
 

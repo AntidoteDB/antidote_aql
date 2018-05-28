@@ -1,4 +1,4 @@
-FROM pedromslopes/antidotedb:patch-1.0
+FROM pedromslopes/antidotedb
 
 MAINTAINER Pedro Lopes <pms.lopes@campus.fct.unl.pt>
 
