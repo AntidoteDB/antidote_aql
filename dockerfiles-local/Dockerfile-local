@@ -6,7 +6,8 @@ ENV AQL_NAME "aql@127.0.0.1"
 
 #AQL
 ADD . /opt/AQL/
-RUN chmod a+x /opt/AQL/erl_scripts/create_cluster.erl
+RUN chmod a+x /opt/AQL/erl_scripts/create_cluster.erl \
+	&& chmod a+x /opt/AQL/erl_scripts/populate_index.erl
 
 ADD dockerfiles-local/start_and_attach.sh /opt/
 ADD dockerfiles-local/entrypoint.sh /
