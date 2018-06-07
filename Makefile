@@ -12,23 +12,23 @@ SCRIPTS = ./scripts
 .PHONY: all test clean antidote
 
 shell:
-	chmod u+x $(SCRIPTS)/rebar_shell.sh
+	chmod u+x $(SCRIPTS)/rebar_shell.sh; sync
 	$(SCRIPTS)/rebar_shell.sh
 
 aqlshell: compile
-	chmod u+x $(SCRIPTS)/start_shell.sh
+	chmod u+x $(SCRIPTS)/start_shell.sh; sync
 	$(SCRIPTS)/start_shell.sh
 
 dev_public:
-	chmod u+x $(SCRIPTS)/start_dev_public.sh
+	chmod u+x $(SCRIPTS)/start_dev_public.sh; sync
 	$(SCRIPTS)/start_dev_public.sh
 
 shell_public:
-	chmod u+x $(SCRIPTS)/start_shell_public.sh
+	chmod u+x $(SCRIPTS)/start_shell_public.sh; sync
 	$(SCRIPTS)/start_shell_public.sh
 
 dev:
-	chmod +x $(SCRIPTS)/start_dev.sh
+	chmod +x $(SCRIPTS)/start_dev.sh; sync
 	$(SCRIPTS)/start_dev.sh
 
 compile:
