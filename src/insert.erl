@@ -63,13 +63,13 @@ handle_defaults(Keys, Values, Table) ->
 	end.
 
 read_fks(Fks, _Tables, TxId, false) ->
-	lists:map(fun({_Col, {PTabName, _PTabAttr}, Value} = Fk) ->
+	lists:map(fun({_Col, {PTabName, _PTabAttr}, _DelRule, Value} = Fk) ->
 		TKey = element:create_key(Value, PTabName),
 		{ok, [Data]} = antidote:read_objects(TKey, TxId),
 		{Fk, Data}
 	end, Fks);
 read_fks(Fks, Tables, TxId, true) ->
-	lists:map(fun({_Col, {PTabName, _PTabAttr}, Value} = Fk) ->
+	lists:map(fun({_Col, {PTabName, _PTabAttr}, _DelRule, Value} = Fk) ->
 		TKey = element:create_key(Value, PTabName),
 		Table = table:lookup(PTabName, Tables),
 		{ok, [Data]} = antidote:read_objects(TKey, TxId),
@@ -81,7 +81,7 @@ read_fks(Fks, Tables, TxId, true) ->
 		end
 	end, Fks).
 
-touch({_Col, {PTabName, _PTabAttr}, Value}, Data, Tables, TxId) ->
+touch({_Col, {PTabName, _PTabAttr}, _DelRule, Value}, Data, Tables, TxId) ->
 	TKey = element:create_key(Value, PTabName),
 	antidote:update_objects(crdt:ipa_update(TKey, ipa:touch()), TxId),
 	Table = table:lookup(PTabName, Tables),
@@ -96,7 +96,7 @@ touch_cascade(Data, Table, Tables, TxId) ->
 	TName = table:name(Table),
 	Refs = table:dependants(TName, Tables),
 	lists:foreach(fun({RefTName, RefCols}) ->
-		lists:foreach(fun(?T_FK(FkName, FkType, _TName, CName)) ->
+		lists:foreach(fun(?T_FK(FkName, FkType, _TName, CName, _DeleteRule)) ->
 			Value = element:get(CName, types:to_crdt(FkType, ?IGNORE_OP), Data, Table),
 			index:tag(RefTName, FkName, Value, ipa:touch_cascade(), TxId)
 	 	end, RefCols)

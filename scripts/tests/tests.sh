@@ -2,7 +2,7 @@
 
 CURR_DIR=$PWD
 ANTIDOTE_DIR=~/Desktop/antidote
-ANTIDOTE_REL=$ANTIDOTE_DIR/_build/default/rel/antidote
+ANTIDOTE_REL=$ANTIDOTE_DIR/_build/default/rel
 AQL_DIR=~/Desktop/AQL
 AQL_NAME='aql@127.0.0.1'
 
@@ -20,14 +20,15 @@ EXEC_CMD="erl -pa $AQL_DIR/_build/default/lib/aql/ebin -name $AQL_NAME -setcooki
 function reset_db {
 	echo "> Resetting the database..."
 	# rm -rf $ANTIDOTE_DIR/data.antidote@* && rm -rf $ANTIDOTE_DIR/log.antidote@*
-	rm -rf $ANTIDOTE_REL/data.antidote@* && rm -rf $ANTIDOTE_REL/log.antidote@* && rm -rf $ANTIDOTE_REL/data
+	#rm -rf $ANTIDOTE_REL/data.antidote@* && rm -rf $ANTIDOTE_REL/log.antidote@* && rm -rf $ANTIDOTE_REL/data
+	rm -rf $ANTIDOTE_REL
 }
 
 function start_antidote {
 	echo "> Starting an Antidote node..."
 	killall beam.smp
 	cd $ANTIDOTE_DIR && make rel
-	$ANTIDOTE_REL/bin/env start && tail -f $ANTIDOTE_REL/log/console.log &
+	$ANTIDOTE_REL/antidote/bin/env start && touch $ANTIDOTE_REL/antidote/log/console.log && tail -f $ANTIDOTE_REL/antidote/log/console.log &
 	cd $CURR_DIR
 	sleep 10s
 }

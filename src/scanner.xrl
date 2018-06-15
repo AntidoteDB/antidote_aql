@@ -62,8 +62,8 @@ Rules.
 % conflict resolution policies
 (@aw|@AW) : {token, ?TABLE_POLICY_KEY(?ADD_WINS)}.
 (@rw|@RW) : {token, ?TABLE_POLICY_KEY(?REMOVE_WINS)}.
-(@fr|@FR) : {token, ?DEP_POLICY_KEY(?ADD_WINS)}.
-(@ir|@IR) : {token, ?DEP_POLICY_KEY(?REMOVE_WINS)}.
+(@update-wins|@UPDATE-WINS) : {token, ?DEP_POLICY_KEY(?ADD_WINS)}.
+(@delete-wins|@DELETE-WINS) : {token, ?DEP_POLICY_KEY(?REMOVE_WINS)}.
 
 % update query related tokens
 (update|UPDATE) : {token, ?UPDATE_CLAUSE(TokenChars)}.
@@ -74,9 +74,9 @@ Rules.
 (increment|INCREMENT) : {token, ?INCREMENT_OP(TokenChars)}.
 (decrement|DECREMENT) : {token, ?DECREMENT_OP(TokenChars)}.
 
-% comparators
-(smaller|SMALLER) : {token, ?SMALLER_KEY}.
-(greater|GREATER) : {token, ?GREATER_KEY}.
+% comparators - DEPRECATED
+% (smaller|SMALLER) : {token, ?SMALLER_KEY}.
+% (greater|GREATER) : {token, ?GREATER_KEY}.
 
 % constraints
 (primary|PRIMARY) : {token, ?PRIMARY_KEY(TokenChars)}.
@@ -84,6 +84,7 @@ Rules.
 (key|KEY) : {token, ?KEY_KEY(TokenChars)}.
 (references|REFERENCES) : {token, ?REFERENCES_KEY(TokenChars)}.
 (check|CHECK) : {token, ?CHECK_KEY(TokenChars)}.
+(cascade|CASCADE) : {token, ?CASCADE_CLAUSE(TokenChars)}.
 
 % default
 (default|DEFAULT) : {token, ?DEFAULT_KEY(TokenChars)}.

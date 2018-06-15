@@ -85,7 +85,7 @@ is_visible(Data, Table, TxId) ->
       ipa:is_visible(ExplicitState);
     _Else ->
       Fks = table:shadow_columns(Table),
-      ImplicitState = lists:map(fun(?T_FK(FkName, FkType, _, _)) ->
+      ImplicitState = lists:map(fun(?T_FK(FkName, FkType, _, _, _)) ->
         FkValue = element:get(foreign_keys:to_cname(FkName), types:to_crdt(FkType, ?IGNORE_OP), Data, Table),
         FkState = index:tag_read(TName, FkName, FkValue, TxId),
         ipa:status(Rule, FkState)
@@ -155,7 +155,7 @@ build_fks(Element, TxId) ->
   Table = table(Element),
   Fks = table:shadow_columns(Table),
   Parents = parents(Data, Fks, Table, TxId),
-  lists:foldl(fun(?T_FK(FkName, FkType, _, _), AccElement) ->
+  lists:foldl(fun(?T_FK(FkName, FkType, _, _, _), AccElement) ->
     case length(FkName) of
       1 -> AccElement;
       _Else ->
@@ -167,7 +167,7 @@ build_fks(Element, TxId) ->
   end, Element, Fks).
 
 parents(Data, Fks, Table, TxId) ->
-  lists:foldl(fun(?T_FK(Name, Type, TTName, _), Dict) ->
+  lists:foldl(fun(?T_FK(Name, Type, TTName, _, _), Dict) ->
     case Name of
       [ShCol] ->
         {_FkTable, FkName} = ShCol,
@@ -235,7 +235,7 @@ append(Key, Value, AQL, Constraint, Element) ->
 
 apply_offset(Key, AQL, Constraint, Value) when is_atom(Key) ->
   case {AQL, Constraint} of
-    {?AQL_COUNTER_INT, ?CHECK_KEY({?COMPARATOR_KEY(Comp), Offset})} ->
+    {?AQL_COUNTER_INT, ?CHECK_KEY({Key, ?COMPARATOR_KEY(Comp), Offset})} ->
       bcounter:to_bcounter(Key, Value, Offset, Comp);
     _Else -> Value
   end;
@@ -247,9 +247,9 @@ foreign_keys(Fks, Element) when is_tuple(Element) ->
   foreign_keys(Fks, Data, TName).
 
 foreign_keys(Fks, Data, TName) ->
-  lists:map(fun({{CName, CType}, {FkTable, FkAttr}}) ->
+  lists:map(fun(?T_FK(CName, CType, FkTable, FkAttr, DeleteRule)) ->
     Value = get(CName, types:to_crdt(CType, ?IGNORE_OP), Data, TName),
-    {{CName, CType}, {FkTable, FkAttr}, Value}
+    {{CName, CType}, {FkTable, FkAttr}, DeleteRule, Value}
   end, Fks).
 
 %%====================================================================

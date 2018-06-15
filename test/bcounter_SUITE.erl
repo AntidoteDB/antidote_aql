@@ -34,12 +34,12 @@ init_per_suite(Config) ->
   BoundSmallerA = 5,
   BoundSmallerB = 15,
   Query = ["CREATE @AW TABLE ", TNameGreater, " (ID INT PRIMARY KEY, ",
-  "bcA COUNTER_INT CHECK GREATER ", BoundGreaterA, ", ",
-  "bcB COUNTER_INT CHECK GREATER ", BoundGreaterB,
+  "bcA COUNTER_INT CHECK (bcA > ", BoundGreaterA, "), ",
+  "bcB COUNTER_INT CHECK (bcB > ", BoundGreaterB, ")",
   ");",
   "CREATE @AW TABLE ", TNameSmaller, " (ID INT PRIMARY KEY, ",
-  "bcA COUNTER_INT CHECK SMALLER ", BoundSmallerA, ", ",
-  "bcB COUNTER_INT CHECK SMALLER ", BoundSmallerB,
+  "bcA COUNTER_INT CHECK (bcA < ", BoundSmallerA, "), ",
+  "bcB COUNTER_INT CHECK (bcB < ", BoundSmallerB, ")",
   ");"],
   {ok, [], _Tx} = tutils:aql(lists:concat(Query)),
   lists:append(Config, [
@@ -84,7 +84,7 @@ greater_insert_basic(Config) ->
   [V1, V2] = tutils:read_keys(?value(tname_greater, Config), Key, ["bcA, bcB"]),
   ?assertEqual(BcA, V1),
   ?assertEqual(BcB, V2),
-  reset_counters(Key, ?GREATER_TOKEN, BcA, BcB, Config),
+  reset_counters(Key, ?PARSER_GREATER, BcA, BcB, Config),
   [V3, V4] = tutils:read_keys(?value(tname_greater, Config), Key, ["bcA, bcB"]),
   ?assertEqual(BoundA, V3),
   ?assertEqual(BoundB, V4).
@@ -115,7 +115,7 @@ greater_update_basic(Config) ->
   [V3, V4] = tutils:read_keys(TName, Key, ["bcA", "bcB"]),
   ?assertEqual(BoundA+1, V3),
   ?assertEqual(BoundB+1, V4),
-  reset_counters(Key, ?GREATER_TOKEN, BoundA+1, BoundB+1, Config).
+  reset_counters(Key, ?PARSER_GREATER, BoundA+1, BoundB+1, Config).
 
 greater_update_fail(Config) ->
   TName = ?value(tname_greater, Config),
@@ -136,7 +136,7 @@ greater_update_fail(Config) ->
   [V1, V2] = tutils:read_keys(TName, Key, ["bcA", "bcB"]),
   ?assertEqual(BoundA+2, V1), % assert value does not change on fail
   ?assertEqual(BoundB+2, V2),
-  reset_counters(Key, ?GREATER_TOKEN, BoundA+2, BoundB+2, Config).
+  reset_counters(Key, ?PARSER_GREATER, BoundA+2, BoundB+2, Config).
 
 smaller_insert_basic(Config) ->
   TName = ?value(tname_smaller, Config),
@@ -147,7 +147,7 @@ smaller_insert_basic(Config) ->
   [V1, V2] = tutils:read_keys(TName, Key, ["bcA", "bcB"]),
   ?assertEqual(BoundA-1, V1),
   ?assertEqual(BoundB-1, V2),
-  reset_counters(Key, ?SMALLER_TOKEN, BoundA-1, BoundB-1, Config).
+  reset_counters(Key, ?PARSER_LESSER, BoundA-1, BoundB-1, Config).
 
 smaller_insert_fail(Config) ->
   BoundA = ?value(bound_smaller_a, Config),
@@ -173,7 +173,7 @@ smaller_update_basic(Config) ->
   [V3, V4] = tutils:read_keys(TName, Key, ["bcA", "bcB"]),
   ?assertEqual(BoundA-3, V3),
   ?assertEqual(BoundB-5, V4),
-  reset_counters(Key, ?SMALLER_TOKEN, BoundA-3, BoundB-5, Config).
+  reset_counters(Key, ?PARSER_LESSER, BoundA-3, BoundB-5, Config).
 
 smaller_update_fail(Config) ->
   TName = ?value(tname_smaller, Config),
@@ -193,7 +193,7 @@ smaller_update_fail(Config) ->
   [V3, V4] = tutils:read_keys(TName, Key, ["bcA", "bcB"]),
   ?assertEqual(BoundA-2, V3), % assert value does not change on fail
   ?assertEqual(BoundB-2, V4),
-  reset_counters(Key, ?SMALLER_TOKEN, BoundA-2, BoundB-2, Config).
+  reset_counters(Key, ?PARSER_LESSER, BoundA-2, BoundB-2, Config).
 
 %% ====================================================================
 %% Utils functions
@@ -206,12 +206,12 @@ reset_counters(Key, Comp, BcA, BcB, Config) ->
   ct:log(info, lists:concat(["Reseting countets: ", Query])),
   {ok, [], _Tx} = tutils:aql(Query).
 
-update_key(?GREATER_TOKEN) -> update_greater;
-update_key(?SMALLER_TOKEN) -> update_smaller.
+update_key(?PARSER_GREATER) -> update_greater;
+update_key(?PARSER_LESSER) -> update_smaller.
 
-gen_reset_updates(Key, ?GREATER_TOKEN, BcA, BcB) ->
+gen_reset_updates(Key, ?PARSER_GREATER, BcA, BcB) ->
   gen_reset_updates(Key, "DECREMENT", BcA, BcB);
-gen_reset_updates(Key, ?SMALLER_TOKEN, BcA, BcB) ->
+gen_reset_updates(Key, ?PARSER_LESSER, BcA, BcB) ->
   gen_reset_updates(Key, "INCREMENT", BcA, BcB);
 gen_reset_updates(Key, Op, BcA, BcB) ->
   [
@@ -226,11 +226,11 @@ invert(Comp, BcA, BcB, Config) ->
   InvBcB = bcounter:to_bcounter(none, BcB, OffB, Comp),
   {InvBcA, InvBcB}.
 
-offset(?GREATER_TOKEN, Config) ->
+offset(?PARSER_GREATER, Config) ->
   OffA = ?value(bound_greater_a, Config),
   OffB = ?value(bound_greater_b, Config),
   {OffA, OffB};
-offset(?SMALLER_TOKEN, Config) ->
+offset(?PARSER_LESSER, Config) ->
   OffA = ?value(bound_smaller_a, Config),
   OffB = ?value(bound_smaller_b, Config),
   {OffA, OffB}.

@@ -8,8 +8,8 @@
 -define(T_COL(Name, Type, Constraint), {Name, Type, Constraint}).
 -define(is_column(Column), is_tuple(Column) andalso tuple_size(Column) =:= 3).
 
--define(T_FK(SName, SType, TTName, TName), {{SName, SType}, {TTName, TName}}).
--define(is_fk(Fk), is_tuple(Fk) andalso tuple_size(Fk) =:= 2).
+-define(T_FK(SName, SType, TTName, TName, OnDelete), {{SName, SType}, {TTName, TName}, OnDelete}).
+-define(is_fk(Fk), is_tuple(Fk) andalso tuple_size(Fk) =:= 3).
 
 -define(T_CRP(TableLevel, DepLevel, PDepLevel), {TableLevel, DepLevel, PDepLevel}).
 -define(is_crp(Crp), is_tuple(Crp) andalso tuple_size(Crp) =:= 3).

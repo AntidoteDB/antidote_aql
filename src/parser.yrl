@@ -16,7 +16,7 @@ insert_query insert_keys_clause insert_keys insert_values_clause insert_values
 %delete
 delete_query
 %create
-create_query create_keys attribute attribute_constraint create_index_keys
+create_query create_keys attribute attribute_constraint create_index_keys check_comparator
 attribute_name
 %update
 update_query set_clause set_assignments set_assignment
@@ -46,7 +46,7 @@ insert into values
 delete
 %create
 create table table_policy primary foreign key references default check
-attribute_type dep_policy
+attribute_type dep_policy cascade
 %update
 update set
 %tx
@@ -54,7 +54,7 @@ begin commit abort transaction
 %types
 atom_value string number boolean
 %expression
-assign increment decrement comparator conjunctive disjunctive
+assign increment decrement conjunctive disjunctive
 %list
 sep start_list end_list semi_colon
 .
@@ -288,19 +288,26 @@ attribute_constraint ->
 
 attribute_constraint ->
 	foreign key dep_policy references atom start_list atom end_list :
-	?FOREIGN_KEY({'$5', '$7', unwrap_type('$3')}).
+	?FOREIGN_KEY({'$5', '$7', unwrap_type('$3'), ?RESTRICT_TOKEN}).
+
+attribute_constraint ->
+	foreign key dep_policy references atom start_list atom end_list on delete cascade :
+	?FOREIGN_KEY({'$5', '$7', unwrap_type('$3'), ?CASCADE_TOKEN}).
 
 attribute_constraint ->
 	default value :
 	?DEFAULT_KEY('$2').
 
 attribute_constraint ->
-	check comparator number_unwrap :
-	?CHECK_KEY({'$2', '$3'}).
+	check start_list attribute_name check_comparator number_unwrap end_list :
+	?CHECK_KEY({'$3', '$4', '$5'}).
 
 attribute_name ->
 	atom :
 	'$1'.
+
+check_comparator -> greater : ?GREATER_KEY.
+check_comparator -> lesser : ?SMALLER_KEY.
 
 create_index_keys ->
 	create_index_keys sep atom :
@@ -406,10 +413,13 @@ create_table_def_test() ->
 	test_parser("CREATE @AW TABLE Test (a VARCHAR, b VARCHAR DEFAULT 'example')").
 
 create_table_check_test() ->
-	test_parser("CREATE @AW TABLE Test(a INTEGER, b COUNTER_INT CHECK GREATER 0)").
+	test_parser("CREATE @AW TABLE Test(a INTEGER, b COUNTER_INT CHECK (b > 0))").
 
 create_table_fk_test() ->
-	test_parser("CREATE @AW TABLE Test (a VARCHAR, b INTEGER FOREIGN KEY @FR REFERENCES TestB(b))").
+	test_parser("CREATE @AW TABLE Test (a VARCHAR, b INTEGER FOREIGN KEY @UPDATE-WINS REFERENCES TestB(b))").
+
+create_table_fk_cascade_test() ->
+    test_parser("CREATE @RW TABLE TestA (a VARCHAR, b INTEGER FOREIGN KEY @DELETE-WINS REFERENCES TestB(b) ON DELETE CASCADE)").
 
 create_index_simple_test() ->
     test_parser("CREATE INDEX TestIdx ON Table (a)"),

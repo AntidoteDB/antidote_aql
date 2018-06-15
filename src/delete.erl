@@ -40,7 +40,7 @@ delete_cascade(Key, Table, Tables, TxId) ->
 		_Else ->
 			Refs = table:dependants(TName, Tables),
 			lists:foreach(fun({RefTName, RefCols}) ->
-				lists:foreach(fun(?T_FK(FkName, FkType, _TName, CName)) ->
+				lists:foreach(fun(?T_FK(FkName, FkType, _TName, CName, _DeleteRule)) ->
 					Value = element:get(CName, types:to_crdt(FkType, ?IGNORE_OP), Data, Table),
 					index:tag(RefTName, FkName, Value, ipa:delete_cascade(), TxId)
 				end, RefCols)

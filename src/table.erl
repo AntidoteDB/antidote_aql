@@ -57,7 +57,7 @@ prepare_table(Table, Tables, TxId) ->
  	end, undefined, Crps),
 	Ops = lists:foldl(fun({CName, _Rule}, CurrentOps) ->
 		Col = maps:get(CName, Cols),
-		?FOREIGN_KEY({T1TName, _T1CName}) = column:constraint(Col),
+		?FOREIGN_KEY({T1TName, _T1CName, _DeleteRule}) = column:constraint(Col),
 		T1Table = lookup(T1TName, Tables),
 		T1Policy = policy(T1Table),
 		T1Policy1 = crp:set_p_dep_level(DepRule, T1Policy),
@@ -87,8 +87,8 @@ prepare_cols(Table) ->
 prepare_foreign_keys(Table, Tables) ->
 	TName = table:name(Table),
 	FKs = foreign_keys:from_table(Table),
-	ShadowCols = lists:map(fun (?T_FK(FkName, FkType, T1TName, T1CName)) ->
-		ShFk = ?T_FK([{TName, FkName}], FkType, T1TName, T1CName),
+	ShadowCols = lists:map(fun (?T_FK(FkName, FkType, T1TName, T1CName, T1DeleteRule)) ->
+		ShFk = ?T_FK([{TName, FkName}], FkType, T1TName, T1CName, T1DeleteRule),
 		Err1 = ["Table ", T1TName, " in foreign key reference does not exist."],
 		Err2 = ["Column ", T1CName, " does not exist in table ", T1TName],
 		TargetTable = lookup(T1TName, Tables, lists:concat(Err1)),
@@ -96,9 +96,9 @@ prepare_foreign_keys(Table, Tables) ->
 		case column:is_primary_key(TargetCol) of
 			false -> throw("Foreign keys can only reference unique columns");
 			_Else ->
-				ParentFks = lists:map(fun(?T_FK(TFkName, TFKType, TFKTName, TFKTColName)) ->
+				ParentFks = lists:map(fun(?T_FK(TFkName, TFKType, TFKTName, TFKTColName, TFKDeleteRule)) ->
 					TFKName1 = lists:append([{TName, FkName}], TFkName),
-					?T_FK(TFKName1, TFKType, TFKTName, TFKTColName)
+					?T_FK(TFKName1, TFKType, TFKTName, TFKTColName, TFKDeleteRule)
 				end, shadow_columns(TargetTable)),
 				lists:append([ShFk], ParentFks)
 		end
@@ -144,7 +144,7 @@ dependants(TName, [{{T1TName, _}, Table} | Tables], Acc) ->
 	end;
 dependants(_TName, [], Acc) -> Acc.
 
-references(TName, [?T_FK(_, _, TName, _) = Fk | Fks], Acc) ->
+references(TName, [?T_FK(_, _, TName, _, _) = Fk | Fks], Acc) ->
 	references(TName, Fks, lists:append(Acc, [Fk]));
 references(TName, [_ | Fks], Acc) ->	references(TName, Fks, Acc);
 references(_TName, [], Acc) -> Acc.

@@ -20,8 +20,8 @@ from_column(Column) ->
 	Name = column:name(Column),
 	Type = column:type(Column),
 	Constraint = column:constraint(Column),
-	?FOREIGN_KEY({TName, Attr}) = Constraint,
-	?T_FK(Name, Type, TName, Attr).
+	?FOREIGN_KEY({TName, Attr, DeleteRule}) = Constraint,
+	?T_FK(Name, Type, TName, Attr, DeleteRule).
 
 from_columns(Columns) ->
 	Fks = maps:filter(fun (_CName, Col) ->

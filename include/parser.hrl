@@ -60,14 +60,20 @@
 -define(KEY_KEY(TokenChars), {?KEY_TOKEN, TokenChars}).
 -define(REFERENCES_TOKEN, references).
 -define(REFERENCES_KEY(TokenChars), {?REFERENCES_TOKEN, TokenChars}).
+-define(CASCADE_TOKEN, cascade).
+-define(CASCADE_CLAUSE(TokenChars), {?CASCADE_TOKEN, TokenChars}).
+-define(RESTRICT_TOKEN, restrict).
+
 %% check constraint
 -define(CHECK_TOKEN, check).
 -define(CHECK_KEY(TokenChars), {?CHECK_TOKEN, TokenChars}).
 -define(COMPARATOR_KEY(Comparator), {comparator, Comparator}).
--define(GREATER_TOKEN, greater).
--define(GREATER_KEY, ?COMPARATOR_KEY(?GREATER_TOKEN)).
--define(SMALLER_TOKEN, smaller).
--define(SMALLER_KEY, ?COMPARATOR_KEY(?SMALLER_TOKEN)).
+%-define(GREATER_TOKEN, greater).
+%-define(GREATER_KEY, ?COMPARATOR_KEY(?GREATER_TOKEN)).
+-define(GREATER_KEY, ?COMPARATOR_KEY(?PARSER_GREATER)).
+%-define(SMALLER_TOKEN, smaller).
+%-define(SMALLER_KEY, ?COMPARATOR_KEY(?SMALLER_TOKEN)).
+-define(SMALLER_KEY, ?COMPARATOR_KEY(?PARSER_LESSER)).
 %% default value
 -define(DEFAULT_TOKEN, default).
 -define(DEFAULT_KEY(TokenChars), {?DEFAULT_TOKEN, TokenChars}).

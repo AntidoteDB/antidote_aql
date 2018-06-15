@@ -4,9 +4,9 @@
 
 -module(select).
 
--include_lib("parser.hrl").
--include_lib("aql.hrl").
--include_lib("types.hrl").
+-include("parser.hrl").
+-include("aql.hrl").
+-include("types.hrl").
 
 -define(CONDITION(FieldName, Comparator, Value), {FieldName, Comparator, Value}).
 -define(CONJUNCTION, ?CONJUNCTIVE_KEY("AND")).
@@ -71,7 +71,7 @@ send_offset([Condition | Conds], Cols, Acc) ->
 	Constraint = column:constraint(Column),
 	Type = column:type(Column),
 	case {Type, Constraint} of
-		{?AQL_COUNTER_INT, ?CHECK_KEY({?COMPARATOR_KEY(Comp), Offset})} ->
+		{?AQL_COUNTER_INT, ?CHECK_KEY({_Key, ?COMPARATOR_KEY(Comp), Offset})} ->
 			AQLCounterValue = bcounter:from_bcounter(Comp, Value, Offset),
 			NewCond = ?CONDITION(FieldName, invert_comparator(Comparator), AQLCounterValue),
 			send_offset(Conds, Cols, lists:append(Acc, [NewCond]));
@@ -104,7 +104,7 @@ prepare_filter(Table, Projection, Conditions) ->
 	[TablesField, ProjectionField, ConditionsField].
 
 %% The idea is to build additional conditions that concern visibility.
-%% Those conditions are posteriorly sent to the Antidote node.
+%% Those conditions are then sent to the Antidote node.
 %% Form: ((#st = i OR #st = t) AND fk_col1 <> dc AND fk_col2 <> dc AND ...)
 build_visibility_conditions(Table) ->
   Policy = table:policy(Table),
@@ -127,10 +127,10 @@ implicit_state_conds(Table, Rule) ->
 	ShCols = table:shadow_columns(Table),
 	implicit_state_conds(ShCols, Rule, []).
 
-implicit_state_conds([?T_FK(FkName, _, _, _) | []], Rule, Acc) ->
+implicit_state_conds([?T_FK(FkName, _, _, _, _) | []], Rule, Acc) ->
   Func = ?FUNCTION(find_first, [FkName, Rule]),
 	lists:append(Acc, [{Func, ?PARSER_NEQ, dc}]);
-implicit_state_conds([?T_FK(FkName, _, _, _) | Tail], Rule, Acc) ->
+implicit_state_conds([?T_FK(FkName, _, _, _, _) | Tail], Rule, Acc) ->
   Func = ?FUNCTION(find_first, [FkName, Rule]),
 	NewAcc = lists:append(Acc, [{Func, ?PARSER_NEQ, dc}, ?CONJUNCTION]),
 	implicit_state_conds(Tail, Rule, NewAcc);
@@ -158,7 +158,7 @@ apply_offset([{{Key, Type}, V} | Values], Cols, Acc) ->
   Col = maps:get(Key, Cols),
   Cons = column:constraint(Col),
 	case {Type, Cons} of
-    {?CRDT_BCOUNTER_INT, ?CHECK_KEY({?COMPARATOR_KEY(Comp), Offset})} ->
+    {?CRDT_BCOUNTER_INT, ?CHECK_KEY({_Key, ?COMPARATOR_KEY(Comp), Offset})} ->
 			AQLCounterValue = bcounter:from_bcounter(Comp, V, Offset),
 			NewAcc = lists:append(Acc, [{Key, AQLCounterValue}]),
       apply_offset(Values, Cols, NewAcc);

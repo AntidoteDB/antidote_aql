@@ -44,7 +44,7 @@ init_per_suite(Config) ->
     " (Name VARCHAR PRIMARY KEY,",
     " IsSingle BOOLEAN DEFAULT ", DefaultAlbum, ");"])),
   {ok, [], _Tx} = tutils:aql(lists:concat(["CREATE @AW TABLE ", TNameTrack,
-    " (Name VARCHAR PRIMARY KEY, Plays COUNTER_INT CHECK GREATER 0);"
+    " (Name VARCHAR PRIMARY KEY, Plays COUNTER_INT CHECK (Plays > 0));"
   ])),
   lists:append(Config, [
     {tname_artist, TNameArtist},

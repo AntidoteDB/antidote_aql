@@ -34,7 +34,7 @@ create_fk_table(Name, Pointer) ->
 
 create_fk_table(Name, TPointer, CPointer) ->
   Query = ["CREATE @AW TABLE ", Name,
-    " (ID INT PRIMARY KEY, ", TPointer, " INT FOREIGN KEY @FR REFERENCES ",
+    " (ID INT PRIMARY KEY, ", TPointer, " INT FOREIGN KEY @UPDATE-WINS REFERENCES ",
     TPointer, "(", CPointer, "))"],
   aql(lists:concat(Query)).
 
@@ -62,7 +62,7 @@ print_state(TName, Key) ->
   Table = table:lookup(TNameAtom, TxId),
   {ok, [Data]} = antidote:read_objects(AQLKey, TxId),
   io:fwrite("Tags for ~p(~p)~nData: ~p~n", [TNameAtom, Key, Data]),
-  lists:foreach(fun(?T_FK(FkName, FkType, _, _)) ->
+  lists:foreach(fun(?T_FK(FkName, FkType, _, _, _)) ->
     FkValue = element:get(foreign_keys:to_cname(FkName), types:to_crdt(FkType), Data, Table),
     Tag = index:tag_read(TNameAtom, FkName, FkValue, TxId),
     io:fwrite("Tag(~p): ~p -> ~p~n", [FkValue, index:tag_name(TNameAtom, FkName), Tag])

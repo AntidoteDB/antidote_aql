@@ -18,15 +18,15 @@ to_bcounter(Key, Value, Offset, Comp) ->
 check_bcounter_value(_Key, Value) when Value > 0 -> Value;
 check_bcounter_value(Key, Value) -> throw(lists:concat(["Invalid value ", Value, " for column ", Key])).
 
-apply_offset_value(?GREATER_TOKEN, Offset, Value) -> Value-Offset;
-apply_offset_value(?SMALLER_TOKEN, Offset, Value) -> Offset-Value.
+apply_offset_value(?PARSER_GREATER, Offset, Value) -> Value-Offset;
+apply_offset_value(?PARSER_LESSER, Offset, Value) -> Offset-Value.
 
 from_bcounter(Comp, {_I, _D} = Value, Offset) ->
   BCValue = value(Value),
   from_bcounter(Comp, BCValue, Offset);
-from_bcounter(?GREATER_TOKEN, Value, Offset) ->
+from_bcounter(?PARSER_GREATER, Value, Offset) ->
   Value+Offset;
-from_bcounter(?SMALLER_TOKEN, Value, Offset) -> Offset-Value.
+from_bcounter(?PARSER_LESSER, Value, Offset) -> Offset-Value.
 
 value({Incs, Decs}) ->
   IncsList = orddict:to_list(Incs),
@@ -45,22 +45,22 @@ sum({_Ids, Value}, Acc) -> Value+Acc.
 
 to_bcounter_test() ->
   % greater than
-  ?assertEqual(5, to_bcounter(k, 5, 0, ?GREATER_TOKEN)),
-  ?assertEqual(3, to_bcounter(k, 5, 2, ?GREATER_TOKEN)),
-  ?assertEqual(1, to_bcounter(k, 31, 30, ?GREATER_TOKEN)),
-  ?assertThrow(_, to_bcounter(k, 5, 6, ?GREATER_TOKEN)),
-  ?assertThrow(_, to_bcounter(k, 5, 5, ?GREATER_TOKEN)),
+  ?assertEqual(5, to_bcounter(k, 5, 0, ?PARSER_GREATER)),
+  ?assertEqual(3, to_bcounter(k, 5, 2, ?PARSER_GREATER)),
+  ?assertEqual(1, to_bcounter(k, 31, 30, ?PARSER_GREATER)),
+  ?assertThrow(_, to_bcounter(k, 5, 6, ?PARSER_GREATER)),
+  ?assertThrow(_, to_bcounter(k, 5, 5, ?PARSER_GREATER)),
   % smaller than
-  ?assertEqual(5, to_bcounter(k, 0, 5, ?SMALLER_TOKEN)),
-  ?assertEqual(3, to_bcounter(k, 2, 5, ?SMALLER_TOKEN)),
-  ?assertEqual(1, to_bcounter(k, 30, 31, ?SMALLER_TOKEN)),
-  ?assertThrow(_, to_bcounter(k, 6, 5, ?SMALLER_TOKEN)),
-  ?assertThrow(_, to_bcounter(k, 5, 5, ?SMALLER_TOKEN)).
+  ?assertEqual(5, to_bcounter(k, 0, 5, ?PARSER_LESSER)),
+  ?assertEqual(3, to_bcounter(k, 2, 5, ?PARSER_LESSER)),
+  ?assertEqual(1, to_bcounter(k, 30, 31, ?PARSER_LESSER)),
+  ?assertThrow(_, to_bcounter(k, 6, 5, ?PARSER_LESSER)),
+  ?assertThrow(_, to_bcounter(k, 5, 5, ?PARSER_LESSER)).
 
 from_bcounter_test() ->
   % greater than
-  ?assertEqual(31, from_bcounter(?GREATER_TOKEN, 1, 30)),
+  ?assertEqual(31, from_bcounter(?PARSER_GREATER, 1, 30)),
   % smaller than
-  ?assertEqual(4, from_bcounter(?SMALLER_TOKEN, 1, 5)).
+  ?assertEqual(4, from_bcounter(?PARSER_LESSER, 1, 5)).
 
 -endif.
