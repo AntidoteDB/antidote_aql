@@ -51,7 +51,7 @@ prepare_table(Table, Tables, TxId) ->
 			undefined -> Rule;
 			Rule -> Rule;
 			_Else ->
-				io:fwrite("Warning: Both 'Force-Revive' and 'Ignore-Revive' found. 'Ignore-Revive will prevail."),
+				io:fwrite("Warning: Both 'Update-Wins' and 'Delete-Wins' found. 'Delete-Wins will prevail."),
 				?REMOVE_WINS
 		end
  	end, undefined, Crps),
@@ -76,7 +76,11 @@ prepare_table(Table, Tables, TxId) ->
 	Policy = policy(Table1),
 	Policy1 = crp:set_dep_level(DepRule, Policy),
 	Table2 = set_policy(Policy1, Table1),
-	prepare_foreign_keys(Table2, Tables).
+	Table3 = case crp:dep_level(Policy1) of
+						 ?REMOVE_WINS -> prepare_foreign_keys(Table2, Tables);
+						 _ -> Table2
+					 end,
+	set_indexes([], Table3).
 
 prepare_cols(Table) ->
 	RawCols = columns(Table),
@@ -103,8 +107,7 @@ prepare_foreign_keys(Table, Tables) ->
 				lists:append([ShFk], ParentFks)
 		end
 	end, FKs),
-	Table2 = set_shadow_columns(lists:flatten(ShadowCols), Table),
-	set_indexes([], Table2).
+	set_shadow_columns(lists:flatten(ShadowCols), Table).
 
 create_table_update(Table) ->
 	Name = name(Table),
