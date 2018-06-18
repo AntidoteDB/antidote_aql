@@ -11,7 +11,9 @@
 
 -export([from_table/1,
 			from_columns/1,
-			to_cname/1]).
+			to_cname/1,
+			filter_restrict/1,
+			filter_cascade/1]).
 
 from_table(Table) ->
 	from_columns(table:columns(Table)).
@@ -34,6 +36,24 @@ from_columns(Columns) ->
 
 to_cname([{_TName, CName}]) -> CName;
 to_cname(ShCName) -> ShCName.
+
+filter_restrict(Columns) ->
+	Restrict = maps:filter(fun(_CName, Col) ->
+		column:is_restrict_fk(Col)
+	end, Columns),
+	RestrictList = maps:to_list(Restrict),
+	lists:map(fun({_Name, Column}) ->
+		from_column(Column)
+	end, RestrictList).
+
+filter_cascade(Columns) ->
+	Cascade = maps:filter(fun(_CName, Col) ->
+		column:is_cascade_fk(Col)
+	end, Columns),
+	CascadeList = maps:to_list(Cascade),
+	lists:map(fun({_Name, Column}) ->
+		from_column(Column)
+	end, CascadeList).
 
 %load_chain([{CName, TName} | FkChain], Value, Tables, TxId) ->
 %	Table = table:lookup(TName, Tables),

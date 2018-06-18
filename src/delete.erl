@@ -19,11 +19,11 @@ exec({Table, Tables}, Props, TxId) ->
 	Condition = where(Props),
 	Keys = where:scan(TName, Condition, TxId),
 	lists:foreach(fun (Key) ->
-		case restrict_dependants(Key, Table, Tables, TxId) of
-			[] ->
+		case has_restrict_dependants(Key, Table, Tables, TxId) of
+			false ->
 				delete_cascade(Key, Table, Tables, TxId),
 				antidote:update_objects(crdt:ipa_update(Key, ipa:delete()), TxId);
-			_Else ->
+			true ->
 				{PKey, _, _} = Key,
 				io:format("Error: Cannot delete a parent row: a foreign key constraint fails on deleting value ~p~n", [PKey])
 		end
@@ -54,47 +54,73 @@ delete_cascade(Key, Table, Tables, TxId) ->
 			delete_cascade_dependants(Key, Table, Tables, TxId)
 	end.
 
-restrict_dependants(Key, Table, Tables, TxId) ->
-	restrict_dependants(Key, Table, Tables, TxId, []).
-
-restrict_dependants(Key, Table, [{_TName, Table} | Tables], TxId, Acc) ->
-	restrict_dependants(Key, Table, Tables, TxId, Acc);
-restrict_dependants(Key, Table, [{{T1TName, _}, Table2} | Tables], TxId, Acc) ->
-	TName = table:name(Table),
+has_restrict_dependants(Key, Table, [{_TName, Table} | Tables], TxId) ->
+	has_restrict_dependants(Key, Table, Tables, TxId);
+has_restrict_dependants(Key, Table, [{{_T1TName, _}, Table2} | Tables], TxId) ->
 	Cols = table:columns(Table2),
-	Fks = foreign_keys:from_columns(Cols),
-	Refs = fetch_restrict(Key, TName, Table, T1TName, Fks, TxId, []),
-	case Refs of
-		[] ->
-			restrict_dependants(Key, Table, Tables, TxId, Acc);
+	RestrictFks = foreign_keys:filter_restrict(Cols),
+	RestrictRefs = has_restrict_fk(Key, Table, Table2, RestrictFks, TxId),
+	case RestrictRefs of
+		false ->
+			CascadeFks = foreign_keys:filter_cascade(Cols),
+			CascadeRefs = has_restrict_fk(Key, Table, Table2, Tables, CascadeFks, TxId),
+			case CascadeRefs of
+				false -> has_restrict_dependants(Key, Table, Tables, TxId);
+				true -> true
+			end;
+		true ->	true
+	end;
+has_restrict_dependants(_Key, _Table, [], _TxId) -> false.
+
+has_restrict_fk(Key, Table, RefTable, [?T_FK(Name, Type, TName, _Attr, ?RESTRICT_TOKEN) | Fks], TxId) ->
+	case table:name(Table) of
+		TName ->
+			{PK, _, _} = Key,
+			RefTName = table:name(RefTable),
+			Keys = where:scan(RefTName, ?PARSER_WILDCARD, TxId),
+			FilterDependants = lists:dropwhile(fun(K) ->
+				{ok, [Record]} = antidote:read_objects(K, TxId),
+				case element:is_visible(Record, Table, TxId) of
+					true ->
+						case element:get(Name, types:to_crdt(Type, ?IGNORE_OP), Record, Table) of
+							undefined -> true;
+							Value -> utils:to_atom(Value) =/= PK
+						end;
+					false ->
+						true
+				end
+			end, Keys),
+
+			case FilterDependants of
+				[] ->
+					has_restrict_fk(Key, Table, RefTable, Fks, TxId);
+				[_Dependant | _Rest] -> true
+			end;
 		_Else ->
-			restrict_dependants(Key, Table, Tables, TxId, lists:append(Acc, [{T1TName, Refs}]))
+			has_restrict_fk(Key, Table, RefTable, Fks, TxId)
 	end;
-restrict_dependants(_Key, _Table, [], _TxId, Acc) -> Acc.
+has_restrict_fk(_Key, _Table, _RefTable, [], _TxId) ->
+	false.
 
-fetch_restrict(Key, TName, Table, TDepName, [?T_FK(Name, Type, TName, _Attr, ?RESTRICT_TOKEN) | Fks], TxId, Acc) ->
-	{PK, _, _} = Key,
-	Keys = where:scan(TDepName, ?PARSER_WILDCARD, TxId),
-	FilterDependants = lists:dropwhile(fun(Key) ->
-		{ok, [Record]} = antidote:read_objects(Key, TxId),
-		case element:is_visible(Record, Table, TxId) of
-			true ->
-				case element:get(Name, types:to_crdt(Type, ?IGNORE_OP), Record, Table) of
-					undefined -> true;
-					Value -> utils:to_atom(Value) =/= PK
-				end;
-			false -> true
-		end
-	end, Keys),
+has_restrict_fk(Key, Table, RefTable, Tables, [?T_FK(_Name, _Type, TName, _Attr, ?CASCADE_TOKEN) | Fks], TxId) ->
+	case table:name(Table) of
+		TName ->
+			RefTName = table:name(RefTable),
+			Keys = where:scan(RefTName, ?PARSER_WILDCARD, TxId),
+			FilterDependants = lists:dropwhile(fun(K) ->
+				not has_restrict_dependants(K, RefTable, Tables, TxId)
+			end, Keys),
 
-	case FilterDependants of
-		[] ->
-			fetch_restrict(Key, TName, Table, TDepName, Fks, TxId, Acc);
-		[Dependant | _Rest] ->
-			fetch_restrict(Key, TName, Table, TDepName, Fks, TxId, lists:append(Acc, [Dependant]))
+			case FilterDependants of
+				[] ->
+					has_restrict_fk(Key, Table, RefTable, Fks, TxId);
+				[_Dependant | _Rest] -> true
+			end;
+		_Else ->
+			has_restrict_fk(Key, Table, RefTable, Tables, Fks, TxId)
 	end;
-fetch_restrict(Key, TName, Table, TDepName, [_FK | FKs], TxId, Acc) -> fetch_restrict(Key, TName, Table, TDepName, FKs, TxId, Acc);
-fetch_restrict(_Key, _TName, _Table, _TDepName, [], _TxId, Acc) -> Acc.
+has_restrict_fk(_Key, _Table, _RefTable, _Tables, [], _TxId) ->
+	false.
 
 delete_cascade_dependants(Key, Table, Tables, TxId) ->
 	Policy = table:policy(Table),
@@ -106,11 +132,13 @@ delete_cascade_dependants(Key, Table, Tables, TxId) ->
 				lists:append(AccUpds, crdt:ipa_update(Keys, ipa:delete()))
 			end, [], Dependants),
 			case DeleteUpdates of
-				[] -> ok;
+				[] ->
+					ok;
 				_Else ->
 					antidote:update_objects(DeleteUpdates, TxId)
 			end;
-		_ -> ok
+		_ ->
+			ok
 	end.
 
 cascade_dependants(Key, Table, Tables, TxId) ->
@@ -134,15 +162,16 @@ cascade_dependants(_Key, _Table, [], _TxId, Acc) -> Acc.
 fetch_cascade(Key, TName, Table, TDepName, [?T_FK(Name, Type, TName, _Attr, ?CASCADE_TOKEN) | Fks], TxId, Acc) ->
 	{PK, _, _} = Key,
 	Keys = where:scan(TDepName, ?PARSER_WILDCARD, TxId),
-	FilterDependants = lists:filter(fun(Key) ->
-		{ok, [Record]} = antidote:read_objects(Key, TxId),
+	FilterDependants = lists:filter(fun(K) ->
+		{ok, [Record]} = antidote:read_objects(K, TxId),
 		case element:is_visible(Record, Table, TxId) of
 			true ->
 				case element:get(Name, types:to_crdt(Type, ?IGNORE_OP), Record, Table) of
 					undefined -> true;
 					Value -> utils:to_atom(Value) =:= PK
 				end;
-			false -> true
+			false ->
+				false
 		end
 	end, Keys),
 
@@ -152,5 +181,7 @@ fetch_cascade(Key, TName, Table, TDepName, [?T_FK(Name, Type, TName, _Attr, ?CAS
 		_Else ->
 			fetch_cascade(Key, TName, Table, TDepName, Fks, TxId, lists:append(Acc, FilterDependants))
 	end;
-fetch_cascade(Key, TName, Table, TDepName, [_FK | FKs], TxId, Acc) -> fetch_restrict(Key, TName, Table, TDepName, FKs, TxId, Acc);
-fetch_cascade(_Key, _TName, _Table, _TDepName, [], _TxId, Acc) -> Acc.
+fetch_cascade(Key, TName, Table, TDepName, [_FK | FKs], TxId, Acc) ->
+	fetch_cascade(Key, TName, Table, TDepName, FKs, TxId, Acc);
+fetch_cascade(_Key, _TName, _Table, _TDepName, [], _TxId, Acc) ->
+	Acc.

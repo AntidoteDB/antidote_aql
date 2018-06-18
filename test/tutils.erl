@@ -9,7 +9,8 @@
 
 -export([aql/1,
           create_single_table/1,
-          create_fk_table/2, create_fk_table/3,
+          create_fk_table/2, create_fk_table/3, create_fk_table/4,
+          create_dc_fk_table/2, create_dc_fk_table/3, create_dc_fk_table/4,
           insert_single/2,
           delete_by_key/2,
           read_keys/4, read_keys/3, read_keys/1,
@@ -30,12 +31,25 @@ create_single_table(Name) ->
   aql(lists:concat(Query)).
 
 create_fk_table(Name, Pointer) ->
-  create_fk_table(Name, Pointer, "ID").
+  create_fk_table(Name, Pointer, "ID", "@UPDATE-WINS").
+create_fk_table(Name, Pointer, FK_Policy) ->
+  create_fk_table(Name, Pointer, "ID", FK_Policy).
+create_dc_fk_table(Name, Pointer) ->
+  create_dc_fk_table(Name, Pointer, "ID", "@UPDATE-WINS").
+create_dc_fk_table(Name, Pointer, FK_Policy) ->
+  create_dc_fk_table(Name, Pointer, "ID", FK_Policy).
 
-create_fk_table(Name, TPointer, CPointer) ->
+create_fk_table(Name, TPointer, CPointer, FK_Policy) ->
   Query = ["CREATE @AW TABLE ", Name,
-    " (ID INT PRIMARY KEY, ", TPointer, " INT FOREIGN KEY @UPDATE-WINS REFERENCES ",
+    " (ID INT PRIMARY KEY, ", TPointer, " INT FOREIGN KEY ", FK_Policy, " REFERENCES ",
     TPointer, "(", CPointer, "))"],
+  aql(lists:concat(Query)).
+
+create_dc_fk_table(Name, TPointer, CPointer, FK_Policy) ->
+  Query = ["CREATE @AW TABLE ", Name,
+    " (ID INT PRIMARY KEY, ", TPointer, " INT FOREIGN KEY ", FK_Policy, " REFERENCES ",
+    TPointer, "(", CPointer, ") ",
+    "ON DELETE CASCADE)"],
   aql(lists:concat(Query)).
 
 insert_single(TName, ID) ->
@@ -53,6 +67,8 @@ assertState(State, TName, Key) ->
   {ok, [Res]} = antidote:read_objects(AQLKey, TxId),
   Actual = element:is_visible(Res, Table, TxId),
   antidote:commit_transaction(TxId),
+  %ct:log(info, lists:concat(["State: ", State])),
+  %ct:log(info, lists:concat(["Actual: ", Actual])),
   ?assertEqual(State, Actual).
 
 print_state(TName, Key) ->
@@ -63,7 +79,7 @@ print_state(TName, Key) ->
   {ok, [Data]} = antidote:read_objects(AQLKey, TxId),
   io:fwrite("Tags for ~p(~p)~nData: ~p~n", [TNameAtom, Key, Data]),
   lists:foreach(fun(?T_FK(FkName, FkType, _, _, _)) ->
-    FkValue = element:get(foreign_keys:to_cname(FkName), types:to_crdt(FkType), Data, Table),
+    FkValue = element:get(foreign_keys:to_cname(FkName), types:to_crdt(FkType, ignore), Data, Table),
     Tag = index:tag_read(TNameAtom, FkName, FkValue, TxId),
     io:fwrite("Tag(~p): ~p -> ~p~n", [FkValue, index:tag_name(TNameAtom, FkName), Tag])
   end, table:shadow_columns(Table)),

@@ -19,18 +19,28 @@
 %% API
 %%====================================================================
 
-exec({Table, _Tables}, Props, TxId) ->
+exec({Table, Tables}, Props, TxId) ->
   TName = table:name(Table),
   SetClause = set(Props),
   WhereClause = where(Props),
+
+  StateOp = crdt:field_map_op(element:st_key(), crdt:assign_lww(ipa:insert())),
   FieldUpdates = create_update(Table, [], SetClause),
+
   Keys = where:scan(TName, WhereClause, TxId),
-  MapUpdates = crdt:map_update(Keys, FieldUpdates),
-  case MapUpdates of
+  MapUpdates = crdt:map_update(Keys, lists:append([StateOp], FieldUpdates)),
+  UpdateMsg = case MapUpdates of
     [] -> ok;
     ?IGNORE_OP -> ok;
     _Else ->
       antidote:update_objects(MapUpdates, TxId)
+  end,
+
+  case UpdateMsg of
+    ok ->
+      lists:foreach(fun(Key) -> touch_cascade(Key, Table, Tables, TxId) end, Keys),
+      ok;
+    Msg -> Msg
   end.
 
 table({TName, _Set, _Where}) -> TName.
@@ -100,6 +110,10 @@ resolve_op_counter(Column, Forward, Reverse) ->
 resolve_fail(CName, CType) ->
   Msg = lists:concat(["Cannot assign to column ", CName, " of type ", CType]),
   {err, Msg}.
+
+touch_cascade(Key, Table, Tables, TxId) ->
+  {ok, [Record]} = antidote:read_objects(Key, TxId),
+  insert:touch_cascade(record, Record, Table, Tables, TxId).
 
 %%====================================================================
 %% Eunit tests

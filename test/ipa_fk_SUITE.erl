@@ -11,6 +11,8 @@
 -define(SHADOW_ABC, {[{'FkD','FkC'},{'FkC','FkB'},{'FkB','FkA'}], ?CRDT_INTEGER}).
 -define(SHADOW_BC, {[{'FkD','FkC'},{'FkC','FkB'}], ?CRDT_INTEGER}).
 
+-define(FK_POLICY_AW, "@UPDATE-WINS").
+-define(FK_POLICY_RW, "@DELETE-WINS").
 
 -export([init_per_suite/1,
           end_per_suite/1,
@@ -27,9 +29,9 @@
 
 init_per_suite(Config) ->
   {ok, [], _Tx} = tutils:create_single_table("FkA"),
-  {ok, [], _Tx} = tutils:create_fk_table("FkB", "FkA"),
-  {ok, [], _Tx} = tutils:create_fk_table("FkC", "FkB"),
-  {ok, [], _Tx} = tutils:create_fk_table("FkD", "FkC"),
+  {ok, [], _Tx} = tutils:create_dc_fk_table("FkB", "FkA", ?FK_POLICY_RW),
+  {ok, [], _Tx} = tutils:create_dc_fk_table("FkC", "FkB", ?FK_POLICY_RW),
+  {ok, [], _Tx} = tutils:create_dc_fk_table("FkD", "FkC", ?FK_POLICY_RW),
   Config.
 
 end_per_suite(Config) ->
@@ -69,11 +71,11 @@ indirect_foreign_keys(_Config) ->
 
 create_table_fail(_Config) ->
   % cannot create table that points to a non-existant table
-  ?assertEqual({error, "No such table: FkFTest"}, tutils:create_fk_table("FkETest", "FkFTest")),
+  ?assertEqual({error, "No such table: FkFTest"}, tutils:create_dc_fk_table("FkETest", "FkFTest")),
   % cannot create a table that points to a non-existant column
-  ?assertEqual({error, "Column ABC does not exist in table FkA"}, tutils:create_fk_table("FkETest", "FkA", "ABC")),
+  ?assertEqual({error, "Column ABC does not exist in table FkA"}, tutils:create_dc_fk_table("FkETest", "FkA", "ABC", "@DELETE-WINS")),
   % cannot create a table that points to a non-primary key column
-  ?assertEqual({error, "Foreign keys can only reference unique columns"}, tutils:create_fk_table("FkETest", "FkB", "FkA")).
+  ?assertEqual({error, "Foreign keys can only reference unique columns"}, tutils:create_dc_fk_table("FkETest", "FkB", "FkA", "@DELETE-WINS")).
 
 touch_cascade(_Config) ->
   tutils:assertExists(index:tag_key('FkB', [{'FkB', 'FkA'}])),

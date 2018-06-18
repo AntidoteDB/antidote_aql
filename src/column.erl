@@ -15,6 +15,8 @@
 				is_primary_key/1,
 				is_default/1,
 				is_foreign_key/1,
+				is_restrict_fk/1,
+				is_cascade_fk/1,
 				is_check_valid/1]).
 
 -export([s_primary_key/1,
@@ -41,6 +43,12 @@ is_default(_) -> false.
 
 is_foreign_key(?T_COL(_, _, ?FOREIGN_KEY(_V))) -> true;
 is_foreign_key(_) -> false.
+
+is_restrict_fk(?T_COL(_, _, ?FOREIGN_KEY({_, _, ?RESTRICT_TOKEN}))) -> true;
+is_restrict_fk(_) -> false.
+
+is_cascade_fk(?T_COL(_, _, ?FOREIGN_KEY({_, _, ?CASCADE_TOKEN}))) -> true;
+is_cascade_fk(_) -> false.
 
 is_check_valid(?T_COL(ColName, _, ?CHECK_KEY({ColName, ?COMPARATOR_KEY(_), _}))) -> true;
 is_check_valid(?T_COL(_ColName1, _, ?CHECK_KEY({_ColName2, ?COMPARATOR_KEY(_), _}))) -> false;
