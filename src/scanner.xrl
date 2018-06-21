@@ -30,6 +30,7 @@ Rules.
 
 % index related tokens
 (index|INDEX) : {token, ?INDEX_CLAUSE(TokenChars)}.
+(indexes|INDEXES) : {token, ?INDEXES_CLAUSE(TokenChars)}.
 (on|ON) : {token, ?ON_KEY(TokenChars)}.
 
 % select query related tokens

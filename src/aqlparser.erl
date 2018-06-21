@@ -152,6 +152,22 @@ exec(?SHOW_CLAUSE({?INDEX_TOKEN, TName}), Tx) ->
 		io:fwrite("{key: ~p, table: ~p}~n", [Key, TName])
 	end, Keys),
 	Keys;
+exec(?SHOW_CLAUSE({?INDEX_TOKEN, IndexName, TName}), Tx) ->
+	IndexData = index:s_keys(TName, IndexName, Tx),
+	lists:foreach(fun({IndexedVal, PKeys}) ->
+		PKValOnly = lists:map(fun({Key, _Type, _Bucket}) -> Key end, PKeys),
+		io:fwrite("{column value: ~p, primary keys: ~p}~n", [IndexedVal, PKValOnly])
+	end, IndexData),
+	IndexData;
+exec(?SHOW_CLAUSE({?INDEXES_TOKEN, TName}), Tx) ->
+	Tables = table:read_tables(Tx),
+	Table = table:lookup(TName, Tables),
+	Indexes = table:indexes(Table),
+	lists:foreach(fun(?T_INDEX(Name, _TName, Cols)) ->
+		io:fwrite("{index name: ~p, columns: ~p}~n", [Name, Cols])
+	end, Indexes),
+	Indexes;
+
 exec(?CREATE_CLAUSE(Table), Tx) when ?is_table(Table) ->
 	eval("Create Table", Table, table, Tx);
 exec(?CREATE_CLAUSE(Index), Tx) when ?is_index(Index) ->

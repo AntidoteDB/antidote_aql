@@ -11,7 +11,8 @@
           all/0]).
 
 -export([show_tables/1,
-        show_index/1]).
+        show_index/1,
+        show_indexes/1]).
 
 %% ====================================================================
 %% CT config functions
@@ -30,7 +31,7 @@ end_per_testcase(_, _) ->
   ok.
 
 all() ->
-  [show_tables, show_index].
+  [show_tables, show_index, show_indexes].
 
 %% ====================================================================
 %% Test functions
@@ -49,3 +50,12 @@ show_index(_Config) ->
   {ok, [], _Tx} = tutils:aql("INSERT INTO ShowIndexTest VALUES (3)"),
   {ok, [Index], _Tx} = tutils:aql("SHOW INDEX FROM ShowIndexTest"),
   ?assertEqual(3, length(Index)).
+
+show_indexes(_Config) ->
+  {ok, [], _Tx} = tutils:aql(lists:concat(["CREATE @AW TABLE ShowIndexesTest",
+    " (Pk VARCHAR PRIMARY KEY, X INTEGER, Y VARCHAR, Z BOOLEAN);"])),
+  {ok, [], _Tx} = tutils:aql("CREATE INDEX IndexTestA ON ShowIndexesTest (X)"),
+  {ok, [], _Tx} = tutils:aql("CREATE INDEX IndexTestB ON ShowIndexesTest (Y)"),
+  {ok, [], _Tx} = tutils:aql("CREATE INDEX IndexTestB ON ShowIndexesTest (Z)"),
+  {ok, [Indexes], _Tx} = tutils:aql("SHOW INDEXES FROM ShowIndexesTest"),
+  ?assertEqual(3, length(Indexes)).

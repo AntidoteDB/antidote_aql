@@ -33,7 +33,7 @@ Terminals
 %show
 show tables
 %index
-index on
+index indexes on
 %select
 select wildcard from
 %where
@@ -107,6 +107,14 @@ admin -> show_query : ['$1'].
 show_query ->
 	show index from atom :
 	?SHOW_CLAUSE({?INDEX_TOKEN, '$4'}).
+
+show_query ->
+    show index atom from atom :
+    ?SHOW_CLAUSE({?INDEX_TOKEN, '$3', '$5'}).
+
+show_query ->
+    show indexes from atom :
+    ?SHOW_CLAUSE({?INDEXES_TOKEN, '$4'}).
 
 show_query ->
 	show tables :
@@ -395,7 +403,9 @@ show_tables_test() ->
 	test_parser("SHOW TABLES").
 
 show_index_test() ->
-	test_parser("SHOW INDEX FROM TestTable").
+	test_parser("SHOW INDEX FROM TestTable"),
+	test_parser("SHOW INDEXES FROM TestTable"),
+	test_parser("SHOW INDEX TestIndex FROM TestTable").
 
 create_table_simple_test() ->
 	test_parser("CREATE @AW TABLE Test (a VARCHAR, b INTEGER)"),

@@ -53,6 +53,8 @@ table({_BObj, Table, _Ops, _Data}) -> Table.
 %% Utils functions
 %% ====================================================================
 
+create_key({Key, Type, Bucket}, _TName) ->
+  {Key, Type, Bucket};
 create_key(Key, TName) ->
   KeyAtom = utils:to_atom(Key),
   crdt:create_bound_object(KeyAtom, ?CRDT_TYPE, TName).

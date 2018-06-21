@@ -11,9 +11,10 @@
           create_single_table/1,
           create_fk_table/2, create_fk_table/3, create_fk_table/4,
           create_dc_fk_table/2, create_dc_fk_table/3, create_dc_fk_table/4,
+          create_index/3,
           insert_single/2,
           delete_by_key/2,
-          read_keys/4, read_keys/3, read_keys/1,
+          read_keys/4, read_keys/3, read_keys/1, read_index/2,
           print_state/2,
           select_all/1]).
 
@@ -50,6 +51,10 @@ create_dc_fk_table(Name, TPointer, CPointer, FK_Policy) ->
     " (ID INT PRIMARY KEY, ", TPointer, " INT FOREIGN KEY ", FK_Policy, " REFERENCES ",
     TPointer, "(", CPointer, ") ",
     "ON DELETE CASCADE)"],
+  aql(lists:concat(Query)).
+
+create_index(IndexName, Table, Column) ->
+  Query = ["CREATE INDEX ", IndexName, " ON ", Table, " (", Column, ")"],
   aql(lists:concat(Query)).
 
 insert_single(TName, ID) ->
@@ -129,6 +134,12 @@ read_keys(Keys) ->
   {ok, Res} = antidote:read_objects(Keys, Ref),
   antidote:commit_transaction(Ref),
   Res.
+
+read_index(TName, IndexName) ->
+  {ok, Ref} = antidote:start_transaction(?TEST_SERVER),
+  IndexData = index:s_keys(TName, IndexName, Ref),
+  antidote:commit_transaction(Ref),
+  IndexData.
 
 join_keys([Key | Keys], []) ->
   join_keys(Keys, Key);

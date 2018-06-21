@@ -12,6 +12,8 @@
 % index
 -define(INDEX_TOKEN, index).
 -define(INDEX_CLAUSE(TokenChars), {?INDEX_TOKEN, TokenChars}).
+-define(INDEXES_TOKEN, indexes).
+-define(INDEXES_CLAUSE(TokenChars), {?INDEXES_TOKEN, TokenChars}).
 % on
 -define(ON_TOKEN, on).
 -define(ON_KEY(TokenChars), {?ON_TOKEN, TokenChars}).

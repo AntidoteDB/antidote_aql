@@ -8,10 +8,11 @@
 -include("types.hrl").
 
 -define(INDEX_CRDT, antidote_crdt_set_go).
+-define(SINDEX_CRDT, antidote_crdt_index_go).
 -define(ITAG_CRDT, antidote_crdt_map_go).
 -define(ITAG_KEY_CRDT, antidote_crdt_register_mv).
 -define(INDEX_TOKEN, "#_").
--define(SECONDARY_INDEX_TOKEN, "#2i_").
+-define(SINDEX_TOKEN, "#2i_").
 -define(TAG_TOKEN, "#__").
 
 -ifdef(TEST).
@@ -24,7 +25,9 @@
         cols/1]).
 
 -export([keys/2,
+        s_keys/3,
         name/1,
+        s_name/2,
         put/1, put/2]).
 -export([tag_name/2,
         tag_key/2, tag_subkey/1,
@@ -32,16 +35,16 @@
         tag_read/4]).
 
 exec({Table, _Tables}, Props, TxId) ->
-  IndexName = index(Props),
+  %IndexName = index(Props),
   TableName = table(Props),
   IndexCols = cols(Props),
   TIndexes = table:indexes(Table),
-  case has_index(TIndexes, IndexName) of
-    true ->
-      throw(lists:concat(["The index ", IndexName, " already exists on table ", TableName]));
-    _Else ->
-      ok
-  end,
+  %case has_index(TIndexes, IndexName) of
+  %  true ->
+  %    throw(lists:concat(["The index ", IndexName, " already exists on table ", TableName]));
+  %  _Else ->
+  %    ok
+  %end,
   case check_keys(Table, IndexCols) of
     [] -> ok;
     List ->
@@ -62,9 +65,22 @@ keys(TName, TxId) ->
   {ok, [Res]} = antidote:read_objects(BoundObject, TxId),
   lists:map(fun(Key) -> element:create_key(Key, TName) end, Res).
 
+%% Reads a secondary index
+s_keys(TName, IndexName, TxId) ->
+  BoundObject = crdt:create_bound_object(s_name(TName, IndexName), ?SINDEX_CRDT, ?METADATA_BUCKET),
+  {ok, [Res]} = antidote:read_objects(BoundObject, TxId),
+  Res.
+
 name(TName) ->
   TNameStr = utils:to_list(TName),
   NameStr = lists:concat([?INDEX_TOKEN, TNameStr]),
+  list_to_atom(NameStr).
+
+%% Builds the name of a secondary index
+s_name(TName, IndexName) ->
+  TNameStr = utils:to_list(TName),
+  INameStr = utils:to_list(IndexName),
+  NameStr = lists:concat([?SINDEX_TOKEN, TNameStr, ".", INameStr]),
   list_to_atom(NameStr).
 
 put({Key, _Map, TName}) ->
@@ -102,8 +118,8 @@ tag_read(TName, CName, Value, TxId) ->
 %% Private functions
 %% ====================================================================
 
-has_index(Indexes, IndexName) ->
-  lists:keymember(IndexName, 1, Indexes).
+%has_index(Indexes, IndexName) ->
+%  lists:keymember(IndexName, 1, Indexes).
 
 check_keys(Table, Cols) ->
   TCols = column:s_names(Table),
