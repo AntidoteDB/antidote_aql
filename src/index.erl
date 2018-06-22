@@ -52,7 +52,7 @@ exec({Table, _Tables}, Props, TxId) ->
   end,
   Table2 = set_table_index(lists:append(TIndexes, [Props]), Table),
   TableUpdate = table:create_table_update(Table2),
-  antidote:update_objects(TableUpdate, TxId).
+  ok = antidote:update_objects(TableUpdate, TxId).
 
 index({Name, _TName, _Cols}) -> Name.
 
@@ -88,7 +88,7 @@ put({Key, _Map, TName}) ->
   crdt:add_all(BoundObject, Key).
 
 put(Key, TxId) ->
-  antidote:update_objects(put(Key), TxId).
+  ok = antidote:update_objects(put(Key), TxId).
 
 tag_name(TName, Column) ->
   {TName, Column}.

@@ -22,7 +22,7 @@ exec({Table, Tables}, Props, TxId) ->
 		case has_restrict_dependants(Key, Table, Tables, TxId) of
 			false ->
 				delete_cascade(Key, Table, Tables, TxId),
-				antidote:update_objects(crdt:ipa_update(Key, ipa:delete()), TxId);
+				ok = antidote:update_objects(crdt:ipa_update(Key, ipa:delete()), TxId);
 			true ->
 				{PKey, _, _} = Key,
 				io:format("Error: Cannot delete a parent row: a foreign key constraint fails on deleting value ~p~n", [PKey])
@@ -48,10 +48,10 @@ delete_cascade(Key, Table, Tables, TxId) ->
 			lists:foreach(fun({RefTName, RefCols}) ->
 				lists:foreach(fun(?T_FK(FkName, FkType, _TName, CName, _DeleteRule)) ->
 					Value = element:get(CName, types:to_crdt(FkType, ?IGNORE_OP), Data, Table),
-					index:tag(RefTName, FkName, Value, ipa:delete_cascade(), TxId)
+					ok = index:tag(RefTName, FkName, Value, ipa:delete_cascade(), TxId)
 				end, RefCols)
 			end, Refs),
-			delete_cascade_dependants(Key, Table, Tables, TxId)
+			ok = delete_cascade_dependants(Key, Table, Tables, TxId)
 	end.
 
 has_restrict_dependants(Key, Table, [{_TName, Table} | Tables], TxId) ->

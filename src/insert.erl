@@ -28,7 +28,7 @@ exec({Table, Tables}, Props, TxId) ->
 	AnnElement = element:new(Table),
 	{ok, Element} = element:put(Keys1, Values, AnnElement),
 	Element1 = element:build_fks(Element, TxId),
-	element:insert(Element1, TxId),
+	ok = element:insert(Element1, TxId),
 	%Pk = element:primary_key(Element1),
 	%index:put(Pk, TxId),
 	% update foreign key references
@@ -116,6 +116,6 @@ touch_cascade(Data, Table, Tables, TxId) ->
 	lists:foreach(fun({RefTName, RefCols}) ->
 		lists:foreach(fun(?T_FK(FkName, FkType, _TName, CName, _DeleteRule)) ->
 			Value = element:get(CName, types:to_crdt(FkType, ?IGNORE_OP), Data, Table),
-			index:tag(RefTName, FkName, Value, ipa:touch_cascade(), TxId)
+			ok = index:tag(RefTName, FkName, Value, ipa:touch_cascade(), TxId)
 									end, RefCols)
 								end, Refs).

@@ -41,7 +41,7 @@ write_table(RawTable, TxId) ->
 	Tables = read_tables(TxId),
 	Table = prepare_table(RawTable, Tables, TxId),
 	TableUpdate = create_table_update(Table),
-	antidote:update_objects(TableUpdate, TxId).
+	ok = antidote:update_objects(TableUpdate, TxId).
 
 prepare_table(Table, Tables, TxId) ->
 	{Table1, Crps} = prepare_cols(Table),
@@ -71,7 +71,7 @@ prepare_table(Table, Tables, TxId) ->
 	case Ops of
 		[] -> ok;
 		_Else ->
-			antidote:update_objects(Ops, TxId)
+			ok = antidote:update_objects(Ops, TxId)
 	end,
 	Policy = policy(Table1),
 	Policy1 = crp:set_dep_level(DepRule, Policy),
