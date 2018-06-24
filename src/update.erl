@@ -75,11 +75,13 @@ resolve_op(Column, ?ASSIGN_OP(_TChars), Value) ->
   resolve_op(Column, ?AQL_INTEGER, Op, Value);
 % counter -> increment
 resolve_op(Column, ?INCREMENT_OP(_TChars), Value) ->
-  Op = resolve_op_counter(Column, fun crdt:increment_counter/1, fun crdt:decrement_counter/1),
+  {IncFun, DecFun} = counter_functions(increment, Column),
+  Op = resolve_op_counter(Column, IncFun, DecFun),
   resolve_op(Column, ?AQL_COUNTER_INT, Op, Value);
 % counter -> decrement
 resolve_op(Column, ?DECREMENT_OP(_Tchars), Value) ->
-  Op = resolve_op_counter(Column, fun crdt:decrement_counter/1, fun crdt:increment_counter/1),
+  {DecFun, IncFun} = counter_functions(decrement, Column),
+  Op = resolve_op_counter(Column, DecFun, IncFun),
   resolve_op(Column, ?AQL_COUNTER_INT, Op, Value).
 
 resolve_op(Column, AQL, Op, Value) ->
@@ -106,6 +108,15 @@ resolve_op_counter(Column, Forward, Reverse) ->
     _Else ->
       Forward
   end.
+
+counter_functions(increment, ?T_COL(_, _, ?CHECK_KEY(_))) ->
+  {fun crdt:increment_bcounter/1, fun crdt:decrement_bcounter/1};
+counter_functions(decrement, ?T_COL(_, _, ?CHECK_KEY(_))) ->
+  {fun crdt:decrement_bcounter/1, fun crdt:increment_bcounter/1};
+counter_functions(increment, _) ->
+  {fun crdt:increment_counter/1, fun crdt:decrement_counter/1};
+counter_functions(decrement, _) ->
+  {fun crdt:decrement_counter/1, fun crdt:increment_counter/1}.
 
 resolve_fail(CName, CType) ->
   Msg = lists:concat(["Cannot assign to column ", CName, " of type ", CType]),

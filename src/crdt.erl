@@ -15,6 +15,9 @@
 -export([increment_counter/1,
 				decrement_counter/1]).
 
+-export([increment_bcounter/1,
+				decrement_bcounter/1]).
+
 -export([set_integer/1]).
 
 -export([assign_lww/1]).
@@ -118,15 +121,30 @@ disable_flag() ->
 	{disable, {}}.
 
 %% ====================================================================
-%% Bounded counter functions
+%% Counter functions
 %% ====================================================================
 
 increment_counter(0) -> ?IGNORE_OP;
 increment_counter(Value) when is_integer(Value) ->
-	bcounter_op(increment, Value).
+	counter_op(increment, Value).
 
 decrement_counter(0) -> ?IGNORE_OP;
 decrement_counter(Value) when is_integer(Value) ->
+	counter_op(decrement, Value).
+
+counter_op(Op, Value) ->
+	{Op, Value}.
+
+%% ====================================================================
+%% Bounded counter functions
+%% ====================================================================
+
+increment_bcounter(0) -> ?IGNORE_OP;
+increment_bcounter(Value) when is_integer(Value) ->
+	bcounter_op(increment, Value).
+
+decrement_bcounter(0) -> ?IGNORE_OP;
+decrement_bcounter(Value) when is_integer(Value) ->
 	bcounter_op(decrement, Value).
 
 bcounter_op(Op, Value) ->

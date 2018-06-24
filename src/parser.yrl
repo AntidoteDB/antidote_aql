@@ -315,7 +315,9 @@ attribute_name ->
 	'$1'.
 
 check_comparator -> greater : ?GREATER_KEY.
-check_comparator -> lesser : ?SMALLER_KEY.
+check_comparator -> lesser : ?LESSER_KEY.
+check_comparator -> greatereq : ?GREATEREQ_KEY.
+check_comparator -> lessereq : ?LESSEREQ_KEY.
 
 create_index_keys ->
 	create_index_keys sep atom :
@@ -423,7 +425,10 @@ create_table_def_test() ->
 	test_parser("CREATE @AW TABLE Test (a VARCHAR, b VARCHAR DEFAULT 'example')").
 
 create_table_check_test() ->
-	test_parser("CREATE @AW TABLE Test(a INTEGER, b COUNTER_INT CHECK (b > 0))").
+	test_parser("CREATE @AW TABLE Test(a INTEGER, b COUNTER_INT CHECK (b > 0))"),
+	test_parser("CREATE @AW TABLE Test(a INTEGER, b COUNTER_INT CHECK (b >= 0))"),
+	test_parser("CREATE @AW TABLE Test(a INTEGER, b COUNTER_INT CHECK (b < 0))"),
+	test_parser("CREATE @AW TABLE Test(a INTEGER, b COUNTER_INT CHECK (b <= 0))").
 
 create_table_fk_test() ->
 	test_parser("CREATE @AW TABLE Test (a VARCHAR, b INTEGER FOREIGN KEY @UPDATE-WINS REFERENCES TestB(b))").
@@ -481,5 +486,10 @@ select_where_test() ->
 	test_parser("SELECT a FROM Test WHERE b = 2 AND (c <= 3 OR d = 4)"),
 	test_parser("SELECT a FROM Test WHERE (b >= 2 AND c = 3 OR d <> 4)"),
 	test_parser("SELECT a FROM Test WHERE (b <> 2 AND c < 3) OR d > 4").
+
+transaction_test() ->
+    test_parser("BEGIN TRANSACTION"),
+    test_parser("COMMIT TRANSACTION"),
+    test_parser("ABORT TRANSACTION").
 
 -endif.

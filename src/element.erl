@@ -226,7 +226,7 @@ append(Key, Value, AQL, Constraint, Element) ->
   Ops = ops(Element),
   OffValue = apply_offset(Key, AQL, Constraint, Value),
   OpKey = ?MAP_KEY(Key, types:to_crdt(AQL, Constraint)),
-  OpVal = types:to_insert_op(AQL, OffValue),
+  OpVal = types:to_insert_op(AQL, Constraint, OffValue),
   case OpVal of
     ?IGNORE_OP ->
       Element;

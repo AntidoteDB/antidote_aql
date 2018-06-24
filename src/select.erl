@@ -72,8 +72,13 @@ send_offset([Condition | Conds], Cols, Acc) ->
 	Type = column:type(Column),
 	case {Type, Constraint} of
 		{?AQL_COUNTER_INT, ?CHECK_KEY({_Key, ?COMPARATOR_KEY(Comp), Offset})} ->
-			AQLCounterValue = bcounter:from_bcounter(Comp, Value, Offset),
-			NewCond = ?CONDITION(FieldName, invert_comparator(Comparator), AQLCounterValue),
+			InvertComp = case Comp of
+										 ?PARSER_LESSER -> invert_comparator(Comparator);
+										 ?PARSER_LEQ -> invert_comparator(Comparator);
+										 _ -> Comparator
+									 end,
+			AQLCounterValue = bcounter:to_bcounter(Value, Offset, Comp),
+			NewCond = ?CONDITION(FieldName, InvertComp, AQLCounterValue),
 			send_offset(Conds, Cols, lists:append(Acc, [NewCond]));
 		_Else ->
 			send_offset(Conds, Cols, lists:append(Acc, [Condition]))
@@ -99,7 +104,6 @@ prepare_filter(Table, Projection, Conditions) ->
 	TablesField = ?T_FILTER(tables, [TableName]),
 	ProjectionField = ?T_FILTER(projection, Projection),
 
-	%ConditionsField = ?T_FILTER(conditions, lists:append([VisibilityConds], [Conjunctions])),
 	ConditionsField = ?T_FILTER(conditions, Conjunctions),
 	[TablesField, ProjectionField, ConditionsField].
 
@@ -123,7 +127,6 @@ explicit_state_conds(Rule) ->
 	[ICond, ?DISJUNCTION, TCond].
 
 implicit_state_conds(Table, Rule) ->
-	%TName = table:name(Table),
 	ShCols = table:shadow_columns(Table),
 	implicit_state_conds(ShCols, Rule, []).
 
@@ -242,15 +245,8 @@ group_conjunctions([Comp | Tail], [{disjunctive, _} | Tail2], Curr, Final) ->
 					 false -> Comp
 				 end,
 	group_conjunctions(Tail, Tail2, [Conj], lists:append(Final, [Curr]));
-%group_conjunctions([_ | Tail], Conn, Curr, Final) ->
-%	group_conjunctions(Tail, Conn, Curr, Final);
 group_conjunctions([], [], Curr, Final) ->
 	lists:append(Final, [Curr]).
-
-%tag_conditions(?PARSER_WILDCARD) ->
-%	[];
-%tag_conditions(WhereClause) ->
-
 
 %%====================================================================
 %% Eunit tests

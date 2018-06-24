@@ -8,7 +8,7 @@
 -export([%to_aql/1,
         to_crdt/2,
         to_parser/1,
-        to_insert_op/2]).
+        to_insert_op/3]).
 
 %%to_aql(?CRDT_INTEGER) -> ?AQL_INTEGER;
 %%to_aql(?CRDT_BOOLEAN) -> ?AQL_BOOLEAN;
@@ -30,14 +30,15 @@ to_parser(?AQL_COUNTER_INT) -> ?PARSER_NUMBER_TOKEN;
 to_parser(?AQL_VARCHAR) -> ?PARSER_STRING_TOKEN;
 to_parser(Invalid) -> throw(lists:concat(["No mapping available for: ", Invalid])).
 
-to_insert_op(?AQL_INTEGER, OpParam) -> crdt:set_integer(OpParam);
-to_insert_op(?AQL_BOOLEAN, OpParam) ->
+to_insert_op(?AQL_INTEGER, _, OpParam) -> crdt:set_integer(OpParam);
+to_insert_op(?AQL_BOOLEAN, _, OpParam) ->
   case OpParam of
     "true" ->
       crdt:enable_flag();
     _Else ->
       crdt:disable_flag()
   end;
-to_insert_op(?AQL_COUNTER_INT, OpParam) -> crdt:increment_counter(OpParam);
-to_insert_op(?AQL_VARCHAR, OpParam) -> crdt:assign_lww(OpParam);
-to_insert_op(Invalid, _OpParam) -> throw(lists:concat(["No mapping available for: ", Invalid])).
+to_insert_op(?AQL_COUNTER_INT, {?CHECK_TOKEN, _}, OpParam) -> crdt:increment_bcounter(OpParam);
+to_insert_op(?AQL_COUNTER_INT, _, OpParam) -> crdt:increment_counter(OpParam);
+to_insert_op(?AQL_VARCHAR, _, OpParam) -> crdt:assign_lww(OpParam);
+to_insert_op(Invalid, _Constraint, _OpParam) -> throw(lists:concat(["No mapping available for: ", Invalid])).
