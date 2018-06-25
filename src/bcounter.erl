@@ -17,13 +17,13 @@ to_bcounter(Value, Offset, Comp) ->
   apply_offset_value(Comp, Offset, Value).
 to_bcounter(Key, Value, Offset, Comp) ->
   OffValue = apply_offset_value(Comp, Offset, Value),
-  check_bcounter_value(Comp, Key, OffValue).
+  check_bcounter_value(Comp, Key, OffValue, Value).
 
-check_bcounter_value(?PARSER_GEQ, _Key, Value) when Value >= 0 -> Value;
-check_bcounter_value(?PARSER_LEQ, _Key, Value) when Value >= 0 -> Value;
-check_bcounter_value(?PARSER_GREATER, _Key, Value) when Value >= 0 -> Value;
-check_bcounter_value(?PARSER_LESSER, _Key, Value) when Value >= 0 -> Value;
-check_bcounter_value(_, Key, Value) -> throw(lists:concat(["Invalid value ", Value, " for column ", Key])).
+check_bcounter_value(?PARSER_GEQ, _Key, OffValue, _) when OffValue >= 0 -> OffValue;
+check_bcounter_value(?PARSER_LEQ, _Key, OffValue, _) when OffValue >= 0 -> OffValue;
+check_bcounter_value(?PARSER_GREATER, _Key, OffValue, _) when OffValue >= 0 -> OffValue;
+check_bcounter_value(?PARSER_LESSER, _Key, OffValue, _) when OffValue >= 0 -> OffValue;
+check_bcounter_value(_, Key, _, Value) -> throw(lists:concat(["Invalid value ", Value, " for column ", Key])).
 
 apply_offset_value(?PARSER_GREATER, Offset, Value) -> Value - Offset - 1;
 apply_offset_value(?PARSER_GEQ, Offset, Value) -> Value - Offset;

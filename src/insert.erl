@@ -86,8 +86,13 @@ read_fks(Fks, Tables, TxId, true) ->
 
 touch({_Col, {PTabName, _PTabAttr}, _DelRule, Value}, Data, Tables, TxId) ->
 	TKey = element:create_key(Value, PTabName),
-	antidote:update_objects(crdt:ipa_update(TKey, ipa:touch()), TxId),
 	Table = table:lookup(PTabName, Tables),
+	Policy = table:policy(Table),
+	case crp:p_dep_level(Policy) of
+		?REMOVE_WINS -> ok;
+		_Else -> antidote:update_objects(crdt:ipa_update(TKey, ipa:touch()), TxId)
+	end,
+
 	% touch cascade
 	touch_cascade(Data, Table, Tables, TxId),
 	% touch parents

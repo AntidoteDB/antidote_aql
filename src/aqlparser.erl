@@ -153,12 +153,12 @@ exec(?SHOW_CLAUSE({?INDEX_TOKEN, TName}), Tx) ->
 	end, Keys),
 	Keys;
 exec(?SHOW_CLAUSE({?INDEX_TOKEN, IndexName, TName}), Tx) ->
-	IndexData = index:s_keys(TName, IndexName, Tx),
+	FormattedIndex = index:s_keys_formatted(TName, IndexName, Tx),
 	lists:foreach(fun({IndexedVal, PKeys}) ->
 		PKValOnly = lists:map(fun({Key, _Type, _Bucket}) -> Key end, PKeys),
 		io:fwrite("{column value: ~p, primary keys: ~p}~n", [IndexedVal, PKValOnly])
-	end, IndexData),
-	IndexData;
+	end, FormattedIndex),
+	FormattedIndex;
 exec(?SHOW_CLAUSE({?INDEXES_TOKEN, TName}), Tx) ->
 	Tables = table:read_tables(Tx),
 	Table = table:lookup(TName, Tables),

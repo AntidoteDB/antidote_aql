@@ -1,12 +1,11 @@
 %%%-------------------------------------------------------------------
 %%% @author pedrolopes
-%%% @copyright (C) 2018, <COMPANY>
 %%% @doc
 %%%
 %%% @end
-%%% Created : 18. jun 2018 17:09
+%%% Created : 25. jun 2018 10:14
 %%%-------------------------------------------------------------------
--module(secondary_indexes_SUITE).
+-module(rangequeries_SUITE).
 
 -include_lib("aql.hrl").
 -include_lib("parser.hrl").
@@ -23,22 +22,22 @@
   all/0]).
 
 %% API
--export([insert_data_after/1, insert_data_before/1, bcounter_index/1]).
+-export([basic_range_queries/1, bcounter_range_queries/1]).
 
 init_per_suite(Config) ->
-  TestTable = "TableAIdx",
-  TestTable2 = "TableBCIdx",
+  TestTable = "TableA",
+  TestTable2 = "TableBC",
   {ok, [], _Tx} = tutils:aql(lists:concat(["CREATE @AW TABLE ", TestTable,
     " (X VARCHAR PRIMARY KEY, Y INTEGER);"])),
   {ok, [], _Tx} = tutils:aql(lists:concat(["CREATE @AW TABLE ", TestTable2,
     " (X VARCHAR PRIMARY KEY, Z COUNTER_INT CHECK (Z > 0));"])),
   lists:append(Config,
     [{table, TestTable},
-     {bcounter_table, TestTable2},
-     {indexed_col, "Y"},
-     {bcounter_col, "Z"},
-     {bound_greater, 0},
-     {update_greater, lists:concat(["UPDATE ", TestTable2, " SET Z ~s WHERE X = ~s"])}]).
+      {bcounter_table, TestTable2},
+      {range_col, "Y"},
+      {bcounter_col, "Z"},
+      {bound_greater, 0},
+      {update_greater, lists:concat(["UPDATE ", TestTable2, " SET Z ~s WHERE X = ~s"])}]).
 
 end_per_suite(Config) ->
   Config.
@@ -51,48 +50,62 @@ end_per_testcase(_, _) ->
 
 all() ->
   [
-    insert_data_after,
-    insert_data_before,
-    bcounter_index
+    basic_range_queries,
+    bcounter_range_queries
   ].
 
-insert_data_after(Config) ->
+basic_range_queries(Config) ->
   TestTable = ?value(table, Config),
-  Column = ?value(indexed_col, Config),
-  IdxName = lists:concat([Column, "Idx"]),
+  Column = ?value(range_col, Config),
 
-  {ok, [], _Tx} = tutils:create_index(IdxName, TestTable, Column),
   insert_data(TestTable),
 
-  IndexData = tutils:read_index(TestTable, IdxName),
-  ok = assert_index(IndexData, 4, [5, 10, 15, 20], [[a, e], [b, c], [d], [f, g]]).
+  Greater = {Column, ?PARSER_GREATER, 5},
+  LesserEq = {Column, ?PARSER_LEQ, 15},
+  Equals = {Column, ?PARSER_EQUALITY, 20},
+  Lesser = {Column, ?PARSER_LESSER, 10},
+  NotEq = {Column, ?PARSER_NEQ, 20},
 
-insert_data_before(Config) ->
-  TestTable = ?value(table, Config),
-  Column = ?value(indexed_col, Config),
-  IdxName = lists:concat([Column, "Idx"]),
+  Res1 = exec_query(conjunction, TestTable, Greater, LesserEq),
+  ?assertEqual(3, length(Res1)),
 
-  insert_data(TestTable),
-  {ok, [], _Tx} = tutils:create_index(IdxName, TestTable, Column),
+  Res2 = exec_query(disjunction, TestTable, Equals, Lesser),
+  ?assertEqual(4, length(Res2)),
 
-  IndexData = tutils:read_index(TestTable, IdxName),
-  ok = assert_index(IndexData, 4, [5, 10, 15, 20], [[a, e], [b, c], [d], [f, g]]).
+  Res3 = exec_query(TestTable, NotEq),
+  ?assertEqual(5, length(Res3)),
 
-bcounter_index(Config) ->
+  Res4 = exec_query(conjunction, TestTable, NotEq, Equals),
+  ?assertEqual(0, length(Res4)).
+
+bcounter_range_queries(Config) ->
   TestTable = ?value(bcounter_table, Config),
   Column = ?value(bcounter_col, Config),
-  IdxName = lists:concat([Column, "Idx"]),
 
-  {ok, [], _Tx} = tutils:create_index(IdxName, TestTable, Column),
   insert_data(TestTable),
 
-  IndexData = tutils:read_index(TestTable, IdxName),
-  ok = assert_index(IndexData, 4, [5, 10, 15, 20], [[a, e], [b, c], [d], [f, g]]),
-  %ok = assert_index(IndexData, 4, [4, 9, 14, 19], [[a, e], [b, c], [d], [f, g]]),
+  Greater = {Column, ?PARSER_GREATER, 5},
+  LesserEq = {Column, ?PARSER_LEQ, 15},
+  Equals = {Column, ?PARSER_EQUALITY, 20},
+  Lesser = {Column, ?PARSER_LESSER, 10},
+  NotEq = {Column, ?PARSER_NEQ, 20},
+
+  Res1 = exec_query(conjunction, TestTable, Greater, LesserEq),
+  ?assertEqual(3, length(Res1)),
+
+  Res2 = exec_query(disjunction, TestTable, Equals, Lesser),
+  ?assertEqual(4, length(Res2)),
+
+  Res3 = exec_query(TestTable, NotEq),
+  ?assertEqual(5, length(Res3)),
+
+  Res4 = exec_query(conjunction, TestTable, NotEq, Equals),
+  ?assertEqual(0, length(Res4)),
 
   Keys = ['a', 'b', 'c', 'd', 'e', 'f', 'g'],
   Bounds = [5, 10, 10, 15, 5, 20, 20],
   reset_counters(Keys, ?PARSER_GREATER, Bounds, Config).
+
 
 %% ====================================================================
 %% Internal functions
@@ -107,20 +120,34 @@ insert_data(TableName) ->
   {ok, [], _Tx} = tutils:insert_single(TableName, "'f', 20"),
   {ok, [], _Tx} = tutils:insert_single(TableName, "'g', 20").
 
-assert_index(IndexData, _ExpLen, IdxValues, ExpEntries)
-  when length(IdxValues) == length(ExpEntries) ->
+prepare_range_query(Table, Comp) ->
+  Concat = lists:concat(["SELECT * FROM ", Table, " WHERE ~s;"]),
+  lists:flatten(io_lib:format(Concat, [to_string(Comp)])).
+prepare_range_query(Table, LogicOp, Comp1, Comp2) ->
+  Concat = lists:concat(["SELECT * FROM ", Table, " WHERE ~s ", LogicOp, " ~s;"]),
+  lists:flatten(io_lib:format(Concat, [to_string(Comp1), to_string(Comp2)])).
 
-  %?assertEqual(ExpLen, length(IndexData)),
-  assert_multi(IndexData, IdxValues, ExpEntries).
+exec_query(Table, Comp) ->
+  Query = prepare_range_query(Table, Comp),
+  {ok, [Res], _Tx} = tutils:aql(Query),
+  Res.
+exec_query(conjunction, Table, Comp1, Comp2) ->
+  Query = prepare_range_query(Table, "AND", Comp1, Comp2),
+  {ok, [Res], _Tx} = tutils:aql(Query),
+  Res;
+exec_query(disjunction, Table, Comp1, Comp2) ->
+  Query = prepare_range_query(Table, "OR", Comp1, Comp2),
+  {ok, [Res], _Tx} = tutils:aql(Query),
+  Res.
 
-assert_multi(IndexData, [Val | ValList], [ExpEntry | ExpEntryList]) ->
-  {ok, Entry} = orddict:find(Val, IndexData),
-  PKeys = lists:map(fun({Key, _Type, _Bucket}) -> Key end, ordsets:to_list(Entry)),
-
-  ?assertEqual(ExpEntry, PKeys),
-
-  assert_multi(IndexData, ValList, ExpEntryList);
-assert_multi(_IndexData, [], []) -> ok.
+to_string({Column, CompOp, Value}) ->
+  lists:flatten(io_lib:format("~s ~s ~p", [Column, op_to_string(CompOp), Value])).
+op_to_string(?PARSER_GREATER) -> ">";
+op_to_string(?PARSER_GEQ) -> ">=";
+op_to_string(?PARSER_LESSER) -> "<";
+op_to_string(?PARSER_LEQ) -> "<=";
+op_to_string(?PARSER_EQUALITY) -> "=";
+op_to_string(?PARSER_NEQ) -> "<>".
 
 update_key(?PARSER_GREATER) -> update_greater;
 update_key(?PARSER_LESSER) -> update_smaller.

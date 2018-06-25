@@ -137,7 +137,7 @@ read_keys(Keys) ->
 
 read_index(TName, IndexName) ->
   {ok, Ref} = antidote:start_transaction(?TEST_SERVER),
-  IndexData = index:s_keys(TName, IndexName, Ref),
+  IndexData = index:s_keys_formatted(TName, IndexName, Ref),
   antidote:commit_transaction(Ref),
   IndexData.
 

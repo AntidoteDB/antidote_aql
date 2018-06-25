@@ -6,13 +6,14 @@
 
 -include("aql.hrl").
 -include("types.hrl").
+-include("parser.hrl").
 
 -define(INDEX_CRDT, antidote_crdt_set_go).
 -define(SINDEX_CRDT, antidote_crdt_index_go).
 -define(ITAG_CRDT, antidote_crdt_map_go).
 -define(ITAG_KEY_CRDT, antidote_crdt_register_mv).
--define(INDEX_TOKEN, "#_").
--define(SINDEX_TOKEN, "#2i_").
+-define(INDEX_PREFIX, "#_").
+-define(SINDEX_PREFIX, "#2i_").
 -define(TAG_TOKEN, "#__").
 
 -ifdef(TEST).
@@ -26,9 +27,11 @@
 
 -export([keys/2,
         s_keys/3,
+        s_keys_formatted/3,
         name/1,
         s_name/2,
-        put/1, put/2]).
+        put/1, put/2,
+        lookup_index/2]).
 -export([tag_name/2,
         tag_key/2, tag_subkey/1,
         tag/5,
@@ -71,16 +74,34 @@ s_keys(TName, IndexName, TxId) ->
   {ok, [Res]} = antidote:read_objects(BoundObject, TxId),
   Res.
 
+s_keys_formatted(TName, IndexName, TxId) ->
+  Tables = table:read_tables(TxId),
+  Table = table:lookup(TName, Tables),
+  IndexData = s_keys(TName, IndexName, TxId),
+  {_IndexName, _TableName, [Column]} = lookup_index(IndexName, Table), %% todo support more than one column
+  Col = column:s_get(Table, Column),
+  Type = column:type(Col),
+  Cons = column:constraint(Col),
+  case {Type, Cons} of
+    {?AQL_COUNTER_INT, ?CHECK_KEY({_Key, ?COMPARATOR_KEY(Comp), Offset})} ->
+      lists:map(fun({EntryKey, EntryVal}) ->
+        AQLCounterValue = bcounter:from_bcounter(Comp, EntryKey, Offset),
+        {AQLCounterValue, EntryVal}
+      end, IndexData);
+    _Else ->
+      IndexData
+  end.
+
 name(TName) ->
   TNameStr = utils:to_list(TName),
-  NameStr = lists:concat([?INDEX_TOKEN, TNameStr]),
+  NameStr = lists:concat([?INDEX_PREFIX, TNameStr]),
   list_to_atom(NameStr).
 
 %% Builds the name of a secondary index
 s_name(TName, IndexName) ->
   TNameStr = utils:to_list(TName),
   INameStr = utils:to_list(IndexName),
-  NameStr = lists:concat([?SINDEX_TOKEN, TNameStr, ".", INameStr]),
+  NameStr = lists:concat([?SINDEX_PREFIX, TNameStr, ".", INameStr]),
   list_to_atom(NameStr).
 
 put({Key, _Map, TName}) ->
@@ -89,6 +110,11 @@ put({Key, _Map, TName}) ->
 
 put(Key, TxId) ->
   ok = antidote:update_objects(put(Key), TxId).
+
+lookup_index(IndexName, Table) ->
+  Indexes = table:indexes(Table),
+  IndexNameAtom = utils:to_atom(IndexName),
+  lists:keyfind(IndexNameAtom, 1, Indexes).
 
 tag_name(TName, Column) ->
   {TName, Column}.

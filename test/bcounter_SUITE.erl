@@ -9,7 +9,7 @@
 -include_lib("ct_aql.hrl").
 
 -define(UPDATE_ERROR, {error, "Unexpected error"}).
--define(INSERT_ERROR(Col), {error, "Invalid value 0 for column " ++ Col}).
+-define(INSERT_ERROR(ExpecVal, Col), {error, "Invalid value " ++ ExpecVal ++ " for column " ++ Col}).
 
 -export([init_per_suite/1,
           end_per_suite/1,
@@ -86,15 +86,15 @@ greater_insert_basic(Config) ->
   ?assertEqual(BcB, V2),
   reset_counters(Key, ?PARSER_GREATER, BcA, BcB, Config),
   [V3, V4] = tutils:read_keys(?value(tname_greater, Config), Key, ["bcA, bcB"]),
-  ?assertEqual(BoundA, V3),
-  ?assertEqual(BoundB, V4).
+  ?assertEqual(BoundA + 1, V3),
+  ?assertEqual(BoundB + 1, V4).
 
 greater_insert_fail(Config) ->
   BoundA = ?value(bound_greater_a, Config),
   BoundB = ?value(bound_greater_b, Config),
-  ?assertEqual(?INSERT_ERROR("bcA"), tutils:aql(?format(insert_greater, [10, BoundA, BoundB+1], Config))),
-  ?assertEqual(?INSERT_ERROR("bcB"), tutils:aql(?format(insert_greater, [11, BoundA+1, BoundB], Config))),
-  ?assertEqual(?INSERT_ERROR("bcA"), tutils:aql(?format(insert_greater, [12, BoundA, BoundB-1], Config))).
+  ?assertEqual(?INSERT_ERROR("0", "bcA"), tutils:aql(?format(insert_greater, [10, BoundA, BoundB+1], Config))),
+  ?assertEqual(?INSERT_ERROR("10", "bcB"), tutils:aql(?format(insert_greater, [11, BoundA+1, BoundB], Config))),
+  ?assertEqual(?INSERT_ERROR("0", "bcA"), tutils:aql(?format(insert_greater, [12, BoundA, BoundB-1], Config))).
 
 greater_update_basic(Config) ->
   TName = ?value(tname_greater, Config),
@@ -152,9 +152,9 @@ smaller_insert_basic(Config) ->
 smaller_insert_fail(Config) ->
   BoundA = ?value(bound_smaller_a, Config),
   BoundB = ?value(bound_smaller_b, Config),
-  ?assertEqual(?INSERT_ERROR("bcA"), tutils:aql(?format(insert_smaller, [10, BoundA, BoundB-1], Config))),
-  ?assertEqual(?INSERT_ERROR("bcB"), tutils:aql(?format(insert_smaller, [11, BoundA-1, BoundB], Config))),
-  ?assertEqual(?INSERT_ERROR("bcA"), tutils:aql(?format(insert_smaller, [12, BoundA, BoundB], Config))).
+  ?assertEqual(?INSERT_ERROR("5", "bcA"), tutils:aql(?format(insert_smaller, [10, BoundA, BoundB-1], Config))),
+  ?assertEqual(?INSERT_ERROR("15", "bcB"), tutils:aql(?format(insert_smaller, [11, BoundA-1, BoundB], Config))),
+  ?assertEqual(?INSERT_ERROR("5", "bcA"), tutils:aql(?format(insert_smaller, [12, BoundA, BoundB], Config))).
 
 smaller_update_basic(Config) ->
   TName = ?value(tname_smaller, Config),
@@ -203,7 +203,7 @@ reset_counters(Key, Comp, BcA, BcB, Config) ->
   {InvBcA, InvBcB} = invert(Comp, BcA, BcB, Config),
   Updates = gen_reset_updates(Key, Comp, InvBcA, InvBcB),
   Query = ?format(update_key(Comp), Updates, Config),
-  ct:log(info, lists:concat(["Reseting countets: ", Query])),
+  ct:log(info, lists:concat(["Reseting counters: ", Query])),
   {ok, [], _Tx} = tutils:aql(Query).
 
 update_key(?PARSER_GREATER) -> update_greater;
