@@ -29,31 +29,31 @@ show_index_test() ->
 	test_parser("SHOW INDEX TestIndex FROM TestTable").
 
 create_table_simple_test() ->
-	test_parser("CREATE @AW TABLE Test (a VARCHAR, b INTEGER)"),
-	test_parser("CREATE @AW TABLE Test (a VARCHAR)"),
-	test_parser("CREATE @AW TABLE TestA (a VARCHAR);CREATE @AW TABLE TestB (b INTEGER)").
+	test_parser("CREATE AW TABLE Test (a VARCHAR, b INTEGER)"),
+	test_parser("CREATE AW TABLE Test (a VARCHAR)"),
+	test_parser("CREATE AW TABLE TestA (a VARCHAR);CREATE AW TABLE TestB (b INTEGER)").
 
 create_table_pk_test() ->
-	test_parser("CREATE @AW TABLE Test (a VARCHAR PRIMARY KEY, b INTEGER)"),
-	test_parser("CREATE @AW TABLE Test (a INTEGER PRIMARY KEY, b INTEGER)"),
-	test_parser("CREATE @AW TABLE Test (a BOOLEAN PRIMARY KEY, b INTEGER)").
+	test_parser("CREATE AW TABLE Test (a VARCHAR PRIMARY KEY, b INTEGER)"),
+	test_parser("CREATE AW TABLE Test (a INTEGER PRIMARY KEY, b INTEGER)"),
+	test_parser("CREATE AW TABLE Test (a BOOLEAN PRIMARY KEY, b INTEGER)").
 
 create_table_def_test() ->
-	test_parser("CREATE @AW TABLE Test (a VARCHAR, b INTEGER DEFAULT 5)"),
-	test_parser("CREATE @AW TABLE Test (a VARCHAR, b BOOLEAN DEFAULT false)"),
-	test_parser("CREATE @AW TABLE Test (a VARCHAR, b VARCHAR DEFAULT 'example')").
+	test_parser("CREATE AW TABLE Test (a VARCHAR, b INTEGER DEFAULT 5)"),
+	test_parser("CREATE AW TABLE Test (a VARCHAR, b BOOLEAN DEFAULT false)"),
+	test_parser("CREATE AW TABLE Test (a VARCHAR, b VARCHAR DEFAULT 'example')").
 
 create_table_check_test() ->
-	test_parser("CREATE @AW TABLE Test(a INTEGER, b COUNTER_INT CHECK (b > 0))"),
-	test_parser("CREATE @AW TABLE Test(a INTEGER, b COUNTER_INT CHECK (b >= 0))"),
-	test_parser("CREATE @AW TABLE Test(a INTEGER, b COUNTER_INT CHECK (b < 0))"),
-	test_parser("CREATE @AW TABLE Test(a INTEGER, b COUNTER_INT CHECK (b <= 0))").
+	test_parser("CREATE AW TABLE Test(a INTEGER, b COUNTER_INT CHECK (b > 0))"),
+	test_parser("CREATE AW TABLE Test(a INTEGER, b COUNTER_INT CHECK (b >= 0))"),
+	test_parser("CREATE AW TABLE Test(a INTEGER, b COUNTER_INT CHECK (b < 0))"),
+	test_parser("CREATE AW TABLE Test(a INTEGER, b COUNTER_INT CHECK (b <= 0))").
 
 create_table_fk_test() ->
-	test_parser("CREATE @AW TABLE Test (a VARCHAR, b INTEGER FOREIGN KEY @UPDATE-WINS REFERENCES TestB(b))").
+	test_parser("CREATE AW TABLE Test (a VARCHAR, b INTEGER FOREIGN KEY UPDATE-WINS REFERENCES TestB(b))").
 
 create_table_fk_cascade_test() ->
-    test_parser("CREATE @RW TABLE TestA (a VARCHAR, b INTEGER FOREIGN KEY @DELETE-WINS REFERENCES TestB(b) ON DELETE CASCADE)").
+    test_parser("CREATE RW TABLE TestA (a VARCHAR, b INTEGER FOREIGN KEY DELETE-WINS REFERENCES TestB(b) ON DELETE CASCADE)").
 
 create_index_simple_test() ->
     test_parser("CREATE INDEX TestIdx ON Table (a)"),

@@ -19,10 +19,10 @@
         table/1]).
 
 -export([create_key/2, st_key/0,
-        is_visible/2, is_visible/3]).
+        is_visible/3, is_visible/4]).
 
 -export([new/1, new/2,
-        put/3, build_fks/2,
+        put/3, set_version/2, build_fks/2,
         get/2, get/3, get/4,
         get_by_name/2,
         insert/1, insert/2]).
@@ -62,6 +62,9 @@ create_key(Key, TName) ->
 st_key() ->
   ?MAP_KEY('#st', antidote_crdt_register_mv).
 
+version_key() ->
+  ?MAP_KEY('#version', antidote_crdt_counter_pn).
+
 explicit_state(Data, Rule) ->
   Value = proplists:get_value(st_key(), Data),
   case Value of
@@ -71,14 +74,15 @@ explicit_state(Data, Rule) ->
       ipa:status(Rule, Value)
   end.
 
-is_visible(Element, TxId) when is_tuple(Element) ->
+is_visible(Element, Tables, TxId) when is_tuple(Element) ->
   Data = data(Element),
-  Table = table(Element),
-  is_visible(Data, Table, TxId).
+  TName = table:name(table(Element)),
+  is_visible(Data, TName, Tables, TxId).
 
-is_visible([], _Table, _TxId) -> false;
-is_visible(Data, Table, TxId) ->
-  TName = table:name(Table),
+is_visible([], _TName, _Tables, _TxId) -> false;
+is_visible(Data, TName, Tables, TxId) ->
+  %TName = table:name(Table),
+  Table = table:lookup(TName, Tables),
   Policy = table:policy(Table),
   Rule = crp:get_rule(Policy),
   ExplicitState = explicit_state(Data, Rule),
@@ -87,10 +91,15 @@ is_visible(Data, Table, TxId) ->
       ipa:is_visible(ExplicitState);
     _Else ->
       Fks = table:shadow_columns(Table),
-      ImplicitState = lists:map(fun(?T_FK(FkName, FkType, _, _, _)) ->
+      ImplicitState = lists:map(fun(?T_FK(FkName, FkType, FKTable, _, _)) ->
         FkValue = element:get(foreign_keys:to_cname(FkName), types:to_crdt(FkType, ?IGNORE_OP), Data, Table),
-        FkState = index:tag_read(TName, FkName, FkValue, TxId),
-        ipa:status(Rule, FkState)
+        %FkState = index:tag_read(TName, FkName, FkValue, TxId),
+        FKBoundObj = create_key(FkValue, FKTable),
+        {ok, [FKData]} = antidote:read_objects(FKBoundObj, TxId),
+        FkVersion = element:get('#version', antidote_crdt_counter_pn, FKData, table:lookup(FKTable, Tables)),
+        {FkValue, RefVersion} = element:get(FkName, antidote_crdt_register_lww, Data, Table),
+        FkVersion =:= RefVersion andalso is_visible(FKData, FKTable, Tables, TxId)
+        %ipa:status(Rule, FkState)
       end, Fks),
       ipa:is_visible(ExplicitState, ImplicitState)
   end.
@@ -152,18 +161,45 @@ set_if_primary(Col, Value, Element) ->
       Element
   end.
 
+set_version(Element, TxId) ->
+  VersionKey = version_key(),
+  VersionOp = crdt:increment_counter(1),
+  %VersionOp = crdt:field_map_op(version_key(), crdt:increment_counter(1)),
+  CurrOps = ops(Element),
+  ElemData = data(Element),
+  %set_ops(Element, lists:append([VersionOp], CurrOps)),
+
+  Key = primary_key(Element),
+  {ok, [CurrData]} = antidote:read_objects(Key, TxId),
+  Version = case CurrData of
+              [] -> 1;
+              _Else ->
+                proplists:get_value(VersionKey, CurrData) + 1
+            end,
+
+  Element1 = set_data(Element, lists:append(ElemData, [{VersionKey, Version}])),
+  set_ops(Element1, utils:proplists_upsert(VersionKey, VersionOp, CurrOps)).
+
 build_fks(Element, TxId) ->
   Data = data(Element),
   Table = table(Element),
   Fks = table:shadow_columns(Table),
   Parents = parents(Data, Fks, Table, TxId),
-  lists:foldl(fun(?T_FK(FkName, FkType, _, _, _), AccElement) ->
+  lists:foldl(fun(?T_FK(FkName, FkType, _, FkColName, _), AccElement) ->
     case length(FkName) of
-      1 -> AccElement;
+      1 ->
+        [{_, ParentId}] = FkName,
+        Parent = dict:fetch(ParentId, Parents),
+        Value = get_by_name(foreign_keys:to_cname(FkColName), Parent),
+        ParentVersion = get_by_name('#version', Parent),
+        append(FkName, {Value, ParentVersion}, FkType, ?IGNORE_OP, AccElement);
+        %AccElement;
       _Else ->
         [{_, ParentId} | ParentCol] = FkName,
         Parent = dict:fetch(ParentId, Parents),
         Value = get_by_name(foreign_keys:to_cname(ParentCol), Parent),
+        %ParentVersion = get_by_name('#version', Parent),
+        %append(FkName, {Value, ParentVersion}, FkType, ?IGNORE_OP, AccElement)
         append(FkName, Value, FkType, ?IGNORE_OP, AccElement)
     end
   end, Element, Fks).

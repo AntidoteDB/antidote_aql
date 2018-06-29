@@ -8,8 +8,10 @@
 
 scan(TName, ?PARSER_WILDCARD, TxId) ->
   index:keys(TName, TxId);
-scan(TName, Conditions, _TxId) ->
-  evaluate(TName, Conditions, []).
+scan(TName, Conditions, TxId) ->
+  Keys = evaluate(TName, Conditions, []),
+	filter_keys(Keys, TName, TxId).
+
 
 %% ====================================================================
 %% Internal functions
@@ -25,3 +27,15 @@ evaluate(TName, [{_ClValue, Arop, Value} | T], Acc) ->
 	end;
 evaluate(_TName, [], Acc) ->
 	Acc.
+
+filter_keys(Keys, TName, TxId) ->
+	Index = index:keys(TName, TxId),
+	lists:foldl(fun({K, _T, _B} = Key, AccKeys) ->
+		case lists:keyfind(K, 1, Index) of
+			false ->
+				io:format("Error: Cannot update row with value ~p. Row does not exist.~n", [K]),
+				AccKeys;
+			_Else ->
+				lists:append(AccKeys, [Key])
+		end
+	end, [], Keys).

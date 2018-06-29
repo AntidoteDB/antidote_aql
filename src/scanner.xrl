@@ -61,10 +61,10 @@ Rules.
 (transaction|TRANSACTION) : {token, ?TRANSACTION_KEY(TokenChars)}.
 
 % conflict resolution policies
-(@aw|@AW) : {token, ?TABLE_POLICY_KEY(?ADD_WINS)}.
-(@rw|@RW) : {token, ?TABLE_POLICY_KEY(?REMOVE_WINS)}.
-(@update-wins|@UPDATE-WINS) : {token, ?DEP_POLICY_KEY(?ADD_WINS)}.
-(@delete-wins|@DELETE-WINS) : {token, ?DEP_POLICY_KEY(?REMOVE_WINS)}.
+(aw|AW) : {token, ?TABLE_POLICY_KEY(?ADD_WINS)}.
+(rw|RW) : {token, ?TABLE_POLICY_KEY(?REMOVE_WINS)}.
+(update-wins|UPDATE-WINS) : {token, ?DEP_POLICY_KEY(?ADD_WINS)}.
+(delete-wins|DELETE-WINS) : {token, ?DEP_POLICY_KEY(?REMOVE_WINS)}.
 
 % update query related tokens
 (update|UPDATE) : {token, ?UPDATE_CLAUSE(TokenChars)}.

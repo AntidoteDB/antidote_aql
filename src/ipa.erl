@@ -24,8 +24,8 @@ delete_cascade() -> dc.
 is_visible(ExState) ->
   is_visible(ExState, []).
 
-is_visible(_, [dc | _ImplicitState]) -> false;
-is_visible(ExplicitState, [tc | ImplicitState]) ->
+is_visible(_, [false | _ImplicitState]) -> false;
+is_visible(ExplicitState, [true | ImplicitState]) ->
   is_visible(ExplicitState, ImplicitState);
 is_visible(i, []) -> true;
 is_visible(t, []) -> true;

@@ -28,7 +28,15 @@ exec({Table, Tables}, Props, TxId) ->
   FieldUpdates = create_update(Table, [], SetClause),
 
   Keys = where:scan(TName, WhereClause, TxId),
-  MapUpdates = crdt:map_update(Keys, lists:append([StateOp], FieldUpdates)),
+  VisibleKeys = lists:foldl(fun(Key, AccKeys) ->
+    {ok, [Record]} = antidote:read_objects(Key, TxId),
+    case element:is_visible(Record, TName, Tables, TxId) of
+      true -> AccKeys ++ [Key];
+      false -> AccKeys
+    end
+  end, [], Keys),
+
+  MapUpdates = crdt:map_update(VisibleKeys, lists:append([StateOp], FieldUpdates)),
   UpdateMsg = case MapUpdates of
     [] -> ok;
     ?IGNORE_OP -> ok;
@@ -38,7 +46,7 @@ exec({Table, Tables}, Props, TxId) ->
 
   case UpdateMsg of
     ok ->
-      lists:foreach(fun(Key) -> touch_cascade(Key, Table, Tables, TxId) end, Keys),
+      lists:foreach(fun(Key) -> touch_cascade(Key, Table, Tables, TxId) end, VisibleKeys),
       ok;
     Msg -> Msg
   end.

@@ -68,9 +68,9 @@ delete_by_key(TName, Key) ->
 assertState(State, TName, Key) ->
   AQLKey = element:create_key(Key, TName),
   {ok, TxId} = antidote:start_transaction(?TEST_SERVER),
-  Table = table:lookup(TName, TxId),
+  Tables = table:read_tables(TxId),
   {ok, [Res]} = antidote:read_objects(AQLKey, TxId),
-  Actual = element:is_visible(Res, Table, TxId),
+  Actual = element:is_visible(Res, TName, Tables, TxId),
   antidote:commit_transaction(TxId),
   %ct:log(info, lists:concat(["State: ", State])),
   %ct:log(info, lists:concat(["Actual: ", Actual])),
@@ -80,7 +80,8 @@ print_state(TName, Key) ->
   TNameAtom = utils:to_atom(TName),
   AQLKey = element:create_key(Key, TNameAtom),
   {ok, TxId} = antidote:start_transaction(?TEST_SERVER),
-  Table = table:lookup(TNameAtom, TxId),
+  Tables = table:read_tables(TxId),
+  Table = table:lookup(TName, Tables),
   {ok, [Data]} = antidote:read_objects(AQLKey, TxId),
   io:fwrite("Tags for ~p(~p)~nData: ~p~n", [TNameAtom, Key, Data]),
   lists:foreach(fun(?T_FK(FkName, FkType, _, _, _)) ->
@@ -88,7 +89,7 @@ print_state(TName, Key) ->
     Tag = index:tag_read(TNameAtom, FkName, FkValue, TxId),
     io:fwrite("Tag(~p): ~p -> ~p~n", [FkValue, index:tag_name(TNameAtom, FkName), Tag])
   end, table:shadow_columns(Table)),
-  io:fwrite("Final: ~p~n", [element:is_visible(Data, Table, TxId)]),
+  io:fwrite("Final: ~p~n", [element:is_visible(Data, TName, Tables, TxId)]),
 antidote:commit_transaction(TxId).
 
 select_all(TName) ->
