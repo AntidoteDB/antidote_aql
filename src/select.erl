@@ -134,7 +134,7 @@ build_visibility_conditions(Table) ->
 	end.
 
 explicit_state_conds(Rule) ->
-  Func = ?FUNCTION(find_first, ['#st', Rule]),
+  Func = ?FUNCTION(find_last, ['#st', Rule]),
 	%ICond = {Func, ?PARSER_EQUALITY, i},
 	%TCond = {Func, ?PARSER_EQUALITY, t},
 	%[ICond, ?DISJUNCTION, TCond].

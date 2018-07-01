@@ -24,6 +24,8 @@
 parse(Input, Node) ->
 	parse(Input, Node, undefined).
 
+parse({str, "\n"}, _Node, Tx) ->
+	{ok, Tx};
 parse({str, Query}, Node, Tx) ->
 	TokensRes = scanner:string(Query),
 	case TokensRes of
@@ -36,7 +38,7 @@ parse({str, Query}, Node, Tx) ->
 					catch
 						Reason ->
 							%io:fwrite("Syntax Error: ~p~n", [Reason]),
-							{error, Reason}
+							{error, Reason, Tx}
 					end;
 				_Else ->
 					ParseRes
@@ -58,10 +60,17 @@ start_shell(Node) when is_atom(Node) ->
 	read_and_exec(Node, undefined).
 
 read_and_exec(Node, Tx) ->
-	Line = io:get_line("AQL>"),
-	{ok, Res, RetTx} = parse({str, Line}, Node, Tx),
-	io:fwrite("~p~n", [Res]),
-	read_and_exec(Node, RetTx).
+	Line = io:get_line("AQL> "),
+	case parse({str, Line}, Node, Tx) of
+		{ok, Res, RetTx} ->
+			io:fwrite("~p~n", [Res]),
+			read_and_exec(Node, RetTx);
+		{error, Msg, RetTx} ->
+			io:fwrite("~p~n", [{error, Msg}]),
+			read_and_exec(Node, RetTx);
+		{ok, RetTx} ->
+			read_and_exec(Node, RetTx)
+	end.
 
 %%====================================================================
 %% Internal functions

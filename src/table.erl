@@ -76,10 +76,11 @@ prepare_table(Table, Tables, TxId) ->
 	Policy = policy(Table1),
 	Policy1 = crp:set_dep_level(DepRule, Policy),
 	Table2 = set_policy(Policy1, Table1),
-	Table3 = case crp:dep_level(Policy1) of
-						 ?REMOVE_WINS -> prepare_foreign_keys(Table2, Tables);
-						 _ -> Table2
-					 end,
+	Table3 = prepare_foreign_keys(Table2, Tables),
+          %case crp:dep_level(Policy1) of
+					%	 ?REMOVE_WINS -> prepare_foreign_keys(Table2, Tables);
+					%	 _ -> Table2
+					% end,
 	set_indexes([], Table3).
 
 prepare_cols(Table) ->

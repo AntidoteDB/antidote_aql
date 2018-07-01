@@ -92,14 +92,31 @@ is_visible(Data, TName, Tables, TxId) ->
     _Else ->
       Fks = table:shadow_columns(Table),
       ImplicitState = lists:map(fun(?T_FK(FkName, FkType, FKTable, _, _)) ->
-        FkValue = element:get(foreign_keys:to_cname(FkName), types:to_crdt(FkType, ?IGNORE_OP), Data, Table),
-        %FkState = index:tag_read(TName, FkName, FkValue, TxId),
-        FKBoundObj = create_key(FkValue, FKTable),
-        {ok, [FKData]} = antidote:read_objects(FKBoundObj, TxId),
-        FkVersion = element:get('#version', antidote_crdt_counter_pn, FKData, table:lookup(FKTable, Tables)),
-        {FkValue, RefVersion} = element:get(FkName, antidote_crdt_register_lww, Data, Table),
-        FkVersion =:= RefVersion andalso is_visible(FKData, FKTable, Tables, TxId)
-        %ipa:status(Rule, FkState)
+        case length(FkName) of
+          1 ->
+            {RefValue, RefVersion} = element:get(FkName, types:to_crdt(FkType, ?IGNORE_OP), Data, Table),
+            %FkState = index:tag_read(TName, FkName, FkValue, TxId),
+
+            FKBoundObj = create_key(RefValue, FKTable),
+            {ok, [FKData]} = antidote:read_objects(FKBoundObj, TxId),
+            FkVersion = element:get('#version', antidote_crdt_counter_pn, FKData, table:lookup(FKTable, Tables)),
+            case crp:dep_level(Policy) of
+              ?REMOVE_WINS -> FkVersion =:= RefVersion andalso is_visible(FKData, FKTable, Tables, TxId);
+              _ -> is_visible(FKData, FKTable, Tables, TxId)
+            end;
+
+          %FKBoundObj = create_key(FkValue, FKTable),
+          %{ok, [FKData]} = antidote:read_objects(FKBoundObj, TxId),
+          %FkVersion = element:get('#version', antidote_crdt_counter_pn, FKData, table:lookup(FKTable, Tables)),
+          %{FkValue, RefVersion} = element:get(FkName, antidote_crdt_register_lww, Data, Table),
+          %case crp:dep_level(Policy) of
+          %  ?REMOVE_WINS -> FkVersion =:= RefVersion andalso is_visible(FKData, FKTable, Tables, TxId);
+          %  _ -> is_visible(FKData, FKTable, Tables, TxId)
+          %end
+          %ipa:status(Rule, FkState)
+          _ ->
+            true
+        end
       end, Fks),
       ipa:is_visible(ExplicitState, ImplicitState)
   end.
@@ -197,10 +214,11 @@ build_fks(Element, TxId) ->
       _Else ->
         [{_, ParentId} | ParentCol] = FkName,
         Parent = dict:fetch(ParentId, Parents),
-        Value = get_by_name(foreign_keys:to_cname(ParentCol), Parent),
+        %Value = get_by_name(foreign_keys:to_cname(ParentCol), Parent),
         %ParentVersion = get_by_name('#version', Parent),
-        %append(FkName, {Value, ParentVersion}, FkType, ?IGNORE_OP, AccElement)
+        Value = get_by_name(ParentCol, Parent),
         append(FkName, Value, FkType, ?IGNORE_OP, AccElement)
+        %append(FkName, Value, FkType, ?IGNORE_OP, AccElement)
     end
   end, Element, Fks).
 

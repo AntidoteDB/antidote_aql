@@ -9,7 +9,7 @@
 -module(crp).
 -author("joao").
 
--define(ERR_FR_IR, "A table with 'Force-Revive' foreign keys cannot be linked to a table with 'Ignore-Revive' foreign keys").
+-define(ERR_UW_DW, "A table with 'Update-Wins' foreign keys cannot be linked to a table with 'Delete-Wins' foreign keys").
 
 -include("aql.hrl").
 -include("types.hrl").
@@ -52,7 +52,7 @@ set_p_dep_level(Rule, ?T_CRP(_, _, Rule) = CRP) -> CRP;
 set_p_dep_level(Rule, ?T_CRP(TableLevel, DepLevel, undefined)) ->
   ?T_CRP(TableLevel, DepLevel, Rule);
 set_p_dep_level(?ADD_WINS, ?T_CRP(_, ?REMOVE_WINS, _)) ->
-  throw(?ERR_FR_IR);
+  throw(?ERR_UW_DW);
 set_p_dep_level(_, ?T_CRP(_, _, PDepLevel)) ->
   throw(io:format("Table level already set to ~p", [PDepLevel])).
 
@@ -68,14 +68,10 @@ rule_table_level(Crp) -> rule_table_level(table_level(Crp)).
 
 rule_dep_level(undefined, Rule) -> Rule;
 rule_dep_level(?ADD_WINS, Rule) -> Rule;
-  %lists:append([ipa:delete_cascade(), ipa:touch_cascade()], Rule);
-rule_dep_level(?REMOVE_WINS, Rule) ->
-  lists:append([[ipa:touch_cascade()], Rule, [ipa:delete_cascade()]]);
+rule_dep_level(?REMOVE_WINS, Rule) -> Rule;
 rule_dep_level(Crp, Rule) -> rule_dep_level(dep_level(Crp), Rule).
 
 rule_p_dep_level(undefined, Rule) -> Rule;
 rule_p_dep_level(?ADD_WINS, Rule) -> lists:append(Rule, [ipa:touch()]);
 rule_p_dep_level(?REMOVE_WINS, Rule) -> Rule;
-  %lists:append([ipa:touch()], Rule);
 rule_p_dep_level(Crp, Rule) -> rule_p_dep_level(p_dep_level(Crp), Rule).
-
