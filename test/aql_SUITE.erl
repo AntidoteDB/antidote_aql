@@ -29,7 +29,10 @@
         insert_with_default_artist/1,
         insert_duplicate/1,
         delete_album/1,
-        delete_non_existent_album/1]).
+        delete_non_existent_album/1,
+        commit_transaction/1,
+        abort_transaction/1,
+        error_transaction/1]).
 
 init_per_suite(Config) ->
   TNameArtist = "ArtistTest",
@@ -83,7 +86,10 @@ all() ->
     insert_with_default_artist,
     insert_duplicate,
     delete_album,
-    delete_non_existent_album
+    delete_non_existent_album,
+    commit_transaction,
+    abort_transaction,
+    error_transaction
   ].
 
 select_all(_Config) ->
@@ -138,3 +144,40 @@ delete_non_existent_album(Config) ->
   Album = "IDontExist",
   {ok, [], _Tx} = tutils:aql(?format(delete_album, [Album], Config)),
   tutils:assertState(false, list_to_atom(TName), Album).
+
+commit_transaction(Config) ->
+  TNameArtist = ?value(tname_artist, Config),
+  Artist = "Rob",
+  City = "FL",
+  Awards = 3,
+  {ok, [{ok, {begin_tx, Tx}}], Tx} = tutils:aql("BEGIN TRANSACTION"),
+  {ok, [], Tx} = tutils:aql(?format(insert_artist, [Artist, City, Awards], Config), Tx),
+  {ok, [{ok, commit_tx}], _} = tutils:aql("COMMIT TRANSACTION", Tx),
+
+  SearchKey = lists:concat(["'", Artist, "'"]),
+  [Artist, City, Awards] = tutils:read_keys(TNameArtist, "Name", SearchKey, ["Name", "City", "Awards"]).
+
+abort_transaction(Config) ->
+  TNameArtist = ?value(tname_artist, Config),
+  Artist = "Jon",
+  City = "CO",
+  Awards = 5,
+  {ok, [{ok, {begin_tx, Tx}}], Tx} = tutils:aql("BEGIN TRANSACTION"),
+  {ok, [], Tx} = tutils:aql(?format(insert_artist, [Artist, City, Awards], Config), Tx),
+  {ok, [{ok, abort_tx}], _} = tutils:aql("ABORT TRANSACTION", Tx),
+
+  SearchKey = lists:concat(["'", Artist, "'"]),
+  [] = tutils:read_keys(TNameArtist, "Name", SearchKey, ["Name", "City", "Awards"]).
+
+error_transaction(Config) ->
+  TNameArtist = ?value(tname_artist, Config),
+  TNameAlbum = ?value(tname_album, Config),
+  DefaultAlbum = false,
+
+  {ok, [{ok, {begin_tx, Tx}}], Tx} = tutils:aql("BEGIN TRANSACTION"),
+
+  {error, _, undefined} = tutils:aql(lists:concat(["CREATE AW TABLE ", TNameAlbum,
+    " (Name VARCHAR PRIMARY KEY,",
+    " IsSingle BOOLEAN DEFAULT ", DefaultAlbum, ",",
+    " Art INT FOREIGN KEY UPDATE-WINS REFERENCES ",
+    TNameArtist, "(Awards));"]), Tx).

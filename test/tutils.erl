@@ -7,7 +7,7 @@
 -include_lib("eunit/include/eunit.hrl").
 -include("types.hrl").
 
--export([aql/1,
+-export([aql/1, aql/2,
           create_single_table/2,
           create_fk_table/2, create_fk_table/4, create_fk_table/5,
           create_dc_fk_table/2, create_dc_fk_table/4, create_dc_fk_table/5,
@@ -24,8 +24,11 @@
           assert_table_policy/2]).
 
 aql(Aql) ->
+  aql(Aql, undefined).
+
+aql(Aql, Tx) ->
   ct:log(info, lists:concat(["Query: ", Aql])),
-  aqlparser:parse({str, Aql}, ?TEST_SERVER).
+  aqlparser:parse({str, Aql}, ?TEST_SERVER, Tx).
 
 create_single_table(Name, TablePolicy) ->
   Query = ["CREATE ", TablePolicy, " TABLE ", Name, " (ID INT PRIMARY KEY)"],
@@ -120,15 +123,20 @@ assertNotExists(Key) ->
   antidote:commit_transaction(Ref),
   ?assertEqual([], Res).
 
-
-read_keys(Table, IdName, ID, Keys) ->
+read_keys(Table, IdName, ID, Keys, Tx) ->
   Join = join_keys(Keys, []),
   Query = ["SELECT ", Join, " FROM ", Table, " WHERE ", IdName, " = ", ID],
-  {ok, [[Res]], _Tx} = aql(lists:concat(Query)),
-  lists:map(fun({_k, V}) -> V end, Res).
+  {ok, [Res], _Tx} = aql(lists:concat(Query), Tx),
+  case Res of
+    [] -> [];
+    [Content] -> lists:map(fun({_k, V}) -> V end, Content)
+  end.
+
+read_keys(Table, IdName, ID, Keys) ->
+  read_keys(Table, IdName, ID, Keys, undefined).
 
 read_keys(Table, ID, Keys) ->
-  read_keys(Table, "ID", ID, Keys).
+  read_keys(Table, "ID", ID, Keys, undefined).
 
 read_keys(Keys) ->
   {ok, Ref} = antidote:start_transaction(?TEST_SERVER),

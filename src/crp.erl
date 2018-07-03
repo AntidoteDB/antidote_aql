@@ -38,14 +38,16 @@ set_table_level(Rule, ?T_CRP(Rule, _, _) = CRP) -> CRP;
 set_table_level(Rule, ?T_CRP(undefined, DepLevel, PDepLevel)) ->
   ?T_CRP(Rule, DepLevel, PDepLevel);
 set_table_level(_, ?T_CRP(TableLevel, _, _)) ->
-  throw(io:format("Table level already set to ~p", [TableLevel])).
+  ErrorMsg = io_lib:format("Table level already set to ~p", [TableLevel]),
+  throw(lists:flatten(ErrorMsg)).
 
 set_dep_level(undefined, CRP) -> CRP;
 set_dep_level(Rule, ?T_CRP(_, Rule, _) = CRP) -> CRP;
 set_dep_level(Rule, ?T_CRP(TableLevel, undefined, PDepLevel)) ->
   ?T_CRP(TableLevel, Rule, PDepLevel);
 set_dep_level(_, ?T_CRP(_, DepLevel, _)) ->
-  throw(io:format("Table level already set to ~p", [DepLevel])).
+  ErrorMsg = io_lib:format("Dependency level already set to ~p", [DepLevel]),
+  throw(lists:flatten(ErrorMsg)).
 
 set_p_dep_level(undefined, CRP) -> CRP;
 set_p_dep_level(Rule, ?T_CRP(_, _, Rule) = CRP) -> CRP;
@@ -54,7 +56,8 @@ set_p_dep_level(Rule, ?T_CRP(TableLevel, DepLevel, undefined)) ->
 set_p_dep_level(?ADD_WINS, ?T_CRP(_, ?REMOVE_WINS, _)) ->
   throw(?ERR_UW_DW);
 set_p_dep_level(_, ?T_CRP(_, _, PDepLevel)) ->
-  throw(io:format("Table level already set to ~p", [PDepLevel])).
+  ErrorMsg = io_lib:format("Parent level already set to ~p", [PDepLevel]),
+  throw(lists:flatten(ErrorMsg)).
 
 get_rule(Crp) ->
   ?T_CRP(TableLevel, DepLevel, PDepLevel) = Crp,

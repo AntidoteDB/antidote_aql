@@ -38,7 +38,7 @@ parse({str, Query}, Node, Tx) ->
 					catch
 						Reason ->
 							%io:fwrite("Syntax Error: ~p~n", [Reason]),
-							{error, Reason, Tx}
+							{error, Reason, undefined}
 					end;
 				_Else ->
 					ParseRes
@@ -107,13 +107,15 @@ commit_transaction(Res, Tx) ->
 	end.
 
 abort_transaction(Res, Tx) ->
-	AbortRes = antidote:abort_transaction(Tx),
-	case AbortRes of
-		{ok, _CT} ->
-			Res;
-		_Else ->
-			{error, AbortRes}
-	end.
+	antidote:abort_transaction(Tx),
+	Res.
+	%% TODO to be uncommented when Antidote implements transaction abortion
+	%case AbortRes of
+	%	{ok, _CT} ->
+	%		Res;
+	%	_Else ->
+	%		{error, AbortRes}
+	%end.
 
 exec(?BEGIN_CLAUSE(?TRANSACTION_TOKEN), Node, PassedTx) when is_atom(Node) ->
 	case PassedTx of
