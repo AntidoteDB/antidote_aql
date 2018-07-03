@@ -43,4 +43,4 @@ ct: compile
 	ct_run -pa $(EBIN) -logdir $(TEST_LOGS) -dir test -include include -erl_flags -name $(AQL_NODE_NAME) -setcookie $(COOKIE)
 
 antidote:
-	./$(ANTIDOTE)/bin/env start && tail -f $(ANTIDOTE)/log/console.log &
+	./$(ANTIDOTE)/bin/env start && sleep 3 && tail -f $(ANTIDOTE)/log/console.log &
