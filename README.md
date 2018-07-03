@@ -1,4 +1,4 @@
-# AQL [![Build Status](https://travis-ci.org/JPDSousa/AQL.svg?branch=master)](https://travis-ci.org/JPDSousa/AQL)
+# AQL [![Build Status](https://travis-ci.org/pedromslopes/AQL.svg?branch=master)](https://travis-ci.org/pedromslopes/AQL)
 
 
 An SQL-like interface for [AntidoteDB](https://github.com/SyncFree/antidote).
