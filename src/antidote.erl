@@ -18,7 +18,8 @@
 									% | antidote_crdt_rga = deprecated
 									| antidote_crdt_set_rw
 									| antidote_crdt_flag_ew
-									| antidote_crdt_flag_dw.
+									| antidote_crdt_flag_dw
+									| antidote_crdt_index_go.
 
 -type bucket() :: atom().
 -type bound_object() :: {key(), crdt_type(), bucket()}.
