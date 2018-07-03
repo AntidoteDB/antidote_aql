@@ -9,9 +9,9 @@
 
 -define(FK_POLICY_AW, "UPDATE-WINS").
 -define(FK_POLICY_RW, "DELETE-WINS").
--define(DELETE_ERROR(Value),
+-define(DELETE_ERROR(TName, Value),
   lists:flatten(
-    io_lib:format("Cannot delete a parent row: a foreign key constraint fails on deleting value ~p", [Value]))).
+    io_lib:format("Cannot delete a parent row on table ~p: a foreign key constraint fails on deleting value ~p", [TName, Value]))).
 
 -include_lib("aql.hrl").
 -include_lib("parser.hrl").
@@ -108,13 +108,13 @@ dc_delete_wins(_Config) ->
 
 restrict_delete(_Config) ->
   {error, Msg1, _} = tutils:aql("DELETE FROM TestRefA WHERE ID = 1"),
-  ?assertEqual(?DELETE_ERROR('1'), Msg1),
+  ?assertEqual(?DELETE_ERROR('TestRefB', '1'), Msg1),
 
   %% Delete a key from TestRefC
   {ok, _, _Tx} = tutils:delete_by_key("TestRefC", "1"),
   tutils:assertState(false, "TestRefC", "1"),
   {error, Msg2, _} = tutils:aql("DELETE FROM TestRefA WHERE ID = 1"),
-  ?assertEqual(?DELETE_ERROR('1'), Msg2),
+  ?assertEqual(?DELETE_ERROR('TestRefB', '2'), Msg2),
 
   %% Delete the second key from TestRefC
   {ok, _, _Tx} = tutils:delete_by_key("TestRefC", "2"),

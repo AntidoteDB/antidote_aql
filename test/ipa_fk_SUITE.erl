@@ -65,9 +65,9 @@ indirect_foreign_keys(_Config) ->
   KeyC = element:create_key('1', 'FkC'),
   KeyD = element:create_key('1', 'FkD'),
   [ResC, ResD] = tutils:read_keys([KeyC, KeyD]),
-  ?assertEqual({1, 1}, proplists:get_value(?SHADOW_AB, ResC)),
-  ?assertEqual({1, 1}, proplists:get_value(?SHADOW_ABC, ResD)),
-  ?assertEqual({1, 1}, proplists:get_value(?SHADOW_BC, ResD)).
+  ?assertMatch({1, _}, proplists:get_value(?SHADOW_AB, ResC)),
+  ?assertMatch({1, _}, proplists:get_value(?SHADOW_ABC, ResD)),
+  ?assertMatch({1, _}, proplists:get_value(?SHADOW_BC, ResD)).
 
 create_table_fail(_Config) ->
   % cannot create table that points to a non-existant table
