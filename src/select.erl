@@ -12,6 +12,7 @@
 -define(CONJUNCTION, ?CONJUNCTIVE_KEY("AND")).
 -define(DISJUNCTION, ?DISJUNCTIVE_KEY("OR")).
 -define(FUNCTION(Name, Args), {func, Name, Args}).
+-define(COLUMN(Name), {col, Name}).
 
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
@@ -134,7 +135,7 @@ build_visibility_conditions(Table) ->
 	end.
 
 explicit_state_conds(Rule) ->
-  Func = ?FUNCTION(find_last, ['#st', Rule]),
+  Func = ?FUNCTION(find_last, [?COLUMN('#st'), Rule]),
 	%ICond = {Func, ?PARSER_EQUALITY, i},
 	%TCond = {Func, ?PARSER_EQUALITY, t},
 	%[ICond, ?DISJUNCTION, TCond].
@@ -149,12 +150,12 @@ implicit_state_conds(Table, Rule) ->
 implicit_state_conds([?T_FK(FkName, _, FkTable, _, _) | []], _Rule, Acc) ->
   %Func = ?FUNCTION(find_first, [FkName, Rule]),
 	%lists:append(Acc, [{Func, ?PARSER_NEQ, dc}]);
-	Func = ?FUNCTION(assert_version, [FkName, FkTable]),
+	Func = ?FUNCTION(assert_version, [?COLUMN(FkName), FkTable]),
 	lists:append(Acc, [{Func, ?PARSER_EQUALITY, true}]);
 implicit_state_conds([?T_FK(FkName, _, FkTable, _, _) | Tail], Rule, Acc) ->
   %Func = ?FUNCTION(find_first, [FkName, Rule]),
 	%NewAcc = lists:append(Acc, [{Func, ?PARSER_NEQ, dc}, ?CONJUNCTION]),
-	Func = ?FUNCTION(assert_version, [FkName, FkTable]),
+	Func = ?FUNCTION(assert_version, [?COLUMN(FkName), FkTable]),
 	NewAcc = lists:append(Acc, [{Func, ?PARSER_EQUALITY, true}, ?CONJUNCTION]),
 	implicit_state_conds(Tail, Rule, NewAcc);
 implicit_state_conds([], _Rule, Acc) -> Acc.

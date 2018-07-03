@@ -9,7 +9,7 @@
 -include_lib("ct_aql.hrl").
 
 -define(UPDATE_ERROR, {error, "Unexpected error"}).
--define(INSERT_ERROR(ExpecVal, Col), {error, "Invalid value " ++ ExpecVal ++ " for column " ++ Col}).
+-define(INSERT_ERROR(ExpecVal, Col), "Invalid value " ++ ExpecVal ++ " for column " ++ Col).
 
 -export([init_per_suite/1,
           end_per_suite/1,
@@ -33,11 +33,11 @@ init_per_suite(Config) ->
   BoundGreaterB = 10,
   BoundSmallerA = 5,
   BoundSmallerB = 15,
-  Query = ["CREATE @AW TABLE ", TNameGreater, " (ID INT PRIMARY KEY, ",
+  Query = ["CREATE AW TABLE ", TNameGreater, " (ID INT PRIMARY KEY, ",
   "bcA COUNTER_INT CHECK (bcA > ", BoundGreaterA, "), ",
   "bcB COUNTER_INT CHECK (bcB > ", BoundGreaterB, ")",
   ");",
-  "CREATE @AW TABLE ", TNameSmaller, " (ID INT PRIMARY KEY, ",
+  "CREATE AW TABLE ", TNameSmaller, " (ID INT PRIMARY KEY, ",
   "bcA COUNTER_INT CHECK (bcA < ", BoundSmallerA, "), ",
   "bcB COUNTER_INT CHECK (bcB < ", BoundSmallerB, ")",
   ");"],
@@ -92,9 +92,13 @@ greater_insert_basic(Config) ->
 greater_insert_fail(Config) ->
   BoundA = ?value(bound_greater_a, Config),
   BoundB = ?value(bound_greater_b, Config),
-  ?assertEqual(?INSERT_ERROR("0", "bcA"), tutils:aql(?format(insert_greater, [10, BoundA, BoundB+1], Config))),
-  ?assertEqual(?INSERT_ERROR("10", "bcB"), tutils:aql(?format(insert_greater, [11, BoundA+1, BoundB], Config))),
-  ?assertEqual(?INSERT_ERROR("0", "bcA"), tutils:aql(?format(insert_greater, [12, BoundA, BoundB-1], Config))).
+  {error, Msg1, _} = tutils:aql(?format(insert_greater, [10, BoundA, BoundB+1], Config)),
+  {error, Msg2, _} = tutils:aql(?format(insert_greater, [11, BoundA+1, BoundB], Config)),
+  {error, Msg3, _} = tutils:aql(?format(insert_greater, [12, BoundA, BoundB-1], Config)),
+
+  ?assertEqual(?INSERT_ERROR("0", "bcA"), Msg1),
+  ?assertEqual(?INSERT_ERROR("10", "bcB"), Msg2),
+  ?assertEqual(?INSERT_ERROR("0", "bcA"), Msg3).
 
 greater_update_basic(Config) ->
   TName = ?value(tname_greater, Config),
@@ -152,9 +156,13 @@ smaller_insert_basic(Config) ->
 smaller_insert_fail(Config) ->
   BoundA = ?value(bound_smaller_a, Config),
   BoundB = ?value(bound_smaller_b, Config),
-  ?assertEqual(?INSERT_ERROR("5", "bcA"), tutils:aql(?format(insert_smaller, [10, BoundA, BoundB-1], Config))),
-  ?assertEqual(?INSERT_ERROR("15", "bcB"), tutils:aql(?format(insert_smaller, [11, BoundA-1, BoundB], Config))),
-  ?assertEqual(?INSERT_ERROR("5", "bcA"), tutils:aql(?format(insert_smaller, [12, BoundA, BoundB], Config))).
+  {error, Msg1, _} = tutils:aql(?format(insert_smaller, [10, BoundA, BoundB-1], Config)),
+  {error, Msg2, _} = tutils:aql(?format(insert_smaller, [11, BoundA-1, BoundB], Config)),
+  {error, Msg3, _} = tutils:aql(?format(insert_smaller, [12, BoundA, BoundB], Config)),
+
+  ?assertEqual(?INSERT_ERROR("5", "bcA"), Msg1),
+  ?assertEqual(?INSERT_ERROR("15", "bcB"), Msg2),
+  ?assertEqual(?INSERT_ERROR("5", "bcA"), Msg3).
 
 smaller_update_basic(Config) ->
   TName = ?value(tname_smaller, Config),

@@ -25,7 +25,8 @@ exec({Table, Tables}, Props, TxId) ->
 				ok = antidote:update_objects(crdt:ipa_update(Key, ipa:delete()), TxId);
 			true ->
 				{PKey, _, _} = Key,
-				throw(lists:concat(["Cannot delete a parent row: a foreign key constraint fails on deleting value ", PKey]))
+				ErrorMsg = io_lib:format("Cannot delete a parent row: a foreign key constraint fails on deleting value ~p", [PKey]),
+				throw(lists:flatten(ErrorMsg))
 		end
 	end, Keys).
 
@@ -126,7 +127,10 @@ delete_cascade_dependants(Key, Table, Tables, TxId) ->
 	%case DepLevel of
 	%	?ADD_WINS ->
 			Dependants = cascade_dependants(Key, Table, Tables, TxId),
-			DeleteUpdates = lists:foldl(fun({_TName, Keys}, AccUpds) ->
+			DeleteUpdates = lists:foldl(fun({TName, Keys}, AccUpds) ->
+				lists:foreach(fun(Key2) ->
+					delete_cascade(Key2, table:lookup(TName, Tables), Tables, TxId)
+				end, Keys),
 				lists:append(AccUpds, crdt:ipa_update(Keys, ipa:delete()))
 			end, [], Dependants),
 			case DeleteUpdates of
@@ -160,12 +164,12 @@ cascade_dependants(_Key, _Table, _AccTables, [], _TxId, Acc) -> Acc.
 fetch_cascade(Key, TName, TDepName, Tables, [?T_FK(Name, Type, TName, _Attr, ?CASCADE_TOKEN) | Fks], TxId, Acc) ->
 	{PK, _, _} = Key,
 	Keys = where:scan(TDepName, ?PARSER_WILDCARD, TxId),
-	Table = table:lookup(TName, Tables),
+	DepTable = table:lookup(TDepName, Tables),
 	FilterDependants = lists:filter(fun(K) ->
 		{ok, [Record]} = antidote:read_objects(K, TxId),
-		case element:is_visible(Record, TName, Tables, TxId) of
+		case element:is_visible(Record, TDepName, Tables, TxId) of
 			true ->
-				case element:get(Name, types:to_crdt(Type, ?IGNORE_OP), Record, Table) of
+				case element:get(Name, types:to_crdt(Type, ?IGNORE_OP), Record, DepTable) of
 					undefined -> true;
 					Value -> utils:to_atom(Value) =:= PK
 				end;

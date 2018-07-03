@@ -122,8 +122,8 @@ is_visible(Data, TName, Tables, TxId) ->
   end.
 
 throwNoSuchColumn(ColName, TableName) ->
-  throw(lists:concat(["Column ", ColName,
-    " does not exist in table ", TableName])).
+  MsgFormat = io_lib:format("Column ~p does not exist in table ~p", [ColName, TableName]),
+  throw(lists:flatten(MsgFormat)).
 
 %% ====================================================================
 %% API functions
@@ -202,14 +202,14 @@ build_fks(Element, TxId) ->
   Table = table(Element),
   Fks = table:shadow_columns(Table),
   Parents = parents(Data, Fks, Table, TxId),
-  lists:foldl(fun(?T_FK(FkName, FkType, _, FkColName, _), AccElement) ->
+  lists:foldl(fun(?T_FK(FkName, _, _, FkColName, _), AccElement) ->
     case length(FkName) of
       1 ->
         [{_, ParentId}] = FkName,
         Parent = dict:fetch(ParentId, Parents),
         Value = get_by_name(foreign_keys:to_cname(FkColName), Parent),
         ParentVersion = get_by_name('#version', Parent),
-        append(FkName, {Value, ParentVersion}, FkType, ?IGNORE_OP, AccElement);
+        append(FkName, {Value, ParentVersion}, ?AQL_VARCHAR, ?IGNORE_OP, AccElement);
         %AccElement;
       _Else ->
         [{_, ParentId} | ParentCol] = FkName,
@@ -217,7 +217,7 @@ build_fks(Element, TxId) ->
         %Value = get_by_name(foreign_keys:to_cname(ParentCol), Parent),
         %ParentVersion = get_by_name('#version', Parent),
         Value = get_by_name(ParentCol, Parent),
-        append(FkName, Value, FkType, ?IGNORE_OP, AccElement)
+        append(FkName, Value, ?AQL_VARCHAR, ?IGNORE_OP, AccElement)
         %append(FkName, Value, FkType, ?IGNORE_OP, AccElement)
     end
   end, Element, Fks).

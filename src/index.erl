@@ -51,7 +51,8 @@ exec({Table, _Tables}, Props, TxId) ->
   case check_keys(Table, IndexCols) of
     [] -> ok;
     List ->
-      throw(lists:concat(["The column(s) ", List, " do(es) not exist in table ", TableName]))
+      ErrorMsg = io_lib:format("The column(s) ~p do(es) not exist in table ~p", [List, TableName]),
+      throw(lists:flatten(ErrorMsg))
   end,
   Table2 = set_table_index(lists:append(TIndexes, [Props]), Table),
   TableUpdate = table:create_table_update(Table2),

@@ -8,7 +8,8 @@
 -include("aql.hrl").
 
 -export([new/0,
-          touch/0, touch_cascade/0, insert/0, delete/0, delete_cascade/0,
+          touch/0, touch_cascade/0, insert/0,
+          delete/0, delete_cascade/0,
           is_visible/1, is_visible/2,
           status/2]).
 
@@ -63,12 +64,12 @@ new_test() ->
   ?assertEqual(i, new()).
 
 is_visible_ok_test() ->
-  ?assertEqual(is_visible(i, [tc, tc]), true),
-  ?assertEqual(is_visible(i, [dc, tc]), false),
-  ?assertEqual(is_visible(t, [tc, tc]), true),
-  ?assertEqual(is_visible(t, [dc, tc]), false),
-  ?assertEqual(is_visible(d, [tc, tc]), false),
-  ?assertEqual(is_visible(d, [dc, tc]), false).
+  ?assertEqual(is_visible(i, [true, true]), true),
+  ?assertEqual(is_visible(i, [false, true]), false),
+  ?assertEqual(is_visible(t, [true, true]), true),
+  ?assertEqual(is_visible(t, [false, true]), false),
+  ?assertEqual(is_visible(d, [true, true]), false),
+  ?assertEqual(is_visible(d, [false, true]), false).
 
 is_visible_err_test() ->
   ?assertEqual(is_visible(random_value, random_value), err).

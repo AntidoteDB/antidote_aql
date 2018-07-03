@@ -13,7 +13,7 @@ parse_function(Function) when is_atom(Function) ->
   FuncString = atom_to_list(Function),
   parse_function(FuncString);
 parse_function(Function) when is_list(Function) ->
-  ErrorMsg = lists:concat(["Malformed function header: ", Function]),
+  ErrorMsg = lists:flatten(io_lib:format("Malformed function header: ~p", [Function])),
   try
     FParPos = string:str(Function, "("),
     LParPos = string:rstr(Function, ")"),

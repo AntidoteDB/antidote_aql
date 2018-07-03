@@ -5,7 +5,9 @@
 -include("parser.hrl").
 -include("types.hrl").
 
--define(INVALID_CHECK_CONST(Col), lists:concat(["Column name in check constraint does not match column name '", Col, "'"])).
+-define(INVALID_CHECK_CONST(Col),
+  lists:flatten(
+    io_lib:format("Column name in check constraint does not match column name '~p'", [Col]))).
 
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").

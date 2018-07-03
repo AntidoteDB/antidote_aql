@@ -78,7 +78,8 @@ read_fks(Fks, Tables, TxId, true) ->
 		{ok, [Data]} = antidote:read_objects(TKey, TxId),
 		case element:is_visible(Data, PTabName, Tables, TxId) of
 			false ->
-				throw(lists:concat(["Cannot find row ", Value, " in table ", PTabName]));
+				ErrorMsg = io_lib:format("Cannot find row ~p in table ~p", [Value, PTabName]),
+				throw(lists:flatten(ErrorMsg));
 			_Else ->
 				{Fk, Data}
 		end

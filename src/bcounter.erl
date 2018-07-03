@@ -10,7 +10,6 @@
 -export([to_bcounter/3,
         to_bcounter/4,
         from_bcounter/3,
-        inv_from_bcounter/3,
         value/1]).
 
 to_bcounter(Value, Offset, Comp) ->
@@ -23,7 +22,9 @@ check_bcounter_value(?PARSER_GEQ, _Key, OffValue, _) when OffValue >= 0 -> OffVa
 check_bcounter_value(?PARSER_LEQ, _Key, OffValue, _) when OffValue >= 0 -> OffValue;
 check_bcounter_value(?PARSER_GREATER, _Key, OffValue, _) when OffValue >= 0 -> OffValue;
 check_bcounter_value(?PARSER_LESSER, _Key, OffValue, _) when OffValue >= 0 -> OffValue;
-check_bcounter_value(_, Key, _, Value) -> throw(lists:concat(["Invalid value ", Value, " for column ", Key])).
+check_bcounter_value(_, Key, _, Value) ->
+  MsgFormat = io_lib:format("Invalid value ~p for column ~p", [Value, Key]),
+  throw(lists:flatten(MsgFormat)).
 
 apply_offset_value(?PARSER_GREATER, Offset, Value) -> Value - Offset - 1;
 apply_offset_value(?PARSER_GEQ, Offset, Value) -> Value - Offset;
@@ -37,18 +38,6 @@ from_bcounter(?PARSER_GREATER, Value, Offset) -> Value + Offset + 1;
 from_bcounter(?PARSER_GEQ, Value, Offset) -> Value + Offset;
 from_bcounter(?PARSER_LESSER, Value, Offset) -> -1 * (Value + Offset * -1 + 1);
 from_bcounter(?PARSER_LEQ, Value, Offset) -> -1 * (Value + Offset * -1).
-
-inv_from_bcounter(Comp, {_I, _D} = Value, Offset) ->
-  BCValue = value(Value),
-  inv_from_bcounter(Comp, BCValue, Offset);
-inv_from_bcounter(?PARSER_GREATER, Value, Offset) ->
-  Value - Offset;
-inv_from_bcounter(?PARSER_GEQ, Value, Offset) ->
-  Value - Offset;
-inv_from_bcounter(?PARSER_LESSER, Value, Offset) ->
-  Offset - Value;
-inv_from_bcounter(?PARSER_LEQ, Value, Offset) ->
-  Offset - Value.
 
 value({Incs, Decs}) ->
   IncsList = orddict:to_list(Incs),
@@ -67,22 +56,38 @@ sum({_Ids, Value}, Acc) -> Value+Acc.
 
 to_bcounter_test() ->
   % greater than
-  ?assertEqual(5, to_bcounter(k, 5, 0, ?PARSER_GREATER)),
-  ?assertEqual(3, to_bcounter(k, 5, 2, ?PARSER_GREATER)),
-  ?assertEqual(1, to_bcounter(k, 31, 30, ?PARSER_GREATER)),
+  ?assertEqual(4, to_bcounter(k, 5, 0, ?PARSER_GREATER)),
+  ?assertEqual(2, to_bcounter(k, 5, 2, ?PARSER_GREATER)),
+  ?assertEqual(0, to_bcounter(k, 31, 30, ?PARSER_GREATER)),
   ?assertThrow(_, to_bcounter(k, 5, 6, ?PARSER_GREATER)),
-  ?assertThrow(_, to_bcounter(k, 5, 5, ?PARSER_GREATER)),
-  % smaller than
-  ?assertEqual(5, to_bcounter(k, 0, 5, ?PARSER_LESSER)),
-  ?assertEqual(3, to_bcounter(k, 2, 5, ?PARSER_LESSER)),
-  ?assertEqual(1, to_bcounter(k, 30, 31, ?PARSER_LESSER)),
+  ?assertThrow(_, to_bcounter(k, 5, 7, ?PARSER_GREATER)),
+  % greater than or equal
+  ?assertEqual(5, to_bcounter(k, 5, 0, ?PARSER_GEQ)),
+  ?assertEqual(3, to_bcounter(k, 5, 2, ?PARSER_GEQ)),
+  ?assertEqual(1, to_bcounter(k, 31, 30, ?PARSER_GEQ)),
+  ?assertThrow(_, to_bcounter(k, 5, 6, ?PARSER_GEQ)),
+  ?assertThrow(_, to_bcounter(k, 5, 7, ?PARSER_GEQ)),
+  % lesser than
+  ?assertEqual(4, to_bcounter(k, 0, 5, ?PARSER_LESSER)),
+  ?assertEqual(2, to_bcounter(k, 2, 5, ?PARSER_LESSER)),
+  ?assertEqual(0, to_bcounter(k, 30, 31, ?PARSER_LESSER)),
+  ?assertThrow(_, to_bcounter(k, 5, 5, ?PARSER_LESSER)),
   ?assertThrow(_, to_bcounter(k, 6, 5, ?PARSER_LESSER)),
-  ?assertThrow(_, to_bcounter(k, 5, 5, ?PARSER_LESSER)).
+  % lesser than or equal
+  ?assertEqual(5, to_bcounter(k, 0, 5, ?PARSER_LEQ)),
+  ?assertEqual(3, to_bcounter(k, 2, 5, ?PARSER_LEQ)),
+  ?assertEqual(1, to_bcounter(k, 30, 31, ?PARSER_LEQ)),
+  ?assertThrow(_, to_bcounter(k, 6, 5, ?PARSER_LEQ)),
+  ?assertThrow(_, to_bcounter(k, 7, 5, ?PARSER_LEQ)).
 
 from_bcounter_test() ->
   % greater than
-  ?assertEqual(31, from_bcounter(?PARSER_GREATER, 1, 30)),
+  ?assertEqual(32, from_bcounter(?PARSER_GREATER, 1, 30)),
+  % greater than or equal
+  ?assertEqual(31, from_bcounter(?PARSER_GEQ, 1, 30)),
   % smaller than
-  ?assertEqual(4, from_bcounter(?PARSER_LESSER, 1, 5)).
+  ?assertEqual(3, from_bcounter(?PARSER_LESSER, 1, 5)),
+  % lesser than or equal
+  ?assertEqual(4, from_bcounter(?PARSER_LEQ, 1, 5)).
 
 -endif.

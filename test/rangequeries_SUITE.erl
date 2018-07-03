@@ -27,9 +27,9 @@
 init_per_suite(Config) ->
   TestTable = "TableA",
   TestTable2 = "TableBC",
-  {ok, [], _Tx} = tutils:aql(lists:concat(["CREATE @AW TABLE ", TestTable,
+  {ok, [], _Tx} = tutils:aql(lists:concat(["CREATE AW TABLE ", TestTable,
     " (X VARCHAR PRIMARY KEY, Y INTEGER);"])),
-  {ok, [], _Tx} = tutils:aql(lists:concat(["CREATE @AW TABLE ", TestTable2,
+  {ok, [], _Tx} = tutils:aql(lists:concat(["CREATE AW TABLE ", TestTable2,
     " (X VARCHAR PRIMARY KEY, Z COUNTER_INT CHECK (Z > 0));"])),
   lists:append(Config,
     [{table, TestTable},

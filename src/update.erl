@@ -127,8 +127,8 @@ counter_functions(decrement, _) ->
   {fun crdt:decrement_counter/1, fun crdt:increment_counter/1}.
 
 resolve_fail(CName, CType) ->
-  Msg = lists:concat(["Cannot assign to column ", CName, " of type ", CType]),
-  {err, Msg}.
+  Msg = io_lib:format("Cannot assign to column ~p of type ~p", [CName, CType]),
+  {err, lists:flatten(Msg)}.
 
 touch_cascade(Key, Table, Tables, TxId) ->
   {ok, [Record]} = antidote:read_objects(Key, TxId),

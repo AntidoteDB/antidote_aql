@@ -8,9 +8,9 @@
 -include("types.hrl").
 
 -export([aql/1,
-          create_single_table/1,
-          create_fk_table/2, create_fk_table/3, create_fk_table/4,
-          create_dc_fk_table/2, create_dc_fk_table/3, create_dc_fk_table/4,
+          create_single_table/2,
+          create_fk_table/2, create_fk_table/4, create_fk_table/5,
+          create_dc_fk_table/2, create_dc_fk_table/4, create_dc_fk_table/5,
           create_index/3,
           insert_single/2,
           delete_by_key/2,
@@ -27,27 +27,27 @@ aql(Aql) ->
   ct:log(info, lists:concat(["Query: ", Aql])),
   aqlparser:parse({str, Aql}, ?TEST_SERVER).
 
-create_single_table(Name) ->
-  Query = ["CREATE @AW TABLE ", Name, " (ID INT PRIMARY KEY)"],
+create_single_table(Name, TablePolicy) ->
+  Query = ["CREATE ", TablePolicy, " TABLE ", Name, " (ID INT PRIMARY KEY)"],
   aql(lists:concat(Query)).
 
 create_fk_table(Name, Pointer) ->
-  create_fk_table(Name, Pointer, "ID", "@UPDATE-WINS").
-create_fk_table(Name, Pointer, FK_Policy) ->
-  create_fk_table(Name, Pointer, "ID", FK_Policy).
+  create_fk_table(Name, Pointer, "ID", "AW", "UPDATE-WINS").
+create_fk_table(Name, Pointer, TablePolicy, FK_Policy) ->
+  create_fk_table(Name, Pointer, "ID", TablePolicy, FK_Policy).
 create_dc_fk_table(Name, Pointer) ->
-  create_dc_fk_table(Name, Pointer, "ID", "@UPDATE-WINS").
-create_dc_fk_table(Name, Pointer, FK_Policy) ->
-  create_dc_fk_table(Name, Pointer, "ID", FK_Policy).
+  create_dc_fk_table(Name, Pointer, "ID", "AW", "UPDATE-WINS").
+create_dc_fk_table(Name, Pointer, TablePolicy, FK_Policy) ->
+  create_dc_fk_table(Name, Pointer, "ID", TablePolicy, FK_Policy).
 
-create_fk_table(Name, TPointer, CPointer, FK_Policy) ->
-  Query = ["CREATE @AW TABLE ", Name,
+create_fk_table(Name, TPointer, CPointer, TablePolicy, FK_Policy) ->
+  Query = ["CREATE ", TablePolicy, " TABLE ", Name,
     " (ID INT PRIMARY KEY, ", TPointer, " INT FOREIGN KEY ", FK_Policy, " REFERENCES ",
     TPointer, "(", CPointer, "))"],
   aql(lists:concat(Query)).
 
-create_dc_fk_table(Name, TPointer, CPointer, FK_Policy) ->
-  Query = ["CREATE @AW TABLE ", Name,
+create_dc_fk_table(Name, TPointer, CPointer, TablePolicy, FK_Policy) ->
+  Query = ["CREATE ", TablePolicy," TABLE ", Name,
     " (ID INT PRIMARY KEY, ", TPointer, " INT FOREIGN KEY ", FK_Policy, " REFERENCES ",
     TPointer, "(", CPointer, ") ",
     "ON DELETE CASCADE)"],

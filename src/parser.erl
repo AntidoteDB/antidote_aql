@@ -1,6 +1,6 @@
 -module(parser).
 -export([parse/1, parse_and_scan/1, format_error/1]).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.yrl", 384).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.yrl", 384).
 
 -include("parser.hrl").
 -include("types.hrl").
@@ -98,8 +98,8 @@ select_projection_test() ->
 	test_parser("SELECT a, b FROM Test").
 
 select_where_test() ->
-	test_parser("SELECT a FROM Test WHERE b =2"),
-	test_parser("SELECT a FROM Test WHERE b = 2 AND c =3 AND d= 4"),
+	test_parser("SELECT a FROM Test WHERE b = 2"),
+	test_parser("SELECT a FROM Test WHERE b = 2 AND c = 3 AND d = 4"),
 	test_parser("SELECT a FROM Test WHERE b >= 2 OR c <= 3 AND d = 4"),
 	test_parser("SELECT a FROM Test WHERE b > 2 AND c < 3 OR d <> 4"),
 	test_parser("SELECT a FROM Test WHERE b = 2 AND (c <= 3 OR d = 4)"),
@@ -287,7 +287,7 @@ yecctoken2string(Other) ->
 
 
 
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.erl", 290).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.erl", 290).
 
 -dialyzer({nowarn_function, yeccpars2/7}).
 yeccpars2(0=S, Cat, Ss, Stack, T, Ts, Tzr) ->
@@ -1720,7 +1720,7 @@ yeccgoto_where_clauses(106, Cat, Ss, Stack, T, Ts, Tzr) ->
  yeccpars2_107(107, Cat, Ss, Stack, T, Ts, Tzr).
 
 -compile({inline,yeccpars2_1_/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.yrl", 81).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.yrl", 81).
 yeccpars2_1_(__Stack0) ->
  [__1 | __Stack] = __Stack0,
  [begin
@@ -1728,7 +1728,7 @@ yeccpars2_1_(__Stack0) ->
   end | __Stack].
 
 -compile({inline,yeccpars2_3_/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.yrl", 98).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.yrl", 98).
 yeccpars2_3_(__Stack0) ->
  [__1 | __Stack] = __Stack0,
  [begin
@@ -1736,7 +1736,7 @@ yeccpars2_3_(__Stack0) ->
   end | __Stack].
 
 -compile({inline,yeccpars2_4_/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.yrl", 75).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.yrl", 75).
 yeccpars2_4_(__Stack0) ->
  [__1 | __Stack] = __Stack0,
  [begin
@@ -1744,7 +1744,7 @@ yeccpars2_4_(__Stack0) ->
   end | __Stack].
 
 -compile({inline,yeccpars2_6_/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.yrl", 77).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.yrl", 77).
 yeccpars2_6_(__Stack0) ->
  [__1 | __Stack] = __Stack0,
  [begin
@@ -1752,7 +1752,7 @@ yeccpars2_6_(__Stack0) ->
   end | __Stack].
 
 -compile({inline,yeccpars2_7_/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.yrl", 79).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.yrl", 79).
 yeccpars2_7_(__Stack0) ->
  [__1 | __Stack] = __Stack0,
  [begin
@@ -1760,7 +1760,7 @@ yeccpars2_7_(__Stack0) ->
   end | __Stack].
 
 -compile({inline,yeccpars2_8_/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.yrl", 83).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.yrl", 83).
 yeccpars2_8_(__Stack0) ->
  [__1 | __Stack] = __Stack0,
  [begin
@@ -1768,7 +1768,7 @@ yeccpars2_8_(__Stack0) ->
   end | __Stack].
 
 -compile({inline,yeccpars2_9_/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.yrl", 87).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.yrl", 87).
 yeccpars2_9_(__Stack0) ->
  [__1 | __Stack] = __Stack0,
  [begin
@@ -1776,7 +1776,7 @@ yeccpars2_9_(__Stack0) ->
   end | __Stack].
 
 -compile({inline,yeccpars2_10_/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.yrl", 85).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.yrl", 85).
 yeccpars2_10_(__Stack0) ->
  [__1 | __Stack] = __Stack0,
  [begin
@@ -1784,7 +1784,7 @@ yeccpars2_10_(__Stack0) ->
   end | __Stack].
 
 -compile({inline,yeccpars2_12_/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.yrl", 89).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.yrl", 89).
 yeccpars2_12_(__Stack0) ->
  [__1 | __Stack] = __Stack0,
  [begin
@@ -1792,25 +1792,25 @@ yeccpars2_12_(__Stack0) ->
   end | __Stack].
 
 -compile({inline,yeccpars2_23_/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.yrl", 359).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.yrl", 359).
 yeccpars2_23_(__Stack0) ->
  [__1 | __Stack] = __Stack0,
  [begin
    unwrap_type ( __1 )
   end | __Stack].
 
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.erl", 1802).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.erl", 1802).
 -compile({inline,yeccpars2_24_/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.yrl", 222).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.yrl", 222).
 yeccpars2_24_(__Stack0) ->
  [__3,__2,__1 | __Stack] = __Stack0,
  [begin
    ? UPDATE_CLAUSE ( { __2 , __3 , ? PARSER_WILDCARD } )
   end | __Stack].
 
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.erl", 1811).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.erl", 1811).
 -compile({inline,yeccpars2_26_/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.yrl", 230).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.yrl", 230).
 yeccpars2_26_(__Stack0) ->
  [__2,__1 | __Stack] = __Stack0,
  [begin
@@ -1818,7 +1818,7 @@ yeccpars2_26_(__Stack0) ->
   end | __Stack].
 
 -compile({inline,yeccpars2_27_/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.yrl", 238).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.yrl", 238).
 yeccpars2_27_(__Stack0) ->
  [__1 | __Stack] = __Stack0,
  [begin
@@ -1826,7 +1826,7 @@ yeccpars2_27_(__Stack0) ->
   end | __Stack].
 
 -compile({inline,yeccpars2_30_/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.yrl", 256).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.yrl", 256).
 yeccpars2_30_(__Stack0) ->
  [__2,__1 | __Stack] = __Stack0,
  [begin
@@ -1834,7 +1834,7 @@ yeccpars2_30_(__Stack0) ->
   end | __Stack].
 
 -compile({inline,yeccpars2_31_/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.yrl", 248).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.yrl", 248).
 yeccpars2_31_(__Stack0) ->
  [__2,__1 | __Stack] = __Stack0,
  [begin
@@ -1842,7 +1842,7 @@ yeccpars2_31_(__Stack0) ->
   end | __Stack].
 
 -compile({inline,yeccpars2_32_/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.yrl", 252).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.yrl", 252).
 yeccpars2_32_(__Stack0) ->
  [__3,__2,__1 | __Stack] = __Stack0,
  [begin
@@ -1850,7 +1850,7 @@ yeccpars2_32_(__Stack0) ->
   end | __Stack].
 
 -compile({inline,yeccpars2_33_/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.yrl", 363).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.yrl", 363).
 yeccpars2_33_(__Stack0) ->
  [__1 | __Stack] = __Stack0,
  [begin
@@ -1858,7 +1858,7 @@ yeccpars2_33_(__Stack0) ->
   end | __Stack].
 
 -compile({inline,yeccpars2_34_/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.yrl", 260).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.yrl", 260).
 yeccpars2_34_(__Stack0) ->
  [__3,__2,__1 | __Stack] = __Stack0,
  [begin
@@ -1866,7 +1866,7 @@ yeccpars2_34_(__Stack0) ->
   end | __Stack].
 
 -compile({inline,yeccpars2_35_/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.yrl", 243).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.yrl", 243).
 yeccpars2_35_(__Stack0) ->
  [__3,__2,__1 | __Stack] = __Stack0,
  [begin
@@ -1874,7 +1874,7 @@ yeccpars2_35_(__Stack0) ->
   end | __Stack].
 
 -compile({inline,yeccpars2_36_/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.yrl", 375).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.yrl", 375).
 yeccpars2_36_(__Stack0) ->
  [__1 | __Stack] = __Stack0,
  [begin
@@ -1882,7 +1882,7 @@ yeccpars2_36_(__Stack0) ->
   end | __Stack].
 
 -compile({inline,yeccpars2_37_/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.yrl", 367).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.yrl", 367).
 yeccpars2_37_(__Stack0) ->
  [__1 | __Stack] = __Stack0,
  [begin
@@ -1890,7 +1890,7 @@ yeccpars2_37_(__Stack0) ->
   end | __Stack].
 
 -compile({inline,yeccpars2_38_/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.yrl", 371).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.yrl", 371).
 yeccpars2_38_(__Stack0) ->
  [__1 | __Stack] = __Stack0,
  [begin
@@ -1898,16 +1898,16 @@ yeccpars2_38_(__Stack0) ->
   end | __Stack].
 
 -compile({inline,yeccpars2_40_/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.yrl", 234).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.yrl", 234).
 yeccpars2_40_(__Stack0) ->
  [__3,__2,__1 | __Stack] = __Stack0,
  [begin
    lists : append ( __1 , [ __3 ] )
   end | __Stack].
 
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.erl", 1908).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.erl", 1908).
 -compile({inline,yeccpars2_42_/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.yrl", 226).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.yrl", 226).
 yeccpars2_42_(__Stack0) ->
  [__5,__4,__3,__2,__1 | __Stack] = __Stack0,
  [begin
@@ -1915,7 +1915,7 @@ yeccpars2_42_(__Stack0) ->
   end | __Stack].
 
 -compile({inline,yeccpars2_43_/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.yrl", 168).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.yrl", 168).
 yeccpars2_43_(__Stack0) ->
  [__1 | __Stack] = __Stack0,
  [begin
@@ -1923,7 +1923,7 @@ yeccpars2_43_(__Stack0) ->
   end | __Stack].
 
 -compile({inline,yeccpars2_52_/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.yrl", 164).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.yrl", 164).
 yeccpars2_52_(__Stack0) ->
  [__5,__4,__3,__2,__1 | __Stack] = __Stack0,
  [begin
@@ -1931,7 +1931,7 @@ yeccpars2_52_(__Stack0) ->
   end | __Stack].
 
 -compile({inline,yeccpars2_53_/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.yrl", 156).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.yrl", 156).
 yeccpars2_53_(__Stack0) ->
  [__3,__2,__1 | __Stack] = __Stack0,
  [begin
@@ -1939,7 +1939,7 @@ yeccpars2_53_(__Stack0) ->
   end | __Stack].
 
 -compile({inline,yeccpars2_54_/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.yrl", 152).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.yrl", 152).
 yeccpars2_54_(__Stack0) ->
  [__3,__2,__1 | __Stack] = __Stack0,
  [begin
@@ -1947,7 +1947,7 @@ yeccpars2_54_(__Stack0) ->
   end | __Stack].
 
 -compile({inline,yeccpars2_56_/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.yrl", 160).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.yrl", 160).
 yeccpars2_56_(__Stack0) ->
  [__5,__4,__3,__2,__1 | __Stack] = __Stack0,
  [begin
@@ -1955,43 +1955,43 @@ yeccpars2_56_(__Stack0) ->
   end | __Stack].
 
 -compile({inline,yeccpars2_64_/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.yrl", 177).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.yrl", 177).
 yeccpars2_64_(__Stack0) ->
  [__3,__2,__1 | __Stack] = __Stack0,
  [begin
    { __1 , __2 , __3 }
   end | __Stack].
 
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.erl", 1965).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.erl", 1965).
 -compile({inline,yeccpars2_67_/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.yrl", 117).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.yrl", 117).
 yeccpars2_67_(__Stack0) ->
  [__2,__1 | __Stack] = __Stack0,
  [begin
    ? SHOW_CLAUSE ( ? TABLES_TOKEN )
   end | __Stack].
 
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.erl", 1974).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.erl", 1974).
 -compile({inline,yeccpars2_69_/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.yrl", 113).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.yrl", 113).
 yeccpars2_69_(__Stack0) ->
  [__4,__3,__2,__1 | __Stack] = __Stack0,
  [begin
    ? SHOW_CLAUSE ( { ? INDEXES_TOKEN , __4 } )
   end | __Stack].
 
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.erl", 1983).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.erl", 1983).
 -compile({inline,yeccpars2_72_/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.yrl", 105).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.yrl", 105).
 yeccpars2_72_(__Stack0) ->
  [__4,__3,__2,__1 | __Stack] = __Stack0,
  [begin
    ? SHOW_CLAUSE ( { ? INDEX_TOKEN , __4 } )
   end | __Stack].
 
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.erl", 1992).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.erl", 1992).
 -compile({inline,yeccpars2_74_/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.yrl", 109).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.yrl", 109).
 yeccpars2_74_(__Stack0) ->
  [__5,__4,__3,__2,__1 | __Stack] = __Stack0,
  [begin
@@ -1999,25 +1999,25 @@ yeccpars2_74_(__Stack0) ->
   end | __Stack].
 
 -compile({inline,yeccpars2_77_/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.yrl", 144).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.yrl", 144).
 yeccpars2_77_(__Stack0) ->
  [__1 | __Stack] = __Stack0,
  [begin
    [ __1 ]
   end | __Stack].
 
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.erl", 2009).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.erl", 2009).
 -compile({inline,yeccpars2_80_/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.yrl", 124).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.yrl", 124).
 yeccpars2_80_(__Stack0) ->
  [__4,__3,__2,__1 | __Stack] = __Stack0,
  [begin
    ? SELECT_CLAUSE ( { __4 , __2 , ? PARSER_WILDCARD } )
   end | __Stack].
 
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.erl", 2018).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.erl", 2018).
 -compile({inline,yeccpars2_82_/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.yrl", 128).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.yrl", 128).
 yeccpars2_82_(__Stack0) ->
  [__6,__5,__4,__3,__2,__1 | __Stack] = __Stack0,
  [begin
@@ -2025,16 +2025,16 @@ yeccpars2_82_(__Stack0) ->
   end | __Stack].
 
 -compile({inline,yeccpars2_84_/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.yrl", 140).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.yrl", 140).
 yeccpars2_84_(__Stack0) ->
  [__3,__2,__1 | __Stack] = __Stack0,
  [begin
    lists : append ( __1 , [ __3 ] )
   end | __Stack].
 
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.erl", 2035).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.erl", 2035).
 -compile({inline,yeccpars2_90_/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.yrl", 190).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.yrl", 190).
 yeccpars2_90_(__Stack0) ->
  [__5,__4,__3,__2,__1 | __Stack] = __Stack0,
  [begin
@@ -2042,7 +2042,7 @@ yeccpars2_90_(__Stack0) ->
   end | __Stack].
 
 -compile({inline,yeccpars2_92_/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.yrl", 214).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.yrl", 214).
 yeccpars2_92_(__Stack0) ->
  [__1 | __Stack] = __Stack0,
  [begin
@@ -2050,7 +2050,7 @@ yeccpars2_92_(__Stack0) ->
   end | __Stack].
 
 -compile({inline,yeccpars2_94_/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.yrl", 206).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.yrl", 206).
 yeccpars2_94_(__Stack0) ->
  [__3,__2,__1 | __Stack] = __Stack0,
  [begin
@@ -2058,7 +2058,7 @@ yeccpars2_94_(__Stack0) ->
   end | __Stack].
 
 -compile({inline,yeccpars2_96_/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.yrl", 210).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.yrl", 210).
 yeccpars2_96_(__Stack0) ->
  [__3,__2,__1 | __Stack] = __Stack0,
  [begin
@@ -2066,7 +2066,7 @@ yeccpars2_96_(__Stack0) ->
   end | __Stack].
 
 -compile({inline,yeccpars2_98_/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.yrl", 202).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.yrl", 202).
 yeccpars2_98_(__Stack0) ->
  [__1 | __Stack] = __Stack0,
  [begin
@@ -2074,7 +2074,7 @@ yeccpars2_98_(__Stack0) ->
   end | __Stack].
 
 -compile({inline,yeccpars2_99_/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.yrl", 194).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.yrl", 194).
 yeccpars2_99_(__Stack0) ->
  [__3,__2,__1 | __Stack] = __Stack0,
  [begin
@@ -2082,34 +2082,34 @@ yeccpars2_99_(__Stack0) ->
   end | __Stack].
 
 -compile({inline,yeccpars2_101_/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.yrl", 198).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.yrl", 198).
 yeccpars2_101_(__Stack0) ->
  [__3,__2,__1 | __Stack] = __Stack0,
  [begin
    lists : append ( __1 , [ __3 ] )
   end | __Stack].
 
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.erl", 2092).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.erl", 2092).
 -compile({inline,yeccpars2_103_/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.yrl", 185).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.yrl", 185).
 yeccpars2_103_(__Stack0) ->
  [__6,__5,__4,__3,__2,__1 | __Stack] = __Stack0,
  [begin
    ? INSERT_CLAUSE ( { __3 , __4 , __6 } )
   end | __Stack].
 
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.erl", 2101).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.erl", 2101).
 -compile({inline,yeccpars2_105_/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.yrl", 332).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.yrl", 332).
 yeccpars2_105_(__Stack0) ->
  [__3,__2,__1 | __Stack] = __Stack0,
  [begin
    ? DELETE_CLAUSE ( { __3 , ? PARSER_WILDCARD } )
   end | __Stack].
 
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.erl", 2110).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.erl", 2110).
 -compile({inline,yeccpars2_107_/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.yrl", 336).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.yrl", 336).
 yeccpars2_107_(__Stack0) ->
  [__5,__4,__3,__2,__1 | __Stack] = __Stack0,
  [begin
@@ -2117,115 +2117,115 @@ yeccpars2_107_(__Stack0) ->
   end | __Stack].
 
 -compile({inline,yeccpars2_115_/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.yrl", 279).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.yrl", 279).
 yeccpars2_115_(__Stack0) ->
  [__1 | __Stack] = __Stack0,
  [begin
    [ __1 ]
   end | __Stack].
 
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.erl", 2127).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.erl", 2127).
 -compile({inline,yeccpars2_117_/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.yrl", 287).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.yrl", 287).
 yeccpars2_117_(__Stack0) ->
  [__2,__1 | __Stack] = __Stack0,
  [begin
    ? T_COL ( __1 , unwrap_type ( __2 ) , ? NO_CONSTRAINT )
   end | __Stack].
 
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.erl", 2136).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.erl", 2136).
 -compile({inline,yeccpars2_118_/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.yrl", 283).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.yrl", 283).
 yeccpars2_118_(__Stack0) ->
  [__3,__2,__1 | __Stack] = __Stack0,
  [begin
    ? T_COL ( __1 , unwrap_type ( __2 ) , __3 )
   end | __Stack].
 
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.erl", 2145).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.erl", 2145).
 -compile({inline,yeccpars2_123_/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.yrl", 291).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.yrl", 291).
 yeccpars2_123_(__Stack0) ->
  [__2,__1 | __Stack] = __Stack0,
  [begin
    ? PRIMARY_TOKEN
   end | __Stack].
 
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.erl", 2154).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.erl", 2154).
 -compile({inline,yeccpars2_130_/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.yrl", 295).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.yrl", 295).
 yeccpars2_130_(__Stack0) ->
  [__8,__7,__6,__5,__4,__3,__2,__1 | __Stack] = __Stack0,
  [begin
    ? FOREIGN_KEY ( { __5 , __7 , unwrap_type ( __3 ) , ? RESTRICT_TOKEN } )
   end | __Stack].
 
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.erl", 2163).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.erl", 2163).
 -compile({inline,yeccpars2_133_/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.yrl", 299).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.yrl", 299).
 yeccpars2_133_(__Stack0) ->
  [__11,__10,__9,__8,__7,__6,__5,__4,__3,__2,__1 | __Stack] = __Stack0,
  [begin
    ? FOREIGN_KEY ( { __5 , __7 , unwrap_type ( __3 ) , ? CASCADE_TOKEN } )
   end | __Stack].
 
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.erl", 2172).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.erl", 2172).
 -compile({inline,yeccpars2_134_/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.yrl", 303).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.yrl", 303).
 yeccpars2_134_(__Stack0) ->
  [__2,__1 | __Stack] = __Stack0,
  [begin
    ? DEFAULT_KEY ( __2 )
   end | __Stack].
 
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.erl", 2181).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.erl", 2181).
 -compile({inline,yeccpars2_138_/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.yrl", 313).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.yrl", 313).
 yeccpars2_138_(__Stack0) ->
  [__1 | __Stack] = __Stack0,
  [begin
    ? GREATER_KEY
   end | __Stack].
 
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.erl", 2190).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.erl", 2190).
 -compile({inline,yeccpars2_139_/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.yrl", 315).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.yrl", 315).
 yeccpars2_139_(__Stack0) ->
  [__1 | __Stack] = __Stack0,
  [begin
    ? GREATEREQ_KEY
   end | __Stack].
 
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.erl", 2199).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.erl", 2199).
 -compile({inline,yeccpars2_140_/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.yrl", 314).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.yrl", 314).
 yeccpars2_140_(__Stack0) ->
  [__1 | __Stack] = __Stack0,
  [begin
    ? LESSER_KEY
   end | __Stack].
 
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.erl", 2208).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.erl", 2208).
 -compile({inline,yeccpars2_141_/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.yrl", 316).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.yrl", 316).
 yeccpars2_141_(__Stack0) ->
  [__1 | __Stack] = __Stack0,
  [begin
    ? LESSEREQ_KEY
   end | __Stack].
 
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.erl", 2217).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.erl", 2217).
 -compile({inline,yeccpars2_143_/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.yrl", 307).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.yrl", 307).
 yeccpars2_143_(__Stack0) ->
  [__6,__5,__4,__3,__2,__1 | __Stack] = __Stack0,
  [begin
    ? CHECK_KEY ( { __3 , __4 , __5 } )
   end | __Stack].
 
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.erl", 2226).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.erl", 2226).
 -compile({inline,yeccpars2_144_/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.yrl", 267).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.yrl", 267).
 yeccpars2_144_(__Stack0) ->
  [__7,__6,__5,__4,__3,__2,__1 | __Stack] = __Stack0,
  [begin
@@ -2233,7 +2233,7 @@ yeccpars2_144_(__Stack0) ->
   end | __Stack].
 
 -compile({inline,yeccpars2_146_/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.yrl", 275).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.yrl", 275).
 yeccpars2_146_(__Stack0) ->
  [__3,__2,__1 | __Stack] = __Stack0,
  [begin
@@ -2241,16 +2241,16 @@ yeccpars2_146_(__Stack0) ->
   end | __Stack].
 
 -compile({inline,yeccpars2_152_/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.yrl", 324).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.yrl", 324).
 yeccpars2_152_(__Stack0) ->
  [__1 | __Stack] = __Stack0,
  [begin
    [ __1 ]
   end | __Stack].
 
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.erl", 2251).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.erl", 2251).
 -compile({inline,yeccpars2_153_/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.yrl", 271).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.yrl", 271).
 yeccpars2_153_(__Stack0) ->
  [__8,__7,__6,__5,__4,__3,__2,__1 | __Stack] = __Stack0,
  [begin
@@ -2258,34 +2258,34 @@ yeccpars2_153_(__Stack0) ->
   end | __Stack].
 
 -compile({inline,yeccpars2_155_/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.yrl", 320).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.yrl", 320).
 yeccpars2_155_(__Stack0) ->
  [__3,__2,__1 | __Stack] = __Stack0,
  [begin
    lists : append ( __1 , [ __3 ] )
   end | __Stack].
 
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.erl", 2268).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.erl", 2268).
 -compile({inline,yeccpars2_156_/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.yrl", 348).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.yrl", 348).
 yeccpars2_156_(__Stack0) ->
  [__2,__1 | __Stack] = __Stack0,
  [begin
    ? COMMIT_CLAUSE ( ? TRANSACTION_TOKEN )
   end | __Stack].
 
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.erl", 2277).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.erl", 2277).
 -compile({inline,yeccpars2_157_/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.yrl", 344).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.yrl", 344).
 yeccpars2_157_(__Stack0) ->
  [__2,__1 | __Stack] = __Stack0,
  [begin
    ? BEGIN_CLAUSE ( ? TRANSACTION_TOKEN )
   end | __Stack].
 
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.erl", 2286).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.erl", 2286).
 -compile({inline,yeccpars2_158_/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.yrl", 352).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.yrl", 352).
 yeccpars2_158_(__Stack0) ->
  [__2,__1 | __Stack] = __Stack0,
  [begin
@@ -2293,7 +2293,7 @@ yeccpars2_158_(__Stack0) ->
   end | __Stack].
 
 -compile({inline,yeccpars2_159_/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.yrl", 73).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.yrl", 73).
 yeccpars2_159_(__Stack0) ->
  [__2,__1 | __Stack] = __Stack0,
  [begin
@@ -2301,7 +2301,7 @@ yeccpars2_159_(__Stack0) ->
   end | __Stack].
 
 -compile({inline,yeccpars2_160_/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.yrl", 71).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.yrl", 71).
 yeccpars2_160_(__Stack0) ->
  [__3,__2,__1 | __Stack] = __Stack0,
  [begin
@@ -2309,4 +2309,4 @@ yeccpars2_160_(__Stack0) ->
   end | __Stack].
 
 
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/parser.yrl", 496).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/parser.yrl", 496).

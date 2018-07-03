@@ -79,7 +79,7 @@ s_get(Table, Column) when ?is_table(Table) ->
 	Columns = table:columns(Table),
 	s_get(Columns, Column);
 s_get(Columns, ColumnName) ->
-	ErrMsg = lists:concat(["Column ", ColumnName, " does not exist"]),
+	ErrMsg = lists:flatten(io_lib:format("Column ~p does not exist", [ColumnName])),
 	s_get(Columns, ColumnName, ErrMsg).
 
 s_get(Table, CName, ErrMsg) when ?is_table(Table) ->

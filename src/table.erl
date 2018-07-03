@@ -94,10 +94,10 @@ prepare_foreign_keys(Table, Tables) ->
 	FKs = foreign_keys:from_table(Table),
 	ShadowCols = lists:map(fun (?T_FK(FkName, FkType, T1TName, T1CName, T1DeleteRule)) ->
 		ShFk = ?T_FK([{TName, FkName}], FkType, T1TName, T1CName, T1DeleteRule),
-		Err1 = ["Table ", T1TName, " in foreign key reference does not exist."],
-		Err2 = ["Column ", T1CName, " does not exist in table ", T1TName],
-		TargetTable = lookup(T1TName, Tables, lists:concat(Err1)),
-		TargetCol = column:s_get(TargetTable, T1CName, lists:concat(Err2)),
+		Err1 = io_lib:format("Table ~p in foreign key reference does not exist.", [T1TName]),
+		Err2 = io_lib:format("Column ~p does not exist in table ~p", [T1CName, T1TName]),
+		TargetTable = lookup(T1TName, Tables, lists:flatten(Err1)),
+		TargetCol = column:s_get(TargetTable, T1CName, lists:flatten(Err2)),
 		case column:is_primary_key(TargetCol) of
 			false -> throw("Foreign keys can only reference unique columns");
 			_Else ->
@@ -126,7 +126,7 @@ lookup(Name, Tables, ErrMsg) ->
 	end.
 
 lookup(Name, Tables) when is_list(Tables) ->
-	ErrMsg = lists:concat(["No such table: ", Name]),
+	ErrMsg = lists:flatten(io_lib:format("No such table: ~p", [Name])),
 	lookup(Name, Tables, ErrMsg);
 lookup(Name, TxId) ->
 	Tables = read_tables(TxId),
