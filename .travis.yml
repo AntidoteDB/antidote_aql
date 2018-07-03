@@ -2,11 +2,11 @@ sudo: false
 language: erlang
 notifications:
   email:
-    recipients: jpd.sousa@campus.fct.unl.pt
+    recipients: pms.lopes@campus.fct.unl.pt
     on_success: never
     on_failure: always
 otp_release:
-  - 18.0
+  - 19.0
 before_install:
   - chmod +x dockerfiles/install_antidotedb.sh
 install:
@@ -20,3 +20,7 @@ script:
 after_success:
   - bin/covertool -cover _build/test/cover/eunit.coverdata -appname aql -output cobertura.xml
   - codecov
+branches:
+  only:
+  - master
+  - new_features

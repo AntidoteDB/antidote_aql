@@ -71,19 +71,19 @@ read_fks(Fks, _Tables, TxId, false) ->
 		TKey = element:create_key(Value, PTabName),
 		{ok, [Data]} = antidote:read_objects(TKey, TxId),
 		{Fk, Data}
-						end, Fks);
+	end, Fks);
 read_fks(Fks, Tables, TxId, true) ->
 	lists:map(fun({_Col, {PTabName, _PTabAttr}, _DelRule, Value} = Fk) ->
 		TKey = element:create_key(Value, PTabName),
 		{ok, [Data]} = antidote:read_objects(TKey, TxId),
 		case element:is_visible(Data, PTabName, Tables, TxId) of
 			false ->
-				ErrorMsg = io_lib:format("Cannot find row ~p in table ~p", [Value, PTabName]),
+				ErrorMsg = io_lib:format("Cannot find row ~p in table ~p", [utils:to_atom(Value), PTabName]),
 				throw(lists:flatten(ErrorMsg));
 			_Else ->
 				{Fk, Data}
 		end
-						end, Fks).
+	end, Fks).
 
 touch({_Col, {PTabName, _PTabAttr}, _DelRule, Value}, Data, Tables, TxId) ->
 	TKey = element:create_key(Value, PTabName),

@@ -23,14 +23,15 @@ delete() -> d.
 delete_cascade() -> dc.
 
 is_visible(ExState) ->
-  is_visible(ExState, []).
+  is_visible(ExState, true).
 
 is_visible(_, [false | _ImplicitState]) -> false;
 is_visible(ExplicitState, [true | ImplicitState]) ->
   is_visible(ExplicitState, ImplicitState);
-is_visible(i, []) -> true;
-is_visible(t, []) -> true;
-is_visible(d, []) -> false;
+is_visible(_, false) -> false;
+is_visible(i, _) -> true;
+is_visible(t, _) -> true;
+is_visible(d, _) -> false;
 is_visible(_InvalidE, _InvalidI) -> 
   err.
 

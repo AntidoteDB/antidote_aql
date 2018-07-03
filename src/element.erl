@@ -11,6 +11,10 @@
 
 -define(CRDT_TYPE, antidote_crdt_map_go).
 -define(EL_ANON, none).
+-define(STATE, '#st').
+-define(STATE_TYPE, antidote_crdt_register_mv).
+-define(VERSION, '#version').
+-define(VERSION_TYPE, antidote_crdt_counter_pn).
 
 -export([primary_key/1, set_primary_key/2,
         foreign_keys/1, foreign_keys/2, foreign_keys/3,
@@ -60,10 +64,10 @@ create_key(Key, TName) ->
   crdt:create_bound_object(KeyAtom, ?CRDT_TYPE, TName).
 
 st_key() ->
-  ?MAP_KEY('#st', antidote_crdt_register_mv).
+  ?MAP_KEY(?STATE, ?STATE_TYPE).
 
 version_key() ->
-  ?MAP_KEY('#version', antidote_crdt_counter_pn).
+  ?MAP_KEY(?VERSION, ?VERSION_TYPE).
 
 explicit_state(Data, Rule) ->
   Value = proplists:get_value(st_key(), Data),
@@ -81,7 +85,6 @@ is_visible(Element, Tables, TxId) when is_tuple(Element) ->
 
 is_visible([], _TName, _Tables, _TxId) -> false;
 is_visible(Data, TName, Tables, TxId) ->
-  %TName = table:name(Table),
   Table = table:lookup(TName, Tables),
   Policy = table:policy(Table),
   Rule = crp:get_rule(Policy),
@@ -90,34 +93,7 @@ is_visible(Data, TName, Tables, TxId) ->
     1 ->
       ipa:is_visible(ExplicitState);
     _Else ->
-      Fks = table:shadow_columns(Table),
-      ImplicitState = lists:map(fun(?T_FK(FkName, FkType, FKTable, _, _)) ->
-        case length(FkName) of
-          1 ->
-            {RefValue, RefVersion} = element:get(FkName, types:to_crdt(FkType, ?IGNORE_OP), Data, Table),
-            %FkState = index:tag_read(TName, FkName, FkValue, TxId),
-
-            FKBoundObj = create_key(RefValue, FKTable),
-            {ok, [FKData]} = antidote:read_objects(FKBoundObj, TxId),
-            FkVersion = element:get('#version', antidote_crdt_counter_pn, FKData, table:lookup(FKTable, Tables)),
-            case crp:dep_level(Policy) of
-              ?REMOVE_WINS -> FkVersion =:= RefVersion andalso is_visible(FKData, FKTable, Tables, TxId);
-              _ -> is_visible(FKData, FKTable, Tables, TxId)
-            end;
-
-          %FKBoundObj = create_key(FkValue, FKTable),
-          %{ok, [FKData]} = antidote:read_objects(FKBoundObj, TxId),
-          %FkVersion = element:get('#version', antidote_crdt_counter_pn, FKData, table:lookup(FKTable, Tables)),
-          %{FkValue, RefVersion} = element:get(FkName, antidote_crdt_register_lww, Data, Table),
-          %case crp:dep_level(Policy) of
-          %  ?REMOVE_WINS -> FkVersion =:= RefVersion andalso is_visible(FKData, FKTable, Tables, TxId);
-          %  _ -> is_visible(FKData, FKTable, Tables, TxId)
-          %end
-          %ipa:status(Rule, FkState)
-          _ ->
-            true
-        end
-      end, Fks),
+      ImplicitState = implicit_state(TName, Data, Tables, TxId),
       ipa:is_visible(ExplicitState, ImplicitState)
   end.
 
@@ -208,17 +184,13 @@ build_fks(Element, TxId) ->
         [{_, ParentId}] = FkName,
         Parent = dict:fetch(ParentId, Parents),
         Value = get_by_name(foreign_keys:to_cname(FkColName), Parent),
-        ParentVersion = get_by_name('#version', Parent),
+        ParentVersion = get_by_name(?VERSION, Parent),
         append(FkName, {Value, ParentVersion}, ?AQL_VARCHAR, ?IGNORE_OP, AccElement);
-        %AccElement;
       _Else ->
         [{_, ParentId} | ParentCol] = FkName,
         Parent = dict:fetch(ParentId, Parents),
-        %Value = get_by_name(foreign_keys:to_cname(ParentCol), Parent),
-        %ParentVersion = get_by_name('#version', Parent),
         Value = get_by_name(ParentCol, Parent),
         append(FkName, Value, ?AQL_VARCHAR, ?IGNORE_OP, AccElement)
-        %append(FkName, Value, FkType, ?IGNORE_OP, AccElement)
     end
   end, Element, Fks).
 
@@ -307,6 +279,36 @@ foreign_keys(Fks, Data, TName) ->
     Value = get(CName, types:to_crdt(CType, ?IGNORE_OP), Data, TName),
     {{CName, CType}, {FkTable, FkAttr}, DeleteRule, Value}
   end, Fks).
+
+implicit_state(TName, RecordData, Tables, TxId) ->
+  Table = table:lookup(TName, TxId),
+  FKs = table:shadow_columns(Table),
+  implicit_state(Table, RecordData, Tables, FKs, TxId).
+
+implicit_state(Table, Data, Tables, [?T_FK(FkName, FkType, FKTable, _, _) | Fks], TxId) ->
+  Policy = table:policy(Table),
+  IsVisible =
+    case length(FkName) of
+      1 ->
+        {RefValue, RefVersion} = element:get(FkName, types:to_crdt(FkType, ?IGNORE_OP), Data, Table),
+
+        FKBoundObj = create_key(RefValue, FKTable),
+        {ok, [FKData]} = antidote:read_objects(FKBoundObj, TxId),
+        FkVersion = element:get(?VERSION, ?VERSION_TYPE, FKData, table:lookup(FKTable, Tables)),
+        case crp:dep_level(Policy) of
+          ?REMOVE_WINS ->
+            FkVersion =:= RefVersion andalso
+              is_visible(FKData, FKTable, Tables, TxId);
+          _ ->
+            is_visible(FKData, FKTable, Tables, TxId)
+        end;
+      _ ->
+        true
+    end,
+
+  IsVisible andalso implicit_state(Table, Data, Tables, Fks, TxId);
+implicit_state(_Table, _Data, _Tables, [], _TxId) ->
+  true.
 
 %%====================================================================
 %% Eunit tests

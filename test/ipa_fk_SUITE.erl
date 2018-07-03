@@ -124,5 +124,5 @@ reference_deleted_fail(_Config) ->
   {error, Msg1, _} = tutils:aql("INSERT INTO FkB VALUES (2, 1)"),
   {error, Msg2, _} = tutils:aql("INSERT INTO FkC VALUES (1, 1)"),
 
-  ?assertEqual("Cannot find row 1 in table 'FkA'", Msg1),
-  ?assertEqual("Cannot find row 1 in table 'FkB'", Msg2).
+  ?assertEqual("Cannot find row '1' in table 'FkA'", Msg1),
+  ?assertEqual("Cannot find row '1' in table 'FkB'", Msg2).
