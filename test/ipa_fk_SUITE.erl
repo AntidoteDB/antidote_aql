@@ -71,13 +71,13 @@ indirect_foreign_keys(_Config) ->
 
 create_table_fail(_Config) ->
   % cannot create table that points to a non-existant table
-  {error, Msg1, _} = tutils:create_dc_fk_table("FkETest", "FkFTest"),
+  {error, Msg1} = tutils:create_dc_fk_table("FkETest", "FkFTest"),
   ?assertEqual("No such table: 'FkFTest'", Msg1),
   % cannot create a table that points to a non-existant column
-  {error, Msg2, _} = tutils:create_dc_fk_table("FkETest", "FkA", "ABC", "AW", "DELETE-WINS"),
+  {error, Msg2} = tutils:create_dc_fk_table("FkETest", "FkA", "ABC", "AW", "DELETE-WINS"),
   ?assertEqual("Column 'ABC' does not exist in table 'FkA'", Msg2),
   % cannot create a table that points to a non-primary key column
-  {error, Msg3, _} = tutils:create_dc_fk_table("FkETest", "FkB", "FkA", "AW", "DELETE-WINS"),
+  {error, Msg3} = tutils:create_dc_fk_table("FkETest", "FkB", "FkA", "AW", "DELETE-WINS"),
   ?assertEqual("Foreign keys can only reference unique columns", Msg3).
 
 %%touch_cascade(_Config) ->
@@ -121,8 +121,8 @@ delete_multilevel(_Config) ->
 
 reference_deleted_fail(_Config) ->
   {ok, [], _Tx} = tutils:delete_by_key("FkA", "1"),
-  {error, Msg1, _} = tutils:aql("INSERT INTO FkB VALUES (2, 1)"),
-  {error, Msg2, _} = tutils:aql("INSERT INTO FkC VALUES (1, 1)"),
+  {error, Msg1} = tutils:aql("INSERT INTO FkB VALUES (2, 1)"),
+  {error, Msg2} = tutils:aql("INSERT INTO FkC VALUES (1, 1)"),
 
   ?assertEqual("Cannot find row '1' in table 'FkA'", Msg1),
   ?assertEqual("Cannot find row '1' in table 'FkB'", Msg2).

@@ -47,7 +47,7 @@ exec({Table, _Tables}, Select, TxId) ->
 	%	[] -> {ok, []};
 	%	_Else ->
 	%		{ok, Results} = antidote:read_objects(Keys, TxId),
-	%		VisibleResults = filter_visible(Results, Table, TxId),
+	%		VisibleResults = filter_visible(Results, TName, Tables, TxId),
 	%		ProjectionResult = project(Projection, VisibleResults, [], Cols),
 	%		ActualRes = apply_offset(ProjectionResult, Cols, []),
 	%		{ok, ActualRes}
@@ -114,16 +114,15 @@ prepare_filter(Table, Projection, Conditions) ->
 
 %% The idea is to build additional conditions that concern visibility.
 %% Those conditions are then sent to the Antidote node.
-%% Former Form: ((#st = i OR #st = t) AND fk_col1 <> dc AND fk_col2 <> dc AND ...)
-%% New Form:
+%% Form:
 %% - Update-wins:
 %% 			(state(row.pk) <> d AND
 %% 			 state(row.fk_col1) <> d AND
 %% 			 state(row.fk_col2) <> d ...)
 %% - Delete-wins:
 %% 			(state(row.pk) <> d AND
-%% 			 (assert_version(row.fk_col1) = true AND state(row.fk_col1) <> d) AND
-%% 			 (assert_version(row.fk_col2) = true AND state(row.fk_col2) <> d) ...)
+%% 			 assert_visibility(row.fk_col1) = true AND
+%% 			 assert_visibility(row.fk_col2) = true ...)
 build_visibility_conditions(Table) ->
   Policy = table:policy(Table),
   Rule = crp:get_rule(Policy),
@@ -150,25 +149,25 @@ implicit_state_conds(Table, Rule) ->
 implicit_state_conds([?T_FK(FkName, _, FkTable, _, _) | []], _Rule, Acc) ->
   %Func = ?FUNCTION(find_first, [FkName, Rule]),
 	%lists:append(Acc, [{Func, ?PARSER_NEQ, dc}]);
-	Func = ?FUNCTION(assert_version, [?COLUMN(FkName), FkTable]),
+	Func = ?FUNCTION(assert_visibility, [?COLUMN(FkName), FkTable]),
 	lists:append(Acc, [{Func, ?PARSER_EQUALITY, true}]);
 implicit_state_conds([?T_FK(FkName, _, FkTable, _, _) | Tail], Rule, Acc) ->
   %Func = ?FUNCTION(find_first, [FkName, Rule]),
 	%NewAcc = lists:append(Acc, [{Func, ?PARSER_NEQ, dc}, ?CONJUNCTION]),
-	Func = ?FUNCTION(assert_version, [?COLUMN(FkName), FkTable]),
+	Func = ?FUNCTION(assert_visibility, [?COLUMN(FkName), FkTable]),
 	NewAcc = lists:append(Acc, [{Func, ?PARSER_EQUALITY, true}, ?CONJUNCTION]),
 	implicit_state_conds(Tail, Rule, NewAcc);
 implicit_state_conds([], _Rule, Acc) -> Acc.
 
-filter_visible(Results, Table, TxId) ->
-	filter_visible(Results, Table, TxId, []).
+filter_visible(Results, TName, Tables, TxId) ->
+	filter_visible(Results, TName, Tables, TxId, []).
 
-filter_visible([Result | Results], Table, TxId, Acc) ->
-	case element:is_visible(Result, Table, TxId) of
-		  true -> filter_visible(Results, Table, TxId, lists:append(Acc, [Result]));
-			_Else -> filter_visible(Results, Table, TxId, Acc)
+filter_visible([Result | Results], TName, Tables, TxId, Acc) ->
+	case element:is_visible(Result, TName, Tables, TxId) of
+		  true -> filter_visible(Results, TName, Tables, TxId, lists:append(Acc, [Result]));
+			_Else -> filter_visible(Results, TName, Tables, TxId, Acc)
 	end;
-filter_visible([], _Table, _TxId, Acc) ->
+filter_visible([], _TName, _Tables, _TxId, Acc) ->
 	Acc.
 
 % groups of elements
@@ -177,6 +176,8 @@ apply_offset([Result | Results], Cols, Acc) when is_list(Result) ->
 	apply_offset(Results, Cols, Acc ++ [Result1]);
 % groups of columns
 apply_offset([{{'#st', _T}, _} | Values], Cols, Acc) ->
+	apply_offset(Values, Cols, Acc);
+apply_offset([{{'#version', _T}, _} | Values], Cols, Acc) ->
 	apply_offset(Values, Cols, Acc);
 apply_offset([{{Key, Type}, V} | Values], Cols, Acc) ->
   Col = maps:get(Key, Cols),
@@ -194,6 +195,8 @@ apply_offset([], _Cols, Acc) -> Acc.
 
 
 project(Projection, [[{{'#st', _T}, _V}] | Results], Acc, Cols) ->
+	project(Projection, Results, Acc, Cols);
+project(Projection, [[{{'#version', _T}, _V}] | Results], Acc, Cols) ->
 	project(Projection, Results, Acc, Cols);
 project(Projection, [[] | Results], Acc, Cols) ->
 	project(Projection, Results, Acc, Cols);

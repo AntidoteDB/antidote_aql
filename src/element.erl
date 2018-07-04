@@ -14,7 +14,7 @@
 -define(STATE, '#st').
 -define(STATE_TYPE, antidote_crdt_register_mv).
 -define(VERSION, '#version').
--define(VERSION_TYPE, antidote_crdt_counter_pn).
+-define(VERSION_TYPE, antidote_crdt_register_lww).
 
 -export([primary_key/1, set_primary_key/2,
         foreign_keys/1, foreign_keys/2, foreign_keys/3,
@@ -29,7 +29,8 @@
         put/3, set_version/2, build_fks/2,
         get/2, get/3, get/4,
         get_by_name/2,
-        insert/1, insert/2]).
+        insert/1, insert/2,
+        delete/2]).
 
 %% ====================================================================
 %% Property functions
@@ -93,8 +94,14 @@ is_visible(Data, TName, Tables, TxId) ->
     1 ->
       ipa:is_visible(ExplicitState);
     _Else ->
-      ImplicitState = implicit_state(TName, Data, Tables, TxId),
-      ipa:is_visible(ExplicitState, ImplicitState)
+      [?T_COL(PKName, PKType, _Constraint)] = column:s_primary_key(Table),
+      PKValue = get(PKName, types:to_crdt(PKType, ?IGNORE_OP), Data, Table),
+      ObjKey = create_key(PKValue, TName),
+
+      ipa:is_visible(ExplicitState) andalso
+        (implicit_state(TName, Data, Tables, TxId) orelse
+          delete(ObjKey, TxId))
+      %ipa:d_is_visible(ExplicitState, ImplicitState, fun() -> delete(ObjKey, TxId) end)
   end.
 
 throwNoSuchColumn(ColName, TableName) ->
@@ -156,7 +163,7 @@ set_if_primary(Col, Value, Element) ->
 
 set_version(Element, TxId) ->
   VersionKey = version_key(),
-  VersionOp = crdt:increment_counter(1),
+  %VersionOp = crdt:increment_counter(1),
   %VersionOp = crdt:field_map_op(version_key(), crdt:increment_counter(1)),
   CurrOps = ops(Element),
   ElemData = data(Element),
@@ -169,6 +176,8 @@ set_version(Element, TxId) ->
               _Else ->
                 proplists:get_value(VersionKey, CurrData) + 1
             end,
+
+  VersionOp = crdt:assign_lww(Version),
 
   Element1 = set_data(Element, lists:append(ElemData, [{VersionKey, Version}])),
   set_ops(Element1, utils:proplists_upsert(VersionKey, VersionOp, CurrOps)).
@@ -285,22 +294,28 @@ implicit_state(TName, RecordData, Tables, TxId) ->
   FKs = table:shadow_columns(Table),
   implicit_state(Table, RecordData, Tables, FKs, TxId).
 
-implicit_state(Table, Data, Tables, [?T_FK(FkName, FkType, FKTable, _, _) | Fks], TxId) ->
+implicit_state(Table, Data, Tables, [?T_FK(FkName, FkType, FKTName, _, _) | Fks], TxId) ->
   Policy = table:policy(Table),
   IsVisible =
     case length(FkName) of
       1 ->
         {RefValue, RefVersion} = element:get(FkName, types:to_crdt(FkType, ?IGNORE_OP), Data, Table),
 
-        FKBoundObj = create_key(RefValue, FKTable),
+        FKBoundObj = create_key(RefValue, FKTName),
         {ok, [FKData]} = antidote:read_objects(FKBoundObj, TxId),
-        FkVersion = element:get(?VERSION, ?VERSION_TYPE, FKData, table:lookup(FKTable, Tables)),
+        FKTable = table:lookup(FKTName, Tables),
+        FkVersion = element:get(?VERSION, ?VERSION_TYPE, FKData, FKTable),
         case crp:dep_level(Policy) of
           ?REMOVE_WINS ->
             FkVersion =:= RefVersion andalso
-              is_visible(FKData, FKTable, Tables, TxId);
+              is_visible(FKData, FKTName, Tables, TxId);
           _ ->
-            is_visible(FKData, FKTable, Tables, TxId)
+            %% TODO não é necessário ter esta condição
+            %is_visible(FKData, FKTable, Tables, TxId)
+            %% TODO nova condição
+            FKRule = crp:get_rule(table:policy(FKTable)),
+            FKExplicitState = explicit_state(FKData, FKRule),
+            ipa:is_visible(FKExplicitState)
         end;
       _ ->
         true
@@ -309,6 +324,12 @@ implicit_state(Table, Data, Tables, [?T_FK(FkName, FkType, FKTable, _, _) | Fks]
   IsVisible andalso implicit_state(Table, Data, Tables, Fks, TxId);
 implicit_state(_Table, _Data, _Tables, [], _TxId) ->
   true.
+
+delete(ObjKey, TxId) ->
+  StateOp = crdt:field_map_op(element:st_key(), crdt:assign_lww(ipa:delete())),
+  Update = crdt:map_update(ObjKey, StateOp),
+  ok = antidote:update_objects(Update, TxId),
+  false.
 
 %%====================================================================
 %% Eunit tests

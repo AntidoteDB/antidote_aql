@@ -32,7 +32,7 @@ is_visible(_, false) -> false;
 is_visible(i, _) -> true;
 is_visible(t, _) -> true;
 is_visible(d, _) -> false;
-is_visible(_InvalidE, _InvalidI) -> 
+is_visible(_InvalidE, _InvalidI) ->
   err.
 
 status(_Rule, []) -> [];

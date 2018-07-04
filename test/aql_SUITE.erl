@@ -176,7 +176,7 @@ error_transaction(Config) ->
 
   {ok, [{ok, {begin_tx, Tx}}], Tx} = tutils:aql("BEGIN TRANSACTION"),
 
-  {error, _, undefined} = tutils:aql(lists:concat(["CREATE AW TABLE ", TNameAlbum,
+  {error, _} = tutils:aql(lists:concat(["CREATE AW TABLE ", TNameAlbum,
     " (Name VARCHAR PRIMARY KEY,",
     " IsSingle BOOLEAN DEFAULT ", DefaultAlbum, ",",
     " Art INT FOREIGN KEY UPDATE-WINS REFERENCES ",

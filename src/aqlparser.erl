@@ -38,7 +38,7 @@ parse({str, Query}, Node, Tx) ->
 					catch
 						Reason ->
 							%io:fwrite("Syntax Error: ~p~n", [Reason]),
-							{error, Reason, undefined}
+							{error, Reason}
 					end;
 				_Else ->
 					ParseRes
@@ -65,11 +65,14 @@ read_and_exec(Node, Tx) ->
 		{ok, Res, RetTx} ->
 			io:fwrite("~p~n", [Res]),
 			read_and_exec(Node, RetTx);
-		{error, Msg, RetTx} ->
+		{error, Msg} ->
 			io:fwrite("~p~n", [{error, Msg}]),
-			read_and_exec(Node, RetTx);
+			read_and_exec(Node, undefined);
 		{ok, RetTx} ->
-			read_and_exec(Node, RetTx)
+			read_and_exec(Node, RetTx);
+		Else ->
+			io:fwrite("~p~n", [Else]),
+			read_and_exec(Node, undefined)
 	end.
 
 %%====================================================================
