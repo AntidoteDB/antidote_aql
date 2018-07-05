@@ -9,7 +9,7 @@
 -include("parser.hrl").
 
 -define(INDEX_CRDT, antidote_crdt_set_go).
--define(SINDEX_CRDT, antidote_crdt_index_go).
+-define(SINDEX_CRDT, antidote_crdt_index).
 -define(ITAG_CRDT, antidote_crdt_map_go).
 -define(ITAG_KEY_CRDT, antidote_crdt_register_mv).
 -define(INDEX_PREFIX, "#_").
