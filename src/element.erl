@@ -94,13 +94,16 @@ is_visible(Data, TName, Tables, TxId) ->
     1 ->
       ipa:is_visible(ExplicitState);
     _Else ->
-      [?T_COL(PKName, PKType, _Constraint)] = column:s_primary_key(Table),
-      PKValue = get(PKName, types:to_crdt(PKType, ?IGNORE_OP), Data, Table),
-      ObjKey = create_key(PKValue, TName),
+      %[?T_COL(PKName, PKType, _Constraint)] = column:s_primary_key(Table),
+      %PKValue = get(PKName, types:to_crdt(PKType, ?IGNORE_OP), Data, Table),
+      %ObjKey = create_key(PKValue, TName),
 
       ipa:is_visible(ExplicitState) andalso
-        (implicit_state(TName, Data, Tables, TxId) orelse
-          delete(ObjKey, TxId))
+        implicit_state(TName, Data, Tables, TxId)
+
+      %ipa:is_visible(ExplicitState) andalso
+      %  (implicit_state(TName, Data, Tables, TxId) orelse
+      %    delete(ObjKey, TxId))
       %ipa:d_is_visible(ExplicitState, ImplicitState, fun() -> delete(ObjKey, TxId) end)
   end.
 

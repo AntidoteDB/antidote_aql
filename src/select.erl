@@ -97,10 +97,10 @@ invert_comparator(?PARSER_LEQ) -> ?PARSER_GEQ;
 invert_comparator(Comp) -> Comp.
 
 prepare_filter(Table, Projection, Conditions) ->
-	VisibilityConds = build_visibility_conditions(Table),
+	VisibilityConds = visibility_condition(Table), % build_visibility_conditions(Table),
 	NewConditions = case Conditions of
 										[] -> VisibilityConds;
-										Conditions -> lists:append([[Conditions], [?CONJUNCTION], [VisibilityConds]])
+										Conditions -> lists:append([[Conditions], [?CONJUNCTION], VisibilityConds])
 									end,
 
 	Conjunctions = group_conjunctions(NewConditions),
@@ -126,12 +126,24 @@ prepare_filter(Table, Projection, Conditions) ->
 build_visibility_conditions(Table) ->
   Policy = table:policy(Table),
   Rule = crp:get_rule(Policy),
-	ExplicitConds = [explicit_state_conds(Rule)],
+	ExplicitConds = explicit_state_conds(Rule),
 	ImplicitConds = implicit_state_conds(Table, Rule),
 	case ImplicitConds of
 		[] -> ExplicitConds;
 		_Else -> lists:append([ExplicitConds, [?CONJUNCTION], ImplicitConds])
 	end.
+
+visibility_condition(Table) ->
+	Policy = table:policy(Table),
+	Rule = crp:get_rule(Policy),
+	ShCols = lists:foldl(fun(?T_FK(FkName, _, FkTable, _, _), Acc) ->
+		case length(FkName) of
+			1 -> lists:append(Acc, [[?COLUMN(FkName), FkTable]]);
+			_ -> Acc
+		end
+	end, [], table:shadow_columns(Table)),
+	Func = ?FUNCTION(assert_visibility, [?COLUMN('#st'), Rule, ShCols]),
+	[{Func, ?PARSER_EQUALITY, true}].
 
 explicit_state_conds(Rule) ->
   Func = ?FUNCTION(find_last, [?COLUMN('#st'), Rule]),
@@ -238,23 +250,11 @@ get_value(_Key, []) ->
 group_conjunctions(?PARSER_WILDCARD) ->
   [];
 group_conjunctions(WhereClause) when is_list(WhereClause) ->
-	BoolConnectors = lists:filter(fun(Elem) ->
-			case Elem of
-				{Type, _} when (Type == disjunctive) or (Type == conjunctive)
-					-> true;
-				_Else -> false
-			end
-		end, WhereClause),
-  FilterClause = lists:filter(fun(Elem) ->
-		case Elem of
-			{_Type, _} -> false;
-			_Else -> true
-		end
-  end, WhereClause),
-	[First | Tail] = FilterClause,
+	{Conditions, Connectors} = separate_conditions(WhereClause, {[], []}),
+	[First | Tail] = Conditions,
 	case is_list(First) of
-		true -> group_conjunctions(Tail, BoolConnectors, [{sub, group_conjunctions(First)}], []);
-		false -> group_conjunctions(Tail, BoolConnectors, [First], [])
+		true -> group_conjunctions(Tail, Connectors, [{sub, group_conjunctions(First)}], []);
+		false -> group_conjunctions(Tail, Connectors, [First], [])
 	end.
 
 group_conjunctions([Comp | Tail], [{conjunctive, _} | Tail2], Curr, Final) ->
@@ -270,7 +270,15 @@ group_conjunctions([Comp | Tail], [{disjunctive, _} | Tail2], Curr, Final) ->
 				 end,
 	group_conjunctions(Tail, Tail2, [Conj], lists:append(Final, [Curr]));
 group_conjunctions([], [], Curr, Final) ->
-	lists:append(Final, [Curr]).
+	{disjunction, lists:append(Final, [Curr])}.
+
+separate_conditions([{conjunctive, _} = Conn | Tail], {Conditions, Connectors}) ->
+	separate_conditions(Tail, {Conditions, lists:append(Connectors, [Conn])});
+separate_conditions([{disjunctive, _} = Conn | Tail], {Conditions, Connectors}) ->
+	separate_conditions(Tail, {Conditions, lists:append(Connectors, [Conn])});
+separate_conditions([Cond | Tail], {Conditions, Connectors}) ->
+	separate_conditions(Tail, {lists:append(Conditions, [Cond]), Connectors});
+separate_conditions([], Acc) -> Acc.
 
 %%====================================================================
 %% Eunit tests
