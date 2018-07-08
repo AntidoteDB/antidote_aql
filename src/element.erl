@@ -98,8 +98,13 @@ is_visible(Data, TName, Tables, TxId) ->
       %PKValue = get(PKName, types:to_crdt(PKType, ?IGNORE_OP), Data, Table),
       %ObjKey = create_key(PKValue, TName),
 
-      ipa:is_visible(ExplicitState) andalso
-        implicit_state(TName, Data, Tables, TxId)
+      case crp:dep_level(Policy) of
+        ?REMOVE_WINS ->
+          ipa:is_visible(ExplicitState) andalso
+            implicit_state(Table, Data, Tables, TxId);
+        _Other ->
+          ipa:is_visible(ExplicitState)
+      end
 
       %ipa:is_visible(ExplicitState) andalso
       %  (implicit_state(TName, Data, Tables, TxId) orelse
@@ -292,8 +297,7 @@ foreign_keys(Fks, Data, TName) ->
     {{CName, CType}, {FkTable, FkAttr}, DeleteRule, Value}
   end, Fks).
 
-implicit_state(TName, RecordData, Tables, TxId) ->
-  Table = table:lookup(TName, TxId),
+implicit_state(Table, RecordData, Tables, TxId) ->
   FKs = table:shadow_columns(Table),
   implicit_state(Table, RecordData, Tables, FKs, TxId).
 
@@ -315,10 +319,10 @@ implicit_state(Table, Data, Tables, [?T_FK(FkName, FkType, FKTName, _, _) | Fks]
           _ ->
             %% TODO não é necessário ter esta condição
             %is_visible(FKData, FKTable, Tables, TxId)
-            %% TODO nova condição
-            FKRule = crp:get_rule(table:policy(FKTable)),
-            FKExplicitState = explicit_state(FKData, FKRule),
-            ipa:is_visible(FKExplicitState)
+            %FKRule = crp:get_rule(table:policy(FKTable)),
+            %FKExplicitState = explicit_state(FKData, FKRule),
+            %ipa:is_visible(FKExplicitState)
+            true
         end;
       _ ->
         true
