@@ -97,7 +97,7 @@ invert_comparator(?PARSER_LEQ) -> ?PARSER_GEQ;
 invert_comparator(Comp) -> Comp.
 
 prepare_filter(Table, Projection, Conditions) ->
-	VisibilityConds = visibility_condition(Table), % build_visibility_conditions(Table),
+	VisibilityConds = visibility_condition(Table),
 	NewConditions = case Conditions of
 										[] -> VisibilityConds;
 										Conditions -> lists:append([[Conditions], [?CONJUNCTION], VisibilityConds])
@@ -113,26 +113,17 @@ prepare_filter(Table, Projection, Conditions) ->
 	[TablesField, ProjectionField, ConditionsField].
 
 %% The idea is to build additional conditions that concern visibility.
-%% Those conditions are then sent to the Antidote node.
-%% Form:
-%% - Update-wins:
+%% Intuitively, these conditions would be sent to the Antidote node.
+%% Instead, what is really sent to Antidote is a function that
+%% internally tries to approach the following visibility conditions:
+%% - In an update-wins dependency policy:
 %% 			(state(row.pk) <> d AND
 %% 			 state(row.fk_col1) <> d AND
 %% 			 state(row.fk_col2) <> d ...)
-%% - Delete-wins:
+%% - In a delete-wins dependency policy:
 %% 			(state(row.pk) <> d AND
-%% 			 assert_visibility(row.fk_col1) = true AND
-%% 			 assert_visibility(row.fk_col2) = true ...)
-build_visibility_conditions(Table) ->
-  Policy = table:policy(Table),
-  Rule = crp:get_rule(Policy),
-	ExplicitConds = explicit_state_conds(Rule),
-	ImplicitConds = implicit_state_conds(Table, Rule),
-	case ImplicitConds of
-		[] -> ExplicitConds;
-		_Else -> lists:append([ExplicitConds, [?CONJUNCTION], ImplicitConds])
-	end.
-
+%% 			 ref_state(row.fk_col1) <> d AND ref_version(row.fk_col1) = version(row.fk_col1) AND
+%% 			 ref_state(row.fk_col2) <> d AND ref_version(row.fk_col2) = version(row.fk_col2) ...)
 visibility_condition(Table) ->
 	Policy = table:policy(Table),
 	Rule = crp:get_rule(Policy),
@@ -144,32 +135,6 @@ visibility_condition(Table) ->
 	end, [], table:shadow_columns(Table)),
 	Func = ?FUNCTION(assert_visibility, [?COLUMN('#st'), Rule, ShCols]),
 	[{Func, ?PARSER_EQUALITY, true}].
-
-explicit_state_conds(Rule) ->
-  Func = ?FUNCTION(find_last, [?COLUMN('#st'), Rule]),
-	%ICond = {Func, ?PARSER_EQUALITY, i},
-	%TCond = {Func, ?PARSER_EQUALITY, t},
-	%[ICond, ?DISJUNCTION, TCond].
-	[{Func, ?PARSER_NEQ, d}].
-
-implicit_state_conds(Table, Rule) ->
-	ShCols = lists:filter(fun(?T_FK(FkName, _, _, _, _)) ->
-		length(FkName) == 1
-	end, table:shadow_columns(Table)),
-	implicit_state_conds(ShCols, Rule, []).
-
-implicit_state_conds([?T_FK(FkName, _, FkTable, _, _) | []], _Rule, Acc) ->
-  %Func = ?FUNCTION(find_first, [FkName, Rule]),
-	%lists:append(Acc, [{Func, ?PARSER_NEQ, dc}]);
-	Func = ?FUNCTION(assert_visibility, [?COLUMN(FkName), FkTable]),
-	lists:append(Acc, [{Func, ?PARSER_EQUALITY, true}]);
-implicit_state_conds([?T_FK(FkName, _, FkTable, _, _) | Tail], Rule, Acc) ->
-  %Func = ?FUNCTION(find_first, [FkName, Rule]),
-	%NewAcc = lists:append(Acc, [{Func, ?PARSER_NEQ, dc}, ?CONJUNCTION]),
-	Func = ?FUNCTION(assert_visibility, [?COLUMN(FkName), FkTable]),
-	NewAcc = lists:append(Acc, [{Func, ?PARSER_EQUALITY, true}, ?CONJUNCTION]),
-	implicit_state_conds(Tail, Rule, NewAcc);
-implicit_state_conds([], _Rule, Acc) -> Acc.
 
 filter_visible(Results, TName, Tables, TxId) ->
 	filter_visible(Results, TName, Tables, TxId, []).
