@@ -8,8 +8,9 @@
 -include("types.hrl").
 -include("parser.hrl").
 
--define(INDEX_CRDT, antidote_crdt_set_go).
+-define(INDEX_CRDT, antidote_crdt_index).
 -define(SINDEX_CRDT, antidote_crdt_index).
+-define(INDEX_ENTRY_DT, antidote_crdt_register_lww).
 -define(ITAG_CRDT, antidote_crdt_map_go).
 -define(ITAG_KEY_CRDT, antidote_crdt_register_mv).
 -define(INDEX_PREFIX, "#_").
@@ -67,7 +68,10 @@ cols({_Name, _TName, Cols}) -> Cols.
 keys(TName, TxId) ->
   BoundObject = crdt:create_bound_object(name(TName), ?INDEX_CRDT, ?METADATA_BUCKET),
   {ok, [Res]} = antidote:read_objects(BoundObject, TxId),
-  lists:map(fun(Key) -> element:create_key(Key, TName) end, Res).
+  lists:map(fun({_Key, Set}) ->
+    [Key] = ordsets:to_list(Set),
+    element:create_key(Key, TName)
+  end, Res).
 
 %% Reads a secondary index
 s_keys(TName, IndexName, TxId) ->
@@ -105,9 +109,10 @@ s_name(TName, IndexName) ->
   NameStr = lists:concat([?SINDEX_PREFIX, TNameStr, ".", INameStr]),
   list_to_atom(NameStr).
 
-put({Key, _Map, TName}) ->
+put({Key, _Map, TName} = ObjBoundKey) ->
   BoundObject = crdt:create_bound_object(name(TName), ?INDEX_CRDT, ?METADATA_BUCKET),
-  crdt:add_all(BoundObject, Key).
+  AssignKey = crdt:assign_lww(Key),
+  crdt:map_update(BoundObject, {?INDEX_ENTRY_DT, ObjBoundKey, AssignKey}).
 
 put(Key, TxId) ->
   ok = antidote:update_objects(put(Key), TxId).
