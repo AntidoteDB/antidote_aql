@@ -94,10 +94,6 @@ is_visible(Data, TName, Tables, TxId) ->
     1 ->
       ipa:is_visible(ExplicitState);
     _Else ->
-      %[?T_COL(PKName, PKType, _Constraint)] = column:s_primary_key(Table),
-      %PKValue = get(PKName, types:to_crdt(PKType, ?IGNORE_OP), Data, Table),
-      %ObjKey = create_key(PKValue, TName),
-
       case crp:dep_level(Policy) of
         ?REMOVE_WINS ->
           ipa:is_visible(ExplicitState) andalso
@@ -105,11 +101,6 @@ is_visible(Data, TName, Tables, TxId) ->
         _Other ->
           ipa:is_visible(ExplicitState)
       end
-
-      %ipa:is_visible(ExplicitState) andalso
-      %  (implicit_state(TName, Data, Tables, TxId) orelse
-      %    delete(ObjKey, TxId))
-      %ipa:d_is_visible(ExplicitState, ImplicitState, fun() -> delete(ObjKey, TxId) end)
   end.
 
 throwNoSuchColumn(ColName, TableName) ->
@@ -171,11 +162,8 @@ set_if_primary(Col, Value, Element) ->
 
 set_version(Element, TxId) ->
   VersionKey = version_key(),
-  %VersionOp = crdt:increment_counter(1),
-  %VersionOp = crdt:field_map_op(version_key(), crdt:increment_counter(1)),
   CurrOps = ops(Element),
   ElemData = data(Element),
-  %set_ops(Element, lists:append([VersionOp], CurrOps)),
 
   Key = primary_key(Element),
   {ok, [CurrData]} = antidote:read_objects(Key, TxId),
@@ -317,11 +305,6 @@ implicit_state(Table, Data, Tables, [?T_FK(FkName, FkType, FKTName, _, _) | Fks]
             FkVersion =:= RefVersion andalso
               is_visible(FKData, FKTName, Tables, TxId);
           _ ->
-            %% TODO não é necessário ter esta condição
-            %is_visible(FKData, FKTable, Tables, TxId)
-            %FKRule = crp:get_rule(table:policy(FKTable)),
-            %FKExplicitState = explicit_state(FKData, FKRule),
-            %ipa:is_visible(FKExplicitState)
             true
         end;
       _ ->

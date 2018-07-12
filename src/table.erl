@@ -51,7 +51,7 @@ prepare_table(Table, Tables, TxId) ->
 			undefined -> Rule;
 			Rule -> Rule;
 			_Else ->
-				io:fwrite("Warning: Both 'Update-Wins' and 'Delete-Wins' found. 'Delete-Wins will prevail."),
+				io:fwrite("Warning: Both 'Update-Wins' and 'Delete-Wins' found. 'Delete-Wins' will prevail.~n"),
 				?REMOVE_WINS
 		end
  	end, undefined, Crps),

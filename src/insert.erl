@@ -94,8 +94,6 @@ touch({_Col, {PTabName, _PTabAttr}, _DelRule, Value}, Data, Tables, TxId) ->
 		_Else -> antidote:update_objects(crdt:ipa_update(TKey, ipa:touch()), TxId)
 	end,
 
-	% touch cascade
-	%touch_cascade(Data, Table, Tables, TxId),
 	% touch parents
 	Fks = element:foreign_keys(foreign_keys:from_table(Table), Data, PTabName),
 	FksKV = read_fks(Fks, Tables, TxId, false),
@@ -115,13 +113,3 @@ handle_defaults(Keys, Values, Table) ->
 				not maps:is_key(Key, Defaults)
 		 	end, Keys)
 	end.
-
-%%touch_cascade(Data, Table, Tables, TxId) ->
-%%	TName = table:name(Table),
-%%	Refs = table:dependants(TName, Tables),
-%%	lists:foreach(fun({RefTName, RefCols}) ->
-%%		lists:foreach(fun(?T_FK(FkName, FkType, _TName, CName, _DeleteRule)) ->
-%%			Value = element:get(CName, types:to_crdt(FkType, ?IGNORE_OP), Data, Table),
-%%			ok = index:tag(RefTName, FkName, Value, ipa:touch_cascade(), TxId)
-%%									end, RefCols)
-%%								end, Refs).
