@@ -16,8 +16,8 @@
 -export([exec/3]).
 
 -export([table/1,
-				keys/2,
-				values/1]).
+		 keys/2,
+		 values/1]).
 
 -export([touch_cascade/5]).
 
@@ -27,7 +27,7 @@ exec({Table, Tables}, Props, TxId) ->
 	Keys1 = handle_defaults(Keys, Values, Table),
 	AnnElement = element:new(Table),
 	{ok, Element} = element:put(Keys1, Values, AnnElement),
-  Element1 = element:set_version(Element, TxId),
+  	Element1 = element:set_version(Element, TxId),
 	Element2 = element:build_fks(Element1, TxId),
 	ok = element:insert(Element2, TxId),
 	%Pk = element:primary_key(Element1),

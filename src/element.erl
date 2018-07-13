@@ -289,12 +289,12 @@ implicit_state(Table, RecordData, Tables, TxId) ->
   FKs = table:shadow_columns(Table),
   implicit_state(Table, RecordData, Tables, FKs, TxId).
 
-implicit_state(Table, Data, Tables, [?T_FK(FkName, FkType, FKTName, _, _) | Fks], TxId) ->
+implicit_state(Table, Data, Tables, [?T_FK(FkName, _, FKTName, _, _) | Fks], TxId) ->
   Policy = table:policy(Table),
   IsVisible =
     case length(FkName) of
       1 ->
-        {RefValue, RefVersion} = element:get(FkName, types:to_crdt(FkType, ?IGNORE_OP), Data, Table),
+        {RefValue, RefVersion} = element:get(FkName, ?CRDT_VARCHAR, Data, Table),
 
         FKBoundObj = create_key(RefValue, FKTName),
         {ok, [FKData]} = antidote:read_objects(FKBoundObj, TxId),
