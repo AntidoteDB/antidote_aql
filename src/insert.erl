@@ -30,13 +30,7 @@ exec({Table, Tables}, Props, TxId) ->
   	Element1 = element:set_version(Element, TxId),
 	Element2 = element:build_fks(Element1, TxId),
 	ok = element:insert(Element2, TxId),
-	%Pk = element:primary_key(Element1),
-	%index:put(Pk, TxId),
-	% update foreign key references
-	%touch_cascade(Element1, Tables, TxId),
-	%Fks = element:foreign_keys(foreign_keys:from_table(Table), Element1),
-	%FksKV = read_fks(Fks, Tables, TxId, true),
-	%lists:foreach(fun ({Fk, Data}) -> touch(Fk, Data, Tables, TxId) end, FksKV).
+
 	touch_cascade(element, Element2, Table, Tables, TxId),
 	ok.
 
@@ -56,36 +50,34 @@ touch_cascade(record, Record, Table, Tables, TxId) ->
 	TName = table:name(Table),
 	Fks = element:foreign_keys(foreign_keys:from_table(Table), Record, TName),
 	FksKV = read_fks(Fks, Tables, TxId, true),
-	lists:foreach(fun ({Fk, Data}) -> touch(Fk, Data, Tables, TxId) end, FksKV);
+	lists:foreach(fun ({Fk, Entry}) -> touch(Fk, Entry, Tables, TxId) end, FksKV);
 touch_cascade(element, Element, Table, Tables, TxId) ->
 	Fks = element:foreign_keys(foreign_keys:from_table(Table), Element),
 	FksKV = read_fks(Fks, Tables, TxId, true),
-	lists:foreach(fun ({Fk, Data}) -> touch(Fk, Data, Tables, TxId) end, FksKV).
+	lists:foreach(fun ({Fk, Entry}) -> touch(Fk, Entry, Tables, TxId) end, FksKV).
 
 %% ====================================================================
 %% Functions for inserts and updates
 %% ====================================================================
 
 read_fks(Fks, _Tables, TxId, false) ->
-	lists:map(fun({_Col, {PTabName, _PTabAttr}, _DelRule, Value} = Fk) ->
-		TKey = element:create_key(Value, PTabName),
-		{ok, [Data]} = antidote:read_objects(TKey, TxId),
-		{Fk, Data}
+	lists:map(fun({?T_FK(_, _, PTabName, _, _), Value} = Fk) ->
+		IndexEntry = index:keys(PTabName, {get, Value}, TxId),
+		{Fk, IndexEntry}
 	end, Fks);
 read_fks(Fks, Tables, TxId, true) ->
-	lists:map(fun({_Col, {PTabName, _PTabAttr}, _DelRule, Value} = Fk) ->
-		TKey = element:create_key(Value, PTabName),
-		{ok, [Data]} = antidote:read_objects(TKey, TxId),
-		case element:is_visible(Data, PTabName, Tables, TxId) of
+	lists:map(fun({?T_FK(_, _, PTabName, _, _), Value} = Fk) ->
+		IndexEntry = index:keys(PTabName, {get, Value}, TxId),
+		case element:is_visible(IndexEntry, PTabName, Tables, TxId) of
 			false ->
 				ErrorMsg = io_lib:format("Cannot find row ~p in table ~p", [utils:to_atom(Value), PTabName]),
 				throw(lists:flatten(ErrorMsg));
 			_Else ->
-				{Fk, Data}
+				{Fk, IndexEntry}
 		end
 	end, Fks).
 
-touch({_Col, {PTabName, _PTabAttr}, _DelRule, Value}, Data, Tables, TxId) ->
+touch({?T_FK(_, _, PTabName, _, _), Value}, Entry, Tables, TxId) ->
 	TKey = element:create_key(Value, PTabName),
 	Table = table:lookup(PTabName, Tables),
 	Policy = table:policy(Table),
@@ -95,7 +87,7 @@ touch({_Col, {PTabName, _PTabAttr}, _DelRule, Value}, Data, Tables, TxId) ->
 	end,
 
 	% touch parents
-	Fks = element:foreign_keys(foreign_keys:from_table(Table), Data, PTabName),
+	Fks = index:format_refs(Entry),
 	FksKV = read_fks(Fks, Tables, TxId, false),
 	lists:foreach(fun ({Fk, Data2}) -> touch(Fk, Data2, Tables, TxId) end, FksKV).
 

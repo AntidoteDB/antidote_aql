@@ -8,7 +8,7 @@
 -include("types.hrl").
 -include("parser.hrl").
 
--define(INDEX_CRDT, antidote_crdt_index).
+-define(INDEX_CRDT, antidote_crdt_index_p).
 -define(SINDEX_CRDT, antidote_crdt_index).
 -define(INDEX_ENTRY_DT, antidote_crdt_register_lww).
 -define(ITAG_CRDT, antidote_crdt_map_go).
@@ -16,6 +16,11 @@
 -define(INDEX_PREFIX, "#_").
 -define(SINDEX_PREFIX, "#2i_").
 -define(TAG_TOKEN, "#__").
+
+-define(BOBJ_FIELD(Val), {bound_obj, Val}).
+-define(STATE_FIELD(Val), {state, Val}).
+-define(VERSION_FIELD(Val), {version, Val}).
+-define(REFS_FIELD(Val), {refs, Val}).
 
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
@@ -26,17 +31,22 @@
         table/1,
         cols/1]).
 
--export([keys/2,
-        s_keys/3,
+-export([keys/2, keys/3,
+        s_keys/3, s_keys/4,
         s_keys_formatted/3,
         name/1,
         s_name/2,
-        put/1, put/2,
+        put/2, put/3,
         lookup_index/2]).
 -export([tag_name/2,
         tag_key/2, tag_subkey/1,
         tag/5,
         tag_read/4]).
+-export([i_key/1,
+  i_bobj/1,
+  i_state/1,
+  i_version/1,
+  i_refs/1, get_ref/2, format_refs/1]).
 
 exec({Table, _Tables}, Props, TxId) ->
   %IndexName = index(Props),
@@ -68,15 +78,32 @@ cols({_Name, _TName, Cols}) -> Cols.
 keys(TName, TxId) ->
   BoundObject = crdt:create_bound_object(name(TName), ?INDEX_CRDT, ?METADATA_BUCKET),
   {ok, [Res]} = antidote:read_objects(BoundObject, TxId),
-  lists:map(fun({_Key, Set}) ->
-    [Key] = ordsets:to_list(Set),
-    element:create_key(Key, TName)
-  end, Res).
+  case Res of
+    {_IdxPol, _DepPol, IndexTree} ->
+      lists:map(fun({_Key, Entry}) ->
+        {BObj, _, _, _} = Entry,
+        element:create_key(BObj, TName)
+      end, IndexTree);
+    [] -> []
+  end.
+
+keys(TName, Operation, TxId) ->
+  BoundObject = crdt:create_bound_object(name(TName), ?INDEX_CRDT, ?METADATA_BUCKET),
+  {ok, [Res]} = antidote:read_objects({BoundObject, Operation}, TxId),
+  case Res of
+      {error, _} -> [];
+      Value -> Value
+  end.
 
 %% Reads a secondary index
 s_keys(TName, IndexName, TxId) ->
   BoundObject = crdt:create_bound_object(s_name(TName, IndexName), ?SINDEX_CRDT, ?METADATA_BUCKET),
   {ok, [Res]} = antidote:read_objects(BoundObject, TxId),
+  Res.
+
+s_keys(TName, IndexName, Operation, TxId) ->
+  BoundObject = crdt:create_bound_object(s_name(TName, IndexName), ?SINDEX_CRDT, ?METADATA_BUCKET),
+  {ok, [Res]} = antidote:read_objects({BoundObject, Operation}, TxId),
   Res.
 
 s_keys_formatted(TName, IndexName, TxId) ->
@@ -109,13 +136,35 @@ s_name(TName, IndexName) ->
   NameStr = lists:concat([?SINDEX_PREFIX, TNameStr, ".", INameStr]),
   list_to_atom(NameStr).
 
-put({Key, _Map, TName} = ObjBoundKey) ->
-  BoundObject = crdt:create_bound_object(name(TName), ?INDEX_CRDT, ?METADATA_BUCKET),
-  AssignKey = crdt:assign_lww(Key),
-  crdt:map_update(BoundObject, {?INDEX_ENTRY_DT, ObjBoundKey, AssignKey}).
+put([], _Table) -> [];
+put(RecordData, Table) when is_list(RecordData) ->
+  TName = table:name(Table),
+  [?T_COL(PkColName, Type, _)] = column:s_primary_key(Table),
+  PKVal = element:get(PkColName, types:to_crdt(Type, ignore), RecordData, Table),
+  StateVal = element:get('#st', antidote_crdt_register_mv, RecordData, Table),
+  VersionVal = element:get('#version', antidote_crdt_register_lww, RecordData, Table),
+  RefsVal = lists:map(fun(?T_FK(FKName, FKType, _, _, _)) ->
+    FKVal = element:get(FKName, types:to_crdt(FKType, ignore), RecordData, Table),
+    ParentVersion = element:get_by_name('#version', RecordData),
+    {FKName, {FKVal, ParentVersion}}
+  end, table:shadow_columns(Table)),
 
-put(Key, TxId) ->
-  ok = antidote:update_objects(put(Key), TxId).
+  ObjBoundKey = {utils:to_atom(PKVal), antidote_crdt_map_go, TName},
+  IndexBoundObject = crdt:create_bound_object(name(TName), ?INDEX_CRDT, ?METADATA_BUCKET),
+
+  AssignKey = ?BOBJ_FIELD(crdt:assign_lww(ObjBoundKey)),
+  AssignState = ?STATE_FIELD(crdt:assign_lww(StateVal)),
+  AssignVersion = ?VERSION_FIELD(crdt:assign_lww(VersionVal)),
+  AssignRefs = ?REFS_FIELD(lists:map(fun({FKName, FKVal}) ->
+    {FKName, crdt:assign_lww(FKVal)}
+  end, RefsVal)),
+
+  FullUpdate = [AssignKey, AssignState, AssignVersion, AssignRefs],
+  crdt:map_update(IndexBoundObject, {ObjBoundKey, FullUpdate}).
+
+put(Key, Table, TxId) ->
+  {ok, [Data]} = antidote:read_objects(Key, TxId),
+  ok = antidote:update_objects(index:put(Data, Table), TxId).
 
 lookup_index(IndexName, Table) ->
   Indexes = table:indexes(Table),
@@ -145,6 +194,30 @@ tag_read(TName, CName, Value, TxId) ->
   {ok, [Map]} = antidote:read_objects(Key, TxId),
   SubKey = tag_subkey(Value),
   proplists:get_value(SubKey, Map).
+
+i_key(?T_INDEX_ENTRY(Key, _, _, _, _)) -> Key.
+
+i_bobj(?T_INDEX_ENTRY(_, BObj, _, _, _)) -> BObj.
+
+i_state(?T_INDEX_ENTRY(_, _, State, _, _)) -> State.
+
+i_version(?T_INDEX_ENTRY(_ ,_, _, Version, _)) -> Version.
+
+i_refs(?T_INDEX_ENTRY(_, _, _, _, Refs)) -> Refs.
+
+get_ref(RefName, ?T_INDEX_ENTRY(_, _, _, _, Refs)) ->
+  Aux = lists:dropwhile(fun({?T_FK(FkName, _, _, _, _), _}) ->
+          FkName /= RefName
+        end, Refs),
+  case Aux of
+    [] -> undefined;
+    [FKey | _Rest] -> FKey
+  end.
+
+format_refs(?T_INDEX_ENTRY(_, _, _, _, Refs)) ->
+  lists:map(fun({FkName, {FkValue, _FkVersion}}) ->
+    {FkName, FkValue}
+  end, Refs).
 
 %% ====================================================================
 %% Private functions

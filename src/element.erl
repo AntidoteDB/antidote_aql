@@ -70,8 +70,8 @@ st_key() ->
 version_key() ->
   ?MAP_KEY(?VERSION, ?VERSION_TYPE).
 
-explicit_state(Data, Rule) ->
-  Value = proplists:get_value(st_key(), Data),
+explicit_state(Entry, Rule) ->
+  Value = index:i_state(Entry),
   case Value of
     undefined ->
       throw("No explicit state found");
@@ -85,22 +85,17 @@ is_visible(Element, Tables, TxId) when is_tuple(Element) ->
   is_visible(Data, TName, Tables, TxId).
 
 is_visible([], _TName, _Tables, _TxId) -> false;
-is_visible(Data, TName, Tables, TxId) ->
+is_visible(Entry, TName, Tables, TxId) ->
   Table = table:lookup(TName, Tables),
   Policy = table:policy(Table),
   Rule = crp:get_rule(Policy),
-  ExplicitState = explicit_state(Data, Rule),
-  case length(Data) of
-    1 ->
-      ipa:is_visible(ExplicitState);
-    _Else ->
-      case crp:dep_level(Policy) of
-        ?REMOVE_WINS ->
-          ipa:is_visible(ExplicitState) andalso
-            implicit_state(Table, Data, Tables, TxId);
-        _Other ->
-          ipa:is_visible(ExplicitState)
-      end
+  ExplicitState = explicit_state(Entry, Rule),
+  case crp:dep_level(Policy) of
+    ?REMOVE_WINS ->
+      ipa:is_visible(ExplicitState) andalso
+        implicit_state(Table, Entry, Tables, TxId);
+    _Other ->
+      ipa:is_visible(ExplicitState)
   end.
 
 throwNoSuchColumn(ColName, TableName) ->
@@ -164,13 +159,16 @@ set_version(Element, TxId) ->
   VersionKey = version_key(),
   CurrOps = ops(Element),
   ElemData = data(Element),
+  Table = table(Element),
+  [?T_COL(PkColName, _, _)] = column:s_primary_key(Table),
 
-  Key = primary_key(Element),
-  {ok, [CurrData]} = antidote:read_objects(Key, TxId),
-  Version = case CurrData of
+  {_Key, _Type, TName} = primary_key(Element),
+  PkValue = get_by_name(PkColName, ElemData),
+  IndexEntry = index:keys(TName, {get, PkValue}, TxId),
+  Version = case IndexEntry of
               [] -> 1;
               _Else ->
-                proplists:get_value(VersionKey, CurrData) + 1
+                index:i_version(IndexEntry) + 1
             end,
 
   VersionOp = crdt:assign_lww(Version),
@@ -183,19 +181,19 @@ build_fks(Element, TxId) ->
   Table = table(Element),
   Fks = table:shadow_columns(Table),
   Parents = parents(Data, Fks, Table, TxId),
-  lists:foldl(fun(?T_FK(FkName, _, _, FkColName, _), AccElement) ->
+  lists:foldl(fun(?T_FK(FkName, _, _, _, _), AccElement) ->
     case length(FkName) of
       1 ->
         [{_, ParentId}] = FkName,
         Parent = dict:fetch(ParentId, Parents),
-        Value = get_by_name(foreign_keys:to_cname(FkColName), Parent),
-        ParentVersion = get_by_name(?VERSION, Parent),
+        Value = index:i_key(Parent),%get_by_name(foreign_keys:to_cname(FkColName), Parent),
+        ParentVersion = index:i_version(Parent),%get_by_name(?VERSION, Parent),
         append(FkName, {Value, ParentVersion}, ?AQL_VARCHAR, ?IGNORE_OP, AccElement);
       _Else ->
         [{_, ParentId} | ParentCol] = FkName,
         Parent = dict:fetch(ParentId, Parents),
-        Value = get_by_name(ParentCol, Parent),
-        append(FkName, Value, ?AQL_VARCHAR, ?IGNORE_OP, AccElement)
+        {_, {Value, V}} = index:get_ref(ParentCol, Parent), %index:i_key(Parent),%get_by_name(ParentCol, Parent),
+        append(FkName, {Value, V}, ?AQL_VARCHAR, ?IGNORE_OP, AccElement)
     end
   end, Element, Fks).
 
@@ -205,9 +203,8 @@ parents(Data, Fks, Table, TxId) ->
       [ShCol] ->
         {_FkTable, FkName} = ShCol,
         Value = get(FkName, types:to_crdt(Type, ?IGNORE_OP), Data, Table),
-        Key = create_key(Value, TTName),
-        {ok, [Parent]} = antidote:read_objects(Key, TxId),
-        dict:store(FkName, Parent, Dict);
+        IndexEntry = index:keys(TTName, {get, Value}, TxId),
+        dict:store(FkName, IndexEntry, Dict);
       _Else -> Dict
     end
   end, dict:new(), Fks).
@@ -280,39 +277,42 @@ foreign_keys(Fks, Element) when is_tuple(Element) ->
   foreign_keys(Fks, Data, TName).
 
 foreign_keys(Fks, Data, TName) ->
-  lists:map(fun(?T_FK(CName, CType, FkTable, FkAttr, DeleteRule)) ->
+  lists:map(fun(?T_FK(CName, CType, _, _, _) = Fk) ->
     Value = get(CName, types:to_crdt(CType, ?IGNORE_OP), Data, TName),
-    {{CName, CType}, {FkTable, FkAttr}, DeleteRule, Value}
+    {Fk, Value}
   end, Fks).
 
-implicit_state(Table, RecordData, Tables, TxId) ->
-  FKs = table:shadow_columns(Table),
-  implicit_state(Table, RecordData, Tables, FKs, TxId).
+implicit_state(Table, Entry, Tables, TxId) ->
+  FKs = index:i_refs(Entry),
+  implicit_state0(Table, Tables, FKs, TxId).
 
-implicit_state(Table, Data, Tables, [?T_FK(FkName, _, FKTName, _, _) | Fks], TxId) ->
+implicit_state0(Table, Tables, [{FkSpec, FkValue} | Fks], TxId) ->
   Policy = table:policy(Table),
+  ?T_FK(FkName, _, RefTable, _, _) = FkSpec,
   IsVisible =
     case length(FkName) of
       1 ->
-        {RefValue, RefVersion} = element:get(FkName, ?CRDT_VARCHAR, Data, Table),
-
-        FKBoundObj = create_key(RefValue, FKTName),
-        {ok, [FKData]} = antidote:read_objects(FKBoundObj, TxId),
-        FKTable = table:lookup(FKTName, Tables),
-        FkVersion = element:get(?VERSION, ?VERSION_TYPE, FKData, FKTable),
-        case crp:dep_level(Policy) of
-          ?REMOVE_WINS ->
-            FkVersion =:= RefVersion andalso
-              is_visible(FKData, FKTName, Tables, TxId);
-          _ ->
-            true
+        {RefValue, RefVersion} = FkValue,
+        FKData = index:keys(RefTable, {get, RefValue}, TxId),
+        case FKData of
+          [] ->
+            MsgFormat = io_lib:format("Primary key ~p does not exist in table ~p", [RefValue, RefTable]),
+            throw(lists:flatten(MsgFormat));
+          ?T_INDEX_ENTRY(_, _, _, FkVersion, _) ->
+            case crp:dep_level(Policy) of
+              ?REMOVE_WINS ->
+                FkVersion =:= RefVersion andalso
+                  is_visible(FKData, RefTable, Tables, TxId);
+              _ ->
+                true
+            end
         end;
       _ ->
         true
     end,
 
-  IsVisible andalso implicit_state(Table, Data, Tables, Fks, TxId);
-implicit_state(_Table, _Data, _Tables, [], _TxId) ->
+  IsVisible andalso implicit_state0(Table, Tables, Fks, TxId);
+implicit_state0(_Table, _Tables, [], _TxId) ->
   true.
 
 delete(ObjKey, TxId) ->

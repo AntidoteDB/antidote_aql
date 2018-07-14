@@ -19,3 +19,6 @@
 
 -define(T_FILTER(Type, Content), {Type, Content}).
 -define(is_filter(Filter), is_tuple(Filter) andalso tuple_size(Filter) =:= 2).
+
+-define(T_INDEX_ENTRY(Key, BoundObject, State, Version, Refs), {Key, {BoundObject, State, Version, Refs}}).
+-define(is_index_entry(IndexEntry), is_tuple(IndexEntry) andalso tuple_size(IndexEntry) =:= 5).
