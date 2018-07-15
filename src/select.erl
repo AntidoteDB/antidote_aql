@@ -277,9 +277,9 @@ conjunction_test() ->
   Res1 = group_conjunctions(TestClause1),
   Res2 = group_conjunctions(TestClause2),
   Res3 = group_conjunctions(TestClause3),
-  ?assertEqual(Res1, [[DefaultComp, DefaultComp], [DefaultComp]]),
-  ?assertEqual(Res2, [[DefaultComp], [DefaultComp], [DefaultComp]]),
-  ?assertEqual(Res3, [[DefaultComp, DefaultComp, DefaultComp]]).
+  ?assertEqual({disjunction, [[DefaultComp, DefaultComp], [DefaultComp]]}, Res1),
+  ?assertEqual({disjunction, [[DefaultComp], [DefaultComp], [DefaultComp]]}, Res2),
+  ?assertEqual({disjunction, [[DefaultComp, DefaultComp, DefaultComp]]}, Res3).
 
 conjunction_parenthesis_test() ->
 	DefaultComp = {attr, [{equality, ignore}], val},
@@ -293,6 +293,14 @@ conjunction_parenthesis_test() ->
 		DefaultComp
 	],
 	Res1 = group_conjunctions(TestClause1),
-	?assertEqual([[{sub, [[DefaultComp, DefaultComp], [DefaultComp]]}, DefaultComp]], Res1).
+	Expected = {
+		disjunction,
+		[[{sub, {
+			disjunction,
+			[[DefaultComp, DefaultComp], [DefaultComp]]}
+		}, DefaultComp]
+		]
+	},
+	?assertEqual(Expected, Res1).
 
 -endif.

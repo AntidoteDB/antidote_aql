@@ -51,6 +51,10 @@ touch_cascade(record, Record, Table, Tables, TxId) ->
 	Fks = element:foreign_keys(foreign_keys:from_table(Table), Record, TName),
 	FksKV = read_fks(Fks, Tables, TxId, true),
 	lists:foreach(fun ({Fk, Entry}) -> touch(Fk, Entry, Tables, TxId) end, FksKV);
+touch_cascade(entry, Entry, _Table, Tables, TxId) ->
+    Fks = index:format_refs(Entry),
+    FksKV = read_fks(Fks, Tables, TxId, true),
+    lists:foreach(fun ({Fk, FkEntry}) -> touch(Fk, FkEntry, Tables, TxId) end, FksKV);
 touch_cascade(element, Element, Table, Tables, TxId) ->
 	Fks = element:foreign_keys(foreign_keys:from_table(Table), Element),
 	FksKV = read_fks(Fks, Tables, TxId, true),
@@ -62,12 +66,12 @@ touch_cascade(element, Element, Table, Tables, TxId) ->
 
 read_fks(Fks, _Tables, TxId, false) ->
 	lists:map(fun({?T_FK(_, _, PTabName, _, _), Value} = Fk) ->
-		IndexEntry = index:keys(PTabName, {get, Value}, TxId),
+		IndexEntry = index:p_keys(PTabName, {get, Value}, TxId),
 		{Fk, IndexEntry}
 	end, Fks);
 read_fks(Fks, Tables, TxId, true) ->
 	lists:map(fun({?T_FK(_, _, PTabName, _, _), Value} = Fk) ->
-		IndexEntry = index:keys(PTabName, {get, Value}, TxId),
+		IndexEntry = index:p_keys(PTabName, {get, Value}, TxId),
 		case element:is_visible(IndexEntry, PTabName, Tables, TxId) of
 			false ->
 				ErrorMsg = io_lib:format("Cannot find row ~p in table ~p", [utils:to_atom(Value), PTabName]),

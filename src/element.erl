@@ -71,7 +71,7 @@ version_key() ->
   ?MAP_KEY(?VERSION, ?VERSION_TYPE).
 
 explicit_state(Entry, Rule) ->
-  Value = index:i_state(Entry),
+  Value = index:entry_state(Entry),
   case Value of
     undefined ->
       throw("No explicit state found");
@@ -164,11 +164,11 @@ set_version(Element, TxId) ->
 
   {_Key, _Type, TName} = primary_key(Element),
   PkValue = get_by_name(PkColName, ElemData),
-  IndexEntry = index:keys(TName, {get, PkValue}, TxId),
+  IndexEntry = index:p_keys(TName, {get, PkValue}, TxId),
   Version = case IndexEntry of
               [] -> 1;
               _Else ->
-                index:i_version(IndexEntry) + 1
+                index:entry_version(IndexEntry) + 1
             end,
 
   VersionOp = crdt:assign_lww(Version),
@@ -186,8 +186,8 @@ build_fks(Element, TxId) ->
       1 ->
         [{_, ParentId}] = FkName,
         Parent = dict:fetch(ParentId, Parents),
-        Value = index:i_key(Parent),%get_by_name(foreign_keys:to_cname(FkColName), Parent),
-        ParentVersion = index:i_version(Parent),%get_by_name(?VERSION, Parent),
+        Value = index:entry_key(Parent),
+        ParentVersion = index:entry_version(Parent),%
         append(FkName, {Value, ParentVersion}, ?AQL_VARCHAR, ?IGNORE_OP, AccElement);
       _Else ->
         [{_, ParentId} | ParentCol] = FkName,
@@ -203,7 +203,7 @@ parents(Data, Fks, Table, TxId) ->
       [ShCol] ->
         {_FkTable, FkName} = ShCol,
         Value = get(FkName, types:to_crdt(Type, ?IGNORE_OP), Data, Table),
-        IndexEntry = index:keys(TTName, {get, Value}, TxId),
+        IndexEntry = index:p_keys(TTName, {get, Value}, TxId),
         dict:store(FkName, IndexEntry, Dict);
       _Else -> Dict
     end
@@ -283,7 +283,7 @@ foreign_keys(Fks, Data, TName) ->
   end, Fks).
 
 implicit_state(Table, Entry, Tables, TxId) ->
-  FKs = index:i_refs(Entry),
+  FKs = index:entry_refs(Entry),
   implicit_state0(Table, Tables, FKs, TxId).
 
 implicit_state0(Table, Tables, [{FkSpec, FkValue} | Fks], TxId) ->
@@ -293,7 +293,7 @@ implicit_state0(Table, Tables, [{FkSpec, FkValue} | Fks], TxId) ->
     case length(FkName) of
       1 ->
         {RefValue, RefVersion} = FkValue,
-        FKData = index:keys(RefTable, {get, RefValue}, TxId),
+        FKData = index:p_keys(RefTable, {get, RefValue}, TxId),
         case FKData of
           [] ->
             MsgFormat = io_lib:format("Primary key ~p does not exist in table ~p", [RefValue, RefTable]),

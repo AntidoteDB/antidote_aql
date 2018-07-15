@@ -161,7 +161,7 @@ exec(?SHOW_CLAUSE(?TABLES_TOKEN), Tx) ->
 	io:fwrite("Tables: ~p~n", [TNames]),
 	TNames;
 exec(?SHOW_CLAUSE({?INDEX_TOKEN, TName}), Tx) ->
-	Keys = index:keys(TName, Tx),
+	Keys = index:p_keys(TName, Tx),
 	lists:foreach(fun({Key, _Type, _TName}) ->
 		io:fwrite("{key: ~p, table: ~p}~n", [Key, TName])
 	end, Keys),

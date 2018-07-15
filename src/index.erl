@@ -31,22 +31,26 @@
         table/1,
         cols/1]).
 
--export([keys/2, keys/3,
+-export([primary_index/2, secondary_index/3]).
+
+-export([p_keys/2, p_keys/3,
         s_keys/3, s_keys/4,
         s_keys_formatted/3,
-        name/1,
+        p_name/1,
         s_name/2,
-        put/2, put/3,
+        p_put/2, p_put/3,
         lookup_index/2]).
 -export([tag_name/2,
         tag_key/2, tag_subkey/1,
         tag/5,
         tag_read/4]).
--export([i_key/1,
-  i_bobj/1,
-  i_state/1,
-  i_version/1,
-  i_refs/1, get_ref/2, format_refs/1]).
+-export([entry_key/1,
+        entry_bobj/1,
+        entry_state/1,
+        entry_version/1,
+        entry_refs/1,
+        get_ref/2,
+        format_refs/1]).
 
 exec({Table, _Tables}, Props, TxId) ->
   %IndexName = index(Props),
@@ -75,10 +79,19 @@ table({_Name, TName, _Cols}) -> TName.
 
 cols({_Name, _TName, Cols}) -> Cols.
 
-keys(TName, TxId) ->
-  BoundObject = crdt:create_bound_object(name(TName), ?INDEX_CRDT, ?METADATA_BUCKET),
+primary_index(TName, TxId) ->
+  BoundObject = crdt:create_bound_object(p_name(TName), ?INDEX_CRDT, ?METADATA_BUCKET),
   {ok, [Res]} = antidote:read_objects(BoundObject, TxId),
-  case Res of
+  Res.
+
+secondary_index(TName, IndexName, TxId) ->
+  BoundObject = crdt:create_bound_object(s_name(TName, IndexName), ?SINDEX_CRDT, ?METADATA_BUCKET),
+  {ok, [Res]} = antidote:read_objects(BoundObject, TxId),
+  Res.
+
+p_keys(TName, TxId) ->
+  PIndex = primary_index(TName, TxId),
+  case PIndex of
     {_IdxPol, _DepPol, IndexTree} ->
       lists:map(fun({_Key, Entry}) ->
         {BObj, _, _, _} = Entry,
@@ -87,8 +100,8 @@ keys(TName, TxId) ->
     [] -> []
   end.
 
-keys(TName, Operation, TxId) ->
-  BoundObject = crdt:create_bound_object(name(TName), ?INDEX_CRDT, ?METADATA_BUCKET),
+p_keys(TName, Operation, TxId) ->
+  BoundObject = crdt:create_bound_object(p_name(TName), ?INDEX_CRDT, ?METADATA_BUCKET),
   {ok, [Res]} = antidote:read_objects({BoundObject, Operation}, TxId),
   case Res of
       {error, _} -> [];
@@ -97,9 +110,7 @@ keys(TName, Operation, TxId) ->
 
 %% Reads a secondary index
 s_keys(TName, IndexName, TxId) ->
-  BoundObject = crdt:create_bound_object(s_name(TName, IndexName), ?SINDEX_CRDT, ?METADATA_BUCKET),
-  {ok, [Res]} = antidote:read_objects(BoundObject, TxId),
-  Res.
+  secondary_index(TName, IndexName, TxId).
 
 s_keys(TName, IndexName, Operation, TxId) ->
   BoundObject = crdt:create_bound_object(s_name(TName, IndexName), ?SINDEX_CRDT, ?METADATA_BUCKET),
@@ -124,7 +135,7 @@ s_keys_formatted(TName, IndexName, TxId) ->
       IndexData
   end.
 
-name(TName) ->
+p_name(TName) ->
   TNameStr = utils:to_list(TName),
   NameStr = lists:concat([?INDEX_PREFIX, TNameStr]),
   list_to_atom(NameStr).
@@ -136,8 +147,8 @@ s_name(TName, IndexName) ->
   NameStr = lists:concat([?SINDEX_PREFIX, TNameStr, ".", INameStr]),
   list_to_atom(NameStr).
 
-put([], _Table) -> [];
-put(RecordData, Table) when is_list(RecordData) ->
+p_put([], _Table) -> [];
+p_put(RecordData, Table) when is_list(RecordData) ->
   TName = table:name(Table),
   [?T_COL(PkColName, Type, _)] = column:s_primary_key(Table),
   PKVal = element:get(PkColName, types:to_crdt(Type, ignore), RecordData, Table),
@@ -150,7 +161,7 @@ put(RecordData, Table) when is_list(RecordData) ->
   end, table:shadow_columns(Table)),
 
   ObjBoundKey = {utils:to_atom(PKVal), antidote_crdt_map_go, TName},
-  IndexBoundObject = crdt:create_bound_object(name(TName), ?INDEX_CRDT, ?METADATA_BUCKET),
+  IndexBoundObject = crdt:create_bound_object(p_name(TName), ?INDEX_CRDT, ?METADATA_BUCKET),
 
   AssignKey = ?BOBJ_FIELD(crdt:assign_lww(ObjBoundKey)),
   AssignState = ?STATE_FIELD(crdt:assign_lww(StateVal)),
@@ -162,9 +173,9 @@ put(RecordData, Table) when is_list(RecordData) ->
   FullUpdate = [AssignKey, AssignState, AssignVersion, AssignRefs],
   crdt:map_update(IndexBoundObject, {ObjBoundKey, FullUpdate}).
 
-put(Key, Table, TxId) ->
+p_put(Key, Table, TxId) ->
   {ok, [Data]} = antidote:read_objects(Key, TxId),
-  ok = antidote:update_objects(index:put(Data, Table), TxId).
+  ok = antidote:update_objects(index:p_put(Data, Table), TxId).
 
 lookup_index(IndexName, Table) ->
   Indexes = table:indexes(Table),
@@ -195,15 +206,15 @@ tag_read(TName, CName, Value, TxId) ->
   SubKey = tag_subkey(Value),
   proplists:get_value(SubKey, Map).
 
-i_key(?T_INDEX_ENTRY(Key, _, _, _, _)) -> Key.
+entry_key(?T_INDEX_ENTRY(Key, _, _, _, _)) -> Key.
 
-i_bobj(?T_INDEX_ENTRY(_, BObj, _, _, _)) -> BObj.
+entry_bobj(?T_INDEX_ENTRY(_, BObj, _, _, _)) -> BObj.
 
-i_state(?T_INDEX_ENTRY(_, _, State, _, _)) -> State.
+entry_state(?T_INDEX_ENTRY(_, _, State, _, _)) -> State.
 
-i_version(?T_INDEX_ENTRY(_ ,_, _, Version, _)) -> Version.
+entry_version(?T_INDEX_ENTRY(_ ,_, _, Version, _)) -> Version.
 
-i_refs(?T_INDEX_ENTRY(_, _, _, _, Refs)) -> Refs.
+entry_refs(?T_INDEX_ENTRY(_, _, _, _, Refs)) -> Refs.
 
 get_ref(RefName, ?T_INDEX_ENTRY(_, _, _, _, Refs)) ->
   Aux = lists:dropwhile(fun({?T_FK(FkName, _, _, _, _), _}) ->
@@ -248,13 +259,13 @@ set_table_index(Idx, ?T_TABLE(Name, Policy, Cols, SCols, _Idx)) ->
 
 name_test() ->
   Expected = '#_Test',
-  ?assertEqual(Expected, name("Test")),
-  ?assertEqual(Expected, name('Test')).
+  ?assertEqual(Expected, p_name("Test")),
+  ?assertEqual(Expected, p_name('Test')).
 
-put_test() ->
-  BoundObject = crdt:create_bound_object(key, map, test),
-  Expected = crdt:add_all({'#_test', ?INDEX_CRDT, ?METADATA_BUCKET}, key),
-  ?assertEqual(Expected, put(BoundObject)).
+%%put_test() ->
+%%  BoundObject = crdt:create_bound_object(key, map, test),
+%%  Expected = crdt:add_all({'#_test', ?INDEX_CRDT, ?METADATA_BUCKET}, key),
+%%  ?assertEqual(Expected, index:put(BoundObject)).
 
 tag_name_test() ->
   ?assertEqual({test,id}, tag_name(test, id)).
