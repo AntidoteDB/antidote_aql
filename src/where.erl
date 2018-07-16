@@ -53,7 +53,7 @@ filter_keys(Keys, TName, TxId) ->
   lists:foldl(fun({K, _T, _B} = Key, AccKeys) ->
       case lists:keyfind(K, 1, Index) of
           false ->
-              io:format("Error: Cannot update row with value ~p. Row does not exist.~n", [K]),
+              io:format("Error: Cannot update/delete row with value ~p. Row does not exist.~n", [K]),
               AccKeys;
           _Else ->
               lists:append(AccKeys, [Key])

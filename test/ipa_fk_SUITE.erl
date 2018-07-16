@@ -20,7 +20,7 @@
           end_per_testcase/2,
           all/0]).
 
--export([indirect_foreign_keys/1,
+-export([%indirect_foreign_keys/1,
           %touch_cascade/1,
           insert_multilevel/1,
           delete_basic/1, delete_multilevel/1,
@@ -53,7 +53,7 @@ end_per_testcase(_, _) ->
 
 all() ->
   [
-    indirect_foreign_keys,
+    %indirect_foreign_keys,
     %touch_cascade,
     insert_multilevel,
     delete_basic, delete_multilevel,
@@ -61,13 +61,13 @@ all() ->
     reference_deleted_fail
   ].
 
-indirect_foreign_keys(_Config) ->
-  KeyC = element:create_key('1', 'FkC'),
-  KeyD = element:create_key('1', 'FkD'),
-  [ResC, ResD] = tutils:read_keys([KeyC, KeyD]),
-  ?assertMatch({1, _}, proplists:get_value(?SHADOW_AB, ResC)),
-  ?assertMatch({1, _}, proplists:get_value(?SHADOW_ABC, ResD)),
-  ?assertMatch({1, _}, proplists:get_value(?SHADOW_BC, ResD)).
+%%indirect_foreign_keys(_Config) ->
+%%  KeyC = element:create_key('1', 'FkC'),
+%%  KeyD = element:create_key('1', 'FkD'),
+%%  [ResC, ResD] = tutils:read_keys([KeyC, KeyD]),
+%%  ?assertMatch({1, _}, proplists:get_value(?SHADOW_AB, ResC)),
+%%  ?assertMatch({1, _}, proplists:get_value(?SHADOW_ABC, ResD)),
+%%  ?assertMatch({1, _}, proplists:get_value(?SHADOW_BC, ResD)).
 
 create_table_fail(_Config) ->
   % cannot create table that points to a non-existant table
@@ -93,31 +93,31 @@ create_table_fail(_Config) ->
 
 insert_multilevel(_Config) ->
   %bottom level insert
-  tutils:assertState(true, "FkA", "1"),
-  tutils:assertState(true, "FkB", "1"),
-  tutils:assertState(true, "FkB", "2"),
-  tutils:assertState(true, "FkC", "1"),
-  tutils:assertState(true, "FkC", "2"),
+  tutils:assertState(true, "FkA", 1),
+  tutils:assertState(true, "FkB", 1),
+  tutils:assertState(true, "FkB", 2),
+  tutils:assertState(true, "FkC", 1),
+  tutils:assertState(true, "FkC", 2),
   % middle level insert; the following FkC records
   % will not be visible because a new version for
   % ID = 1 from FkB has been created
   tutils:aql("INSERT INTO FkB VALUES (1, 1)"),
-  tutils:assertState(false, "FkC", "1"),
-  tutils:assertState(false, "FkC", "2").
+  tutils:assertState(false, "FkC", 1),
+  tutils:assertState(false, "FkC", 2).
 
 delete_basic(_Config) ->
   {ok, [], _Tx} = tutils:delete_by_key("FkA", "1"),
-  tutils:assertState(false, "FkA", "1"),
-  tutils:assertState(false, "FkB", "1").
+  tutils:assertState(false, "FkA", 1),
+  tutils:assertState(false, "FkB", 2).
 
 delete_multilevel(_Config) ->
   {ok, [], _Tx} = tutils:delete_by_key("FkA", "1"),
-  tutils:assertState(false, "FkA", "1"),
-  tutils:assertState(false, "FkB", "1"),
-  tutils:assertState(false, "FkB", "2"),
-  tutils:assertState(false, "FkC", "1"),
-  tutils:assertState(false, "FkB", "2"),
-  tutils:assertState(false, "FkD", "1").
+  tutils:assertState(false, "FkA", 1),
+  tutils:assertState(false, "FkB", 1),
+  tutils:assertState(false, "FkB", 2),
+  tutils:assertState(false, "FkC", 1),
+  tutils:assertState(false, "FkB", 2),
+  tutils:assertState(false, "FkD", 1).
 
 reference_deleted_fail(_Config) ->
   {ok, [], _Tx} = tutils:delete_by_key("FkA", "1"),

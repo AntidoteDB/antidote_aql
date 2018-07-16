@@ -69,11 +69,12 @@ delete_by_key(TName, Key) ->
   aql(lists:concat(Query)).
 
 assertState(State, TName, Key) ->
-  AQLKey = element:create_key(Key, TName),
+  %AQLKey = element:create_key(Key, TName),
   {ok, TxId} = antidote:start_transaction(?TEST_SERVER),
   Tables = table:read_tables(TxId),
-  {ok, [Res]} = antidote:read_objects(AQLKey, TxId),
-  Actual = element:is_visible(Res, TName, Tables, TxId),
+  IndexEntry = index:p_keys(TName, {get, Key}, TxId),
+  %{ok, [Res]} = antidote:read_objects(AQLKey, TxId),
+  Actual = element:is_visible(IndexEntry, TName, Tables, TxId),
   antidote:commit_transaction(TxId),
   %ct:log(info, lists:concat(["State: ", State])),
   %ct:log(info, lists:concat(["Actual: ", Actual])),

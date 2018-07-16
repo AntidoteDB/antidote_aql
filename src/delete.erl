@@ -72,13 +72,14 @@ cascade_dependants(Key, Table, AllTables, [{{T1TName, _}, Table2} | Tables], TxI
 	end;
 cascade_dependants(_Key, _Table, _AccTables, [], _TxId, Acc) -> Acc.
 
-fetch_cascade(Key, TName, TDepName, Tables, [?T_FK(Name, _Type, TName, _Attr, ?CASCADE_TOKEN) | Fks], TxId, Acc)
+fetch_cascade(Key, TName, TDepName, Tables,
+    [?T_FK(Name, _Type, TName, _Attr, ?CASCADE_TOKEN) | Fks], TxId, Acc)
 	when length(Name) == 1 ->
 
 	{PK, _, _} = Key,
 	{_, _, Entries} = index:primary_index(TDepName, TxId),
 	FilterDependants = lists:foldl(fun(Entry, DepAcc) ->
-		{_FkName, {FkValue, _FkVersion}} = index:get_ref(Name, Entry),
+		?T_INDEX_REF(_FkName, _FkSpec, FkValue, _FkVersion) = index:get_ref_by_name(Name, Entry),
 		IsVisible = case utils:to_atom(FkValue) of
 						PK -> element:is_visible(Entry, TDepName, Tables, TxId);
 						_Else -> false
@@ -95,13 +96,14 @@ fetch_cascade(Key, TName, TDepName, Tables, [?T_FK(Name, _Type, TName, _Attr, ?C
 		_Else ->
 			fetch_cascade(Key, TName, TDepName, Tables, Fks, TxId, lists:append(Acc, FilterDependants))
 	end;
-fetch_cascade(Key, TName, TDepName, Tables, [?T_FK(Name, _Type, TName, _Attr, ?RESTRICT_TOKEN) | FKs], TxId, Acc)
+fetch_cascade(Key, TName, TDepName, Tables,
+    [?T_FK(Name, _Type, TName, _Attr, ?RESTRICT_TOKEN) | FKs], TxId, Acc)
 	when length(Name) == 1 ->
 
 	{PK, _, _} = Key,
 	{_, _, Entries} = index:primary_index(TDepName, TxId),
 	FilterDependants = lists:dropwhile(fun(Entry) ->
-		{_FkName, {FkValue, _FkVersion}} = index:get_ref(Name, Entry),
+        ?T_INDEX_REF(_FkName, _FkSpec, FkValue, _FkVersion) = index:get_ref_by_name(Name, Entry),
 		case utils:to_atom(FkValue) of
 			PK -> not element:is_visible(Entry, TDepName, Tables, TxId);
 			_Else -> true

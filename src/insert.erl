@@ -74,8 +74,7 @@ read_fks(Fks, Tables, TxId, true) ->
 		IndexEntry = index:p_keys(PTabName, {get, Value}, TxId),
 		case element:is_visible(IndexEntry, PTabName, Tables, TxId) of
 			false ->
-				ErrorMsg = io_lib:format("Cannot find row ~p in table ~p", [utils:to_atom(Value), PTabName]),
-				throw(lists:flatten(ErrorMsg));
+				element:throwNoSuchRow(Value, PTabName);
 			_Else ->
 				{Fk, IndexEntry}
 		end

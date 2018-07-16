@@ -21,4 +21,7 @@
 -define(is_filter(Filter), is_tuple(Filter) andalso tuple_size(Filter) =:= 2).
 
 -define(T_INDEX_ENTRY(Key, BoundObject, State, Version, Refs), {Key, {BoundObject, State, Version, Refs}}).
--define(is_index_entry(IndexEntry), is_tuple(IndexEntry) andalso tuple_size(IndexEntry) =:= 5).
+-define(is_index_entry(IndexEntry), is_tuple(IndexEntry) andalso tuple_size(IndexEntry) =:= 2).
+
+-define(T_INDEX_REF(ColName, RefSpec, RefValue, RefVersion), {ColName, {RefSpec, {RefValue, RefVersion}}}).
+-define(is_index_ref(IndexRef), is_tuple(IndexRef) andalso tuple_size(IndexRef) =:= 2).

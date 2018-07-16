@@ -1,4 +1,3 @@
-
 -module(element).
 
 -include("aql.hrl").
@@ -17,20 +16,22 @@
 -define(VERSION_TYPE, antidote_crdt_register_lww).
 
 -export([primary_key/1, set_primary_key/2,
-        foreign_keys/1, foreign_keys/2, foreign_keys/3,
-        attributes/1,
-        data/1,
-        table/1]).
+    foreign_keys/1, foreign_keys/2, foreign_keys/3,
+    attributes/1,
+    data/1,
+    table/1]).
 
 -export([create_key/2, st_key/0,
-        is_visible/3, is_visible/4]).
+    is_visible/3, is_visible/4]).
 
 -export([new/1, new/2,
-        put/3, set_version/2, build_fks/2,
-        get/2, get/3, get/4,
-        get_by_name/2,
-        insert/1, insert/2,
-        delete/2]).
+    put/3, set_version/2, build_fks/2,
+    get/2, get/3, get/4,
+    get_by_name/2,
+    insert/1, insert/2,
+    delete/2]).
+
+-export([throwNoSuchRow/2]).
 
 %% ====================================================================
 %% Property functions
@@ -43,11 +44,11 @@ primary_key({BObj, _Table, _Ops, _Data}) -> BObj.
 set_primary_key({_BObj, Table, Ops, Data}, BObj) -> ?T_ELEMENT(BObj, Table, Ops, Data).
 
 foreign_keys(Element) ->
-  foreign_keys:from_columns(attributes(Element)).
+    foreign_keys:from_columns(attributes(Element)).
 
 attributes(Element) ->
-  Table = table(Element),
-  table:columns(Table).
+    Table = table(Element),
+    table:columns(Table).
 
 data({_BObj, _Table, _Ops, Data}) -> Data.
 set_data({BObj, Table, Ops, _Data}, Data) -> ?T_ELEMENT(BObj, Table, Ops, Data).
@@ -59,267 +60,283 @@ table({_BObj, Table, _Ops, _Data}) -> Table.
 %% ====================================================================
 
 create_key({Key, Type, Bucket}, _TName) ->
-  {Key, Type, Bucket};
+    {Key, Type, Bucket};
 create_key(Key, TName) ->
-  KeyAtom = utils:to_atom(Key),
-  crdt:create_bound_object(KeyAtom, ?CRDT_TYPE, TName).
+    KeyAtom = utils:to_atom(Key),
+    crdt:create_bound_object(KeyAtom, ?CRDT_TYPE, TName).
 
 st_key() ->
-  ?MAP_KEY(?STATE, ?STATE_TYPE).
+    ?MAP_KEY(?STATE, ?STATE_TYPE).
 
 version_key() ->
-  ?MAP_KEY(?VERSION, ?VERSION_TYPE).
+    ?MAP_KEY(?VERSION, ?VERSION_TYPE).
 
 explicit_state(Entry, Rule) ->
-  Value = index:entry_state(Entry),
-  case Value of
-    undefined ->
-      throw("No explicit state found");
-    _Else ->
-      ipa:status(Rule, Value)
-  end.
+    Value = index:entry_state(Entry),
+    case Value of
+        undefined ->
+            throw("No explicit state found");
+        _Else ->
+            ipa:status(Rule, Value)
+    end.
 
 is_visible(Element, Tables, TxId) when is_tuple(Element) ->
-  Data = data(Element),
-  TName = table:name(table(Element)),
-  is_visible(Data, TName, Tables, TxId).
+    Data = data(Element),
+    TName = table:name(table(Element)),
+    is_visible(Data, TName, Tables, TxId).
 
 is_visible([], _TName, _Tables, _TxId) -> false;
 is_visible(Entry, TName, Tables, TxId) ->
-  Table = table:lookup(TName, Tables),
-  Policy = table:policy(Table),
-  Rule = crp:get_rule(Policy),
-  ExplicitState = explicit_state(Entry, Rule),
-  case crp:dep_level(Policy) of
-    ?REMOVE_WINS ->
-      ipa:is_visible(ExplicitState) andalso
-        implicit_state(Table, Entry, Tables, TxId);
-    _Other ->
-      ipa:is_visible(ExplicitState)
-  end.
+    Table = table:lookup(TName, Tables),
+    Policy = table:policy(Table),
+    Rule = crp:get_rule(Policy),
+    ExplicitState = explicit_state(Entry, Rule),
+    ipa:is_visible(ExplicitState) andalso
+        implicit_state(Table, Entry, Tables, TxId).
+    %case crp:dep_level(Policy) of
+    %    ?REMOVE_WINS ->
+    %        ipa:is_visible(ExplicitState) andalso
+    %            implicit_state(Table, Entry, Tables, TxId);
+    %    _Other ->
+    %        ipa:is_visible(ExplicitState)
+    %end.
 
 throwNoSuchColumn(ColName, TableName) ->
-  MsgFormat = io_lib:format("Column ~p does not exist in table ~p", [ColName, TableName]),
-  throw(lists:flatten(MsgFormat)).
+    MsgFormat = io_lib:format("Column ~p does not exist in table ~p", [ColName, TableName]),
+    throw(lists:flatten(MsgFormat)).
+
+throwNoSuchRow(Key, TableName) ->
+    MsgFormat = io_lib:format("Cannot find row ~p in table ~p", [utils:to_atom(Key), TableName]),
+    throw(lists:flatten(MsgFormat)).
 
 %% ====================================================================
 %% API functions
 %% ====================================================================
 
 new(Table) when ?is_table(Table) ->
-  new(?EL_ANON, Table).
+    new(?EL_ANON, Table).
 
 new(Key, Table) ->
-  Bucket = table:name(Table),
-  BoundObject = create_key(Key, Bucket),
-  StateOp = crdt:field_map_op(st_key(), crdt:assign_lww(ipa:new())),
-  Ops = [StateOp],
-  Element = ?T_ELEMENT(BoundObject, Table, Ops, []),
-  load_defaults(Element).
+    Bucket = table:name(Table),
+    BoundObject = create_key(Key, Bucket),
+    StateOp = crdt:field_map_op(st_key(), crdt:assign_lww(ipa:new())),
+    Ops = [StateOp],
+    Element = ?T_ELEMENT(BoundObject, Table, Ops, []),
+    load_defaults(Element).
 
 load_defaults(Element) ->
-  Columns = attributes(Element),
-  Defaults = column:s_filter_defaults(Columns),
-  maps:fold(fun (CName, Column, Acc) ->
-    {?DEFAULT_TOKEN, Value} = column:constraint(Column),
-    Constraint = {?DEFAULT_TOKEN, Value},
-    append(CName, Value, column:type(Column), Constraint, Acc)
-  end, Element, Defaults).
+    Columns = attributes(Element),
+    Defaults = column:s_filter_defaults(Columns),
+    maps:fold(fun(CName, Column, Acc) ->
+        {?DEFAULT_TOKEN, Value} = column:constraint(Column),
+        Constraint = {?DEFAULT_TOKEN, Value},
+        append(CName, Value, column:type(Column), Constraint, Acc)
+    end, Element, Defaults).
 
 put([Key | OKeys], [Value | OValues], Element) ->
-  utils:assert_same_size(OKeys, OValues, "Illegal number of keys and values"),
-  Res = put(Key, Value, Element),
-  put(OKeys, OValues, Res);
+    utils:assert_same_size(OKeys, OValues, "Illegal number of keys and values"),
+    Res = put(Key, Value, Element),
+    put(OKeys, OValues, Res);
 put([], [], Element) ->
-  {ok, Element};
+    {ok, Element};
 put(ColName, Value, Element) ->
-  ColSearch = maps:get(ColName, attributes(Element)),
-  case ColSearch of
-    {badkey, _} ->
-      Table = table(Element),
-      TName = table:name(Table),
-      throwNoSuchColumn(ColName, TName);
-    Col ->
-      ColType = column:type(Col),
-      Constraint = column:constraint(Col),
-      Element1 = set_if_primary(Col, Value, Element),
-      append(ColName, Value, ColType, Constraint, Element1)
-  end.
+    ColSearch = maps:get(ColName, attributes(Element)),
+    case ColSearch of
+        {badkey, _} ->
+            Table = table(Element),
+            TName = table:name(Table),
+            throwNoSuchColumn(ColName, TName);
+        Col ->
+            ColType = column:type(Col),
+            Constraint = column:constraint(Col),
+            Element1 = set_if_primary(Col, Value, Element),
+            append(ColName, Value, ColType, Constraint, Element1)
+    end.
 
 set_if_primary(Col, Value, Element) ->
-  case column:is_primary_key(Col) of
-    true ->
-      ?BOUND_OBJECT(_Key, _Type, Bucket) = primary_key(Element),
-      set_primary_key(Element, create_key(Value, Bucket));
-    _Else ->
-      Element
-  end.
+    case column:is_primary_key(Col) of
+        true ->
+            ?BOUND_OBJECT(_Key, _Type, Bucket) = primary_key(Element),
+            set_primary_key(Element, create_key(Value, Bucket));
+        _Else ->
+            Element
+    end.
 
 set_version(Element, TxId) ->
-  VersionKey = version_key(),
-  CurrOps = ops(Element),
-  ElemData = data(Element),
-  Table = table(Element),
-  [?T_COL(PkColName, _, _)] = column:s_primary_key(Table),
+    VersionKey = version_key(),
+    CurrOps = ops(Element),
+    ElemData = data(Element),
+    Table = table(Element),
+    [?T_COL(PkColName, _, _)] = column:s_primary_key(Table),
 
-  {_Key, _Type, TName} = primary_key(Element),
-  PkValue = get_by_name(PkColName, ElemData),
-  IndexEntry = index:p_keys(TName, {get, PkValue}, TxId),
-  Version = case IndexEntry of
-              [] -> 1;
-              _Else ->
-                index:entry_version(IndexEntry) + 1
-            end,
+    {_Key, _Type, TName} = primary_key(Element),
+    PkValue = get_by_name(PkColName, ElemData),
+    IndexEntry = index:p_keys(TName, {get, PkValue}, TxId),
+    Version = case IndexEntry of
+                  [] -> 1;
+                  _Else ->
+                      index:entry_version(IndexEntry) + 1
+              end,
 
-  VersionOp = crdt:assign_lww(Version),
+    VersionOp = crdt:assign_lww(Version),
 
-  Element1 = set_data(Element, lists:append(ElemData, [{VersionKey, Version}])),
-  set_ops(Element1, utils:proplists_upsert(VersionKey, VersionOp, CurrOps)).
+    Element1 = set_data(Element, lists:append(ElemData, [{VersionKey, Version}])),
+    set_ops(Element1, utils:proplists_upsert(VersionKey, VersionOp, CurrOps)).
 
 build_fks(Element, TxId) ->
-  Data = data(Element),
-  Table = table(Element),
-  Fks = table:shadow_columns(Table),
-  Parents = parents(Data, Fks, Table, TxId),
-  lists:foldl(fun(?T_FK(FkName, _, _, _, _), AccElement) ->
-    case length(FkName) of
-      1 ->
-        [{_, ParentId}] = FkName,
-        Parent = dict:fetch(ParentId, Parents),
-        Value = index:entry_key(Parent),
-        ParentVersion = index:entry_version(Parent),%
-        append(FkName, {Value, ParentVersion}, ?AQL_VARCHAR, ?IGNORE_OP, AccElement);
-      _Else ->
-        [{_, ParentId} | ParentCol] = FkName,
-        Parent = dict:fetch(ParentId, Parents),
-        {_, {Value, V}} = index:get_ref(ParentCol, Parent), %index:i_key(Parent),%get_by_name(ParentCol, Parent),
-        append(FkName, {Value, V}, ?AQL_VARCHAR, ?IGNORE_OP, AccElement)
-    end
-  end, Element, Fks).
+    Data = data(Element),
+    Table = table(Element),
+    Fks = table:shadow_columns(Table),
+    Parents = parents(Data, Fks, Table, TxId),
+    lists:foldl(fun(?T_FK(FkName, _, _, _, _), AccElement) ->
+        case length(FkName) of
+            1 ->
+                [{_, ParentId}] = FkName,
+                Parent = dict:fetch(ParentId, Parents),
+                Value = index:entry_key(Parent),
+                ParentVersion = index:entry_version(Parent),%
+                append(FkName, {Value, ParentVersion}, ?AQL_VARCHAR, ?IGNORE_OP, AccElement);
+            _Else ->
+                [{_, ParentId} | ParentCol] = FkName,
+                Parent = dict:fetch(ParentId, Parents),
+                ?T_INDEX_REF(_, _, Value, ParentVersion) = index:get_ref_by_name(ParentCol, Parent),
+                append(FkName, {Value, ParentVersion}, ?AQL_VARCHAR, ?IGNORE_OP, AccElement)
+        end
+    end, Element, Fks).
 
 parents(Data, Fks, Table, TxId) ->
-  lists:foldl(fun(?T_FK(Name, Type, TTName, _, _), Dict) ->
-    case Name of
-      [ShCol] ->
-        {_FkTable, FkName} = ShCol,
-        Value = get(FkName, types:to_crdt(Type, ?IGNORE_OP), Data, Table),
-        IndexEntry = index:p_keys(TTName, {get, Value}, TxId),
-        dict:store(FkName, IndexEntry, Dict);
-      _Else -> Dict
-    end
-  end, dict:new(), Fks).
+    lists:foldl(fun(?T_FK(Name, Type, TTName, _, _), Dict) ->
+        case Name of
+            [ShCol] ->
+                {_FkTable, FkName} = ShCol,
+                Value = get(FkName, types:to_crdt(Type, ?IGNORE_OP), Data, Table),
+                IndexEntry = index:p_keys(TTName, {get, Value}, TxId),
+                case IndexEntry of
+                    [] ->
+                        throwNoSuchRow(Value, TTName);
+                    _Else ->
+                        dict:store(FkName, IndexEntry, Dict)
+                end;
+            _Else -> Dict
+        end
+    end, dict:new(), Fks).
 
 
 get_by_name(ColName, [{{ColName, _Type}, Value} | _]) ->
-	Value;
+    Value;
 get_by_name(ColName, [_KV | Data]) ->
-	get_by_name(ColName, Data);
+    get_by_name(ColName, Data);
 get_by_name(_ColName, []) -> undefined.
 
 get(ColName, Element) ->
-  Columns = attributes(Element),
-  Col = maps:get(ColName, Columns),
-  AQL = column:type(Col),
-  Constraint = column:constraint(Col),
-  get(ColName, types:to_crdt(AQL, Constraint), Element).
+    Columns = attributes(Element),
+    Col = maps:get(ColName, Columns),
+    AQL = column:type(Col),
+    Constraint = column:constraint(Col),
+    get(ColName, types:to_crdt(AQL, Constraint), Element).
 
 get(ColName, Crdt, Element) when ?is_element(Element) ->
-  get(ColName, Crdt, data(Element), table(Element)).
+    get(ColName, Crdt, data(Element), table(Element)).
 
 get(ColName, Crdt, Data, Table) when is_atom(Crdt) ->
-  Value = proplists:get_value(?MAP_KEY(ColName, Crdt), Data),
-  case Value of
-    undefined ->
-      TName = table:name(Table),
-      throwNoSuchColumn(ColName, TName);
-    _Else ->
-      Value
+    Value = proplists:get_value(?MAP_KEY(ColName, Crdt), Data),
+    case Value of
+        undefined ->
+            TName = table:name(Table),
+            throwNoSuchColumn(ColName, TName);
+        _Else ->
+            Value
     end;
 get(ColName, Cols, Data, TName) ->
-  Col = maps:get(ColName, Cols),
-  AQL = column:type(Col),
-  Constraint = column:constraint(Col),
-  get(ColName, types:to_crdt(AQL, Constraint), Data, TName).
+    Col = maps:get(ColName, Cols),
+    AQL = column:type(Col),
+    Constraint = column:constraint(Col),
+    get(ColName, types:to_crdt(AQL, Constraint), Data, TName).
 
 insert(Element) ->
-  Ops = ops(Element),
-  Key = primary_key(Element),
-  crdt:map_update(Key, Ops).
+    Ops = ops(Element),
+    Key = primary_key(Element),
+    crdt:map_update(Key, Ops).
 insert(Element, TxId) ->
-  Op = insert(Element),
-  antidote:update_objects(Op, TxId).
+    Op = insert(Element),
+    antidote:update_objects(Op, TxId).
 
 append(Key, Value, AQL, Constraint, Element) ->
-  Data = data(Element),
-  Ops = ops(Element),
-  OffValue = apply_offset(Key, AQL, Constraint, Value),
-  OpKey = ?MAP_KEY(Key, types:to_crdt(AQL, Constraint)),
-  OpVal = types:to_insert_op(AQL, Constraint, OffValue),
-  case OpVal of
-    ?IGNORE_OP ->
-      Element;
-    _Else ->
-      Element1 = set_data(Element, lists:append(Data, [{OpKey, Value}])),
-      set_ops(Element1, utils:proplists_upsert(OpKey, OpVal, Ops))
-  end.
+    Data = data(Element),
+    Ops = ops(Element),
+    OffValue = apply_offset(Key, AQL, Constraint, Value),
+    OpKey = ?MAP_KEY(Key, types:to_crdt(AQL, Constraint)),
+    OpVal = types:to_insert_op(AQL, Constraint, OffValue),
+    case OpVal of
+        ?IGNORE_OP ->
+            Element;
+        _Else ->
+            Element1 = set_data(Element, lists:append(Data, [{OpKey, Value}])),
+            set_ops(Element1, utils:proplists_upsert(OpKey, OpVal, Ops))
+    end.
 
 apply_offset(Key, AQL, Constraint, Value) when is_atom(Key) ->
-  case {AQL, Constraint} of
-    {?AQL_COUNTER_INT, ?CHECK_KEY({Key, ?COMPARATOR_KEY(Comp), Offset})} ->
-      bcounter:to_bcounter(Key, Value, Offset, Comp);
-    _Else -> Value
-  end;
-apply_offset(_Key,_AQL, _Constraint, Value) -> Value.
+    case {AQL, Constraint} of
+        {?AQL_COUNTER_INT, ?CHECK_KEY({Key, ?COMPARATOR_KEY(Comp), Offset})} ->
+            bcounter:to_bcounter(Key, Value, Offset, Comp);
+        _Else -> Value
+    end;
+apply_offset(_Key, _AQL, _Constraint, Value) -> Value.
 
 foreign_keys(Fks, Element) when is_tuple(Element) ->
-  Data = data(Element),
-  TName = table(Element),
-  foreign_keys(Fks, Data, TName).
+    Data = data(Element),
+    TName = table(Element),
+    foreign_keys(Fks, Data, TName).
 
 foreign_keys(Fks, Data, TName) ->
-  lists:map(fun(?T_FK(CName, CType, _, _, _) = Fk) ->
-    Value = get(CName, types:to_crdt(CType, ?IGNORE_OP), Data, TName),
-    {Fk, Value}
-  end, Fks).
+    lists:map(fun(?T_FK(CName, CType, _, _, _) = Fk) ->
+        Value = get(CName, types:to_crdt(CType, ?IGNORE_OP), Data, TName),
+        {Fk, Value}
+    end, Fks).
 
 implicit_state(Table, Entry, Tables, TxId) ->
-  FKs = index:entry_refs(Entry),
-  implicit_state0(Table, Tables, FKs, TxId).
+    FKs = index:entry_refs(Entry),
+    implicit_state0(Table, Tables, FKs, TxId).
 
-implicit_state0(Table, Tables, [{FkSpec, FkValue} | Fks], TxId) ->
-  Policy = table:policy(Table),
-  ?T_FK(FkName, _, RefTable, _, _) = FkSpec,
-  IsVisible =
-    case length(FkName) of
-      1 ->
-        {RefValue, RefVersion} = FkValue,
-        FKData = index:p_keys(RefTable, {get, RefValue}, TxId),
-        case FKData of
-          [] ->
-            MsgFormat = io_lib:format("Primary key ~p does not exist in table ~p", [RefValue, RefTable]),
-            throw(lists:flatten(MsgFormat));
-          ?T_INDEX_ENTRY(_, _, _, FkVersion, _) ->
-            case crp:dep_level(Policy) of
-              ?REMOVE_WINS ->
-                FkVersion =:= RefVersion andalso
-                  is_visible(FKData, RefTable, Tables, TxId);
-              _ ->
+implicit_state0(Table, Tables, [Fk | Fks], TxId) ->
+    Policy = table:policy(Table),
+    ?T_INDEX_REF(FkName, FkSpec, FkValue, FkVersion) = Fk,
+    ?T_FK(FkName, _, FkTName, _, _) = FkSpec,
+    RefTable = table:lookup(FkTName, Tables),
+    IsVisible =
+        case length(FkName) of
+            1 ->
+                FKData = index:p_keys(FkTName, {get, FkValue}, TxId),
+                case FKData of
+                    [] ->
+                        throwNoSuchRow(FkValue, FkTName);
+                    ?T_INDEX_ENTRY(_, _, _, RefVersion, _) ->
+                        case crp:dep_level(Policy) of
+                            ?REMOVE_WINS ->
+                                RefVersion =:= FkVersion andalso
+                                    is_visible(FKData, FkTName, Tables, TxId);
+                            _ ->
+                                case crp:dep_level(table:policy(RefTable)) of
+                                    ?REMOVE_WINS ->
+                                        is_visible(FKData, FkTName, Tables, TxId);
+                                    _ ->
+                                        true
+                                end
+                        end
+                end;
+            _ ->
                 true
-            end
-        end;
-      _ ->
-        true
-    end,
+        end,
 
-  IsVisible andalso implicit_state0(Table, Tables, Fks, TxId);
+    IsVisible andalso implicit_state0(Table, Tables, Fks, TxId);
 implicit_state0(_Table, _Tables, [], _TxId) ->
-  true.
+    true.
 
 delete(ObjKey, TxId) ->
-  StateOp = crdt:field_map_op(element:st_key(), crdt:assign_lww(ipa:delete())),
-  Update = crdt:map_update(ObjKey, StateOp),
-  ok = antidote:update_objects(Update, TxId),
-  false.
+    StateOp = crdt:field_map_op(element:st_key(), crdt:assign_lww(ipa:delete())),
+    Update = crdt:map_update(ObjKey, StateOp),
+    ok = antidote:update_objects(Update, TxId),
+    false.
 
 %%====================================================================
 %% Eunit tests
@@ -328,53 +345,53 @@ delete(ObjKey, TxId) ->
 -ifdef(TEST).
 
 primary_key_test() ->
-  Table = eutils:create_table_aux(),
-  Element = new(key, Table),
-  ?assertEqual(create_key(key, 'Universities'), primary_key(Element)).
+    Table = eutils:create_table_aux(),
+    Element = new(key, Table),
+    ?assertEqual(create_key(key, 'Universities'), primary_key(Element)).
 
 attributes_test() ->
-  Table = eutils:create_table_aux(),
-  Columns = table:columns(Table),
-  Element = new(key, Table),
-  ?assertEqual(Columns, attributes(Element)).
+    Table = eutils:create_table_aux(),
+    Columns = table:columns(Table),
+    Element = new(key, Table),
+    ?assertEqual(Columns, attributes(Element)).
 
 create_key_test() ->
-  Key = key,
-  TName = test,
-  Expected = crdt:create_bound_object(Key, ?CRDT_TYPE, TName),
-  ?assertEqual(Expected, create_key(Key, TName)).
+    Key = key,
+    TName = test,
+    Expected = crdt:create_bound_object(Key, ?CRDT_TYPE, TName),
+    ?assertEqual(Expected, create_key(Key, TName)).
 
 new_test() ->
-  Key = key,
-  Table = eutils:create_table_aux(),
-  BoundObject = create_key(Key, table:name(Table)),
-  Ops = [crdt:field_map_op(st_key(), crdt:assign_lww(ipa:new()))],
-  Expected = ?T_ELEMENT(BoundObject, Table, Ops, []),
-  Expected1 = load_defaults(Expected),
-  Element = new(Key, Table),
-  ?assertEqual(Expected1, Element),
-  ?assertEqual(crdt:assign_lww(ipa:new()), proplists:get_value(st_key(), ops(Element))).
+    Key = key,
+    Table = eutils:create_table_aux(),
+    BoundObject = create_key(Key, table:name(Table)),
+    Ops = [crdt:field_map_op(st_key(), crdt:assign_lww(ipa:new()))],
+    Expected = ?T_ELEMENT(BoundObject, Table, Ops, []),
+    Expected1 = load_defaults(Expected),
+    Element = new(Key, Table),
+    ?assertEqual(Expected1, Element),
+    ?assertEqual(crdt:assign_lww(ipa:new()), proplists:get_value(st_key(), ops(Element))).
 
 new_1_test() ->
-  Table = eutils:create_table_aux(),
-  ?assertEqual(new(?EL_ANON, Table), new(Table)).
+    Table = eutils:create_table_aux(),
+    ?assertEqual(new(?EL_ANON, Table), new(Table)).
 
 append_raw_test() ->
-  Table = eutils:create_table_aux(),
-  Value = 9,
-  Element = new(key, Table),
-  % assert not fail
-  append('NationalRank', Value, ?AQL_INTEGER, ?IGNORE_OP, Element).
+    Table = eutils:create_table_aux(),
+    Value = 9,
+    Element = new(key, Table),
+    % assert not fail
+    append('NationalRank', Value, ?AQL_INTEGER, ?IGNORE_OP, Element).
 
 get_default_test() ->
-  Table = eutils:create_table_aux(),
-  El = new(key, Table),
-  ?assertEqual("aaa", get('InstitutionId', ?CRDT_VARCHAR, El)).
+    Table = eutils:create_table_aux(),
+    El = new(key, Table),
+    ?assertEqual("aaa", get('InstitutionId', ?CRDT_VARCHAR, El)).
 
 get_by_name_test() ->
-  Data = [{{a, abc}, 1}, {{b, abc}, 2}],
-  ?assertEqual(1, get_by_name(a, Data)),
-  ?assertEqual(undefined, get_by_name(c, Data)),
-  ?assertEqual(undefined, get_by_name(a, [])).
+    Data = [{{a, abc}, 1}, {{b, abc}, 2}],
+    ?assertEqual(1, get_by_name(a, Data)),
+    ?assertEqual(undefined, get_by_name(c, Data)),
+    ?assertEqual(undefined, get_by_name(a, [])).
 
 -endif.

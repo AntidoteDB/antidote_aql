@@ -99,9 +99,9 @@ invert_comparator(Comp) -> Comp.
 prepare_filter(Table, Projection, Conditions) ->
 	VisibilityConds = visibility_condition(Table),
 	NewConditions = case Conditions of
-										[] -> VisibilityConds;
-										Conditions -> lists:append([[Conditions], [?CONJUNCTION], VisibilityConds])
-									end,
+						[] -> VisibilityConds;
+						Conditions -> lists:append([[Conditions], [?CONJUNCTION], VisibilityConds])
+					end,
 
 	Conjunctions = group_conjunctions(NewConditions),
 
