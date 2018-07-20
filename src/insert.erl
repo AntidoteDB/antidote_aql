@@ -28,15 +28,9 @@ exec({Table, Tables}, Props, TxId) ->
 	AnnElement = element:new(Table),
 	{ok, Element} = element:put(Keys1, Values, AnnElement),
   	Element1 = element:set_version(Element, TxId),
-	Element2 = element:build_fks(Element1, TxId),
+	Element2 = element:build_fks(Element1, Tables, TxId),
 	ok = element:insert(Element2, TxId),
-	%Pk = element:primary_key(Element1),
-	%index:put(Pk, TxId),
-	% update foreign key references
-	%touch_cascade(Element1, Tables, TxId),
-	%Fks = element:foreign_keys(foreign_keys:from_table(Table), Element1),
-	%FksKV = read_fks(Fks, Tables, TxId, true),
-	%lists:foreach(fun ({Fk, Data}) -> touch(Fk, Data, Tables, TxId) end, FksKV).
+
 	touch_cascade(element, Element2, Table, Tables, TxId),
 	ok.
 
@@ -66,28 +60,31 @@ touch_cascade(element, Element, Table, Tables, TxId) ->
 %% Functions for inserts and updates
 %% ====================================================================
 
-read_fks(Fks, _Tables, TxId, false) ->
+read_fks(Fks, Tables, TxId, false) ->
 	lists:map(fun({_Col, {PTabName, _PTabAttr}, _DelRule, Value} = Fk) ->
-		TKey = element:create_key(Value, PTabName),
-		{ok, [Data]} = antidote:read_objects(TKey, TxId),
+		%TKey = element:create_key(Value, PTabName),
+		%{ok, [Data]} = antidote:read_objects(TKey, TxId),
+        PTable = table:lookup(PTabName, Tables),
+        Data = element:read_record(Value, PTable, TxId),
 		{Fk, Data}
 	end, Fks);
 read_fks(Fks, Tables, TxId, true) ->
 	lists:map(fun({_Col, {PTabName, _PTabAttr}, _DelRule, Value} = Fk) ->
-		TKey = element:create_key(Value, PTabName),
-		{ok, [Data]} = antidote:read_objects(TKey, TxId),
+		%TKey = element:create_key(Value, PTabName),
+		%{ok, [Data]} = antidote:read_objects(TKey, TxId),
+        PTable = table:lookup(PTabName, Tables),
+        Data = element:read_record(Value, PTable, TxId),
 		case element:is_visible(Data, PTabName, Tables, TxId) of
 			false ->
-				ErrorMsg = io_lib:format("Cannot find row ~p in table ~p", [utils:to_atom(Value), PTabName]),
-				throw(lists:flatten(ErrorMsg));
+				element:throwNoSuchRow(Value, PTabName);
 			_Else ->
 				{Fk, Data}
 		end
 	end, Fks).
 
 touch({_Col, {PTabName, _PTabAttr}, _DelRule, Value}, Data, Tables, TxId) ->
-	TKey = element:create_key(Value, PTabName),
 	Table = table:lookup(PTabName, Tables),
+    TKey = element:create_key_from_table(Value, Table, TxId),
 	Policy = table:policy(Table),
 	case crp:p_dep_level(Policy) of
 		?REMOVE_WINS -> ok;

@@ -1,6 +1,6 @@
 
--define(T_TABLE(Name, Policy, Cols, FKeys, Indexes), {Name, Policy, Cols, FKeys, Indexes}).
--define(is_table(Table), is_tuple(Table) andalso tuple_size(Table) =:= 5).
+-define(T_TABLE(Name, Policy, Cols, FKeys, Indexes, PartitionCol), {Name, Policy, Cols, FKeys, Indexes, PartitionCol}).
+-define(is_table(Table), is_tuple(Table) andalso tuple_size(Table) =:= 6).
 
 -define(T_ELEMENT(BObj, Table, Ops, Data), {BObj, Table, Ops, Data}).
 -define(is_element(Element), is_tuple(Element) andalso tuple_size(Element) =:= 4).

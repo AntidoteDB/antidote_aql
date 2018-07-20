@@ -43,18 +43,18 @@ delete_cascade(Key, Table, Tables, TxId) ->
 	end.
 
 delete_cascade_dependants(Key, Table, Tables, TxId) ->
-		Dependants = cascade_dependants(Key, Table, Tables, TxId),
-		DeleteUpdates = lists:foldl(fun({TName, Keys}, AccUpds) ->
-			DepTable = table:lookup(TName, Tables),
-			lists:foreach(fun(K) ->	delete_cascade(K, DepTable, Tables, TxId)	end, Keys),
-			lists:append(AccUpds, crdt:ipa_update(Keys, ipa:delete()))
-		end, [], Dependants),
-		case DeleteUpdates of
-			[] ->
-				ok;
-			_Else ->
-				antidote:update_objects(DeleteUpdates, TxId)
-		end.
+	Dependants = cascade_dependants(Key, Table, Tables, TxId),
+	DeleteUpdates = lists:foldl(fun({TName, Keys}, AccUpds) ->
+		DepTable = table:lookup(TName, Tables),
+		lists:foreach(fun(K) ->	delete_cascade(K, DepTable, Tables, TxId) end, Keys),
+		lists:append(AccUpds, crdt:ipa_update(Keys, ipa:delete()))
+	end, [], Dependants),
+	case DeleteUpdates of
+		[] ->
+			ok;
+		_Else ->
+			antidote:update_objects(DeleteUpdates, TxId)
+	end.
 
 cascade_dependants(Key, Table, Tables, TxId) ->
 	cascade_dependants(Key, Table, Tables, Tables, TxId, []).
@@ -63,8 +63,7 @@ cascade_dependants(Key, Table, AllTables, [{_TName, Table} | Tables], TxId, Acc)
 	cascade_dependants(Key, Table, AllTables, Tables, TxId, Acc);
 cascade_dependants(Key, Table, AllTables, [{{T1TName, _}, Table2} | Tables], TxId, Acc) ->
 	TName = table:name(Table),
-	Cols = table:columns(Table2),
-	Fks = foreign_keys:from_columns(Cols),
+    Fks = table:shadow_columns(Table2),
 	Refs = fetch_cascade(Key, TName, T1TName, AllTables, Fks, TxId, []),
 	case Refs of
 		error ->
@@ -78,14 +77,16 @@ cascade_dependants(Key, Table, AllTables, [{{T1TName, _}, Table2} | Tables], TxI
 	end;
 cascade_dependants(_Key, _Table, _AccTables, [], _TxId, Acc) -> Acc.
 
-fetch_cascade(Key, TName, TDepName, Tables, [?T_FK(Name, Type, TName, _Attr, ?CASCADE_TOKEN) | Fks], TxId, Acc) ->
+fetch_cascade(Key, TName, TDepName, Tables,
+	[?T_FK(Name, Type, TName, _Attr, ?CASCADE_TOKEN) | Fks], TxId, Acc)
+	when length(Name) == 1 ->
 	{PK, _, _} = Key,
 	Keys = where:scan(TDepName, ?PARSER_WILDCARD, TxId),
 	DepTable = table:lookup(TDepName, Tables),
 	FilterDependants = lists:filter(fun(K) ->
 		{ok, [Record]} = antidote:read_objects(K, TxId),
-		RefValue = utils:to_atom(element:get(Name, types:to_crdt(Type, ?IGNORE_OP), Record, DepTable)),
-		case RefValue of
+        {RefValue, _RefVersion} = element:get(Name, types:to_crdt(Type, ?IGNORE_OP), Record, DepTable),
+		case utils:to_atom(RefValue) of
 			PK -> element:is_visible(Record, TDepName, Tables, TxId);
 			_Else -> false
 		end
@@ -97,14 +98,16 @@ fetch_cascade(Key, TName, TDepName, Tables, [?T_FK(Name, Type, TName, _Attr, ?CA
 		_Else ->
 			fetch_cascade(Key, TName, TDepName, Tables, Fks, TxId, lists:append(Acc, FilterDependants))
 	end;
-fetch_cascade(Key, TName, TDepName, Tables, [?T_FK(Name, Type, TName, _Attr, ?RESTRICT_TOKEN) | FKs], TxId, Acc) ->
+fetch_cascade(Key, TName, TDepName, Tables,
+    [?T_FK(Name, Type, TName, _Attr, ?RESTRICT_TOKEN) | FKs], TxId, Acc)
+	when length(Name) == 1 ->
 	{PK, _, _} = Key,
 	Keys = where:scan(TDepName, ?PARSER_WILDCARD, TxId),
 	DepTable = table:lookup(TDepName, Tables),
 	FilterDependants = lists:dropwhile(fun(K) ->
 		{ok, [Record]} = antidote:read_objects(K, TxId),
-		RefValue = utils:to_atom(element:get(Name, types:to_crdt(Type, ?IGNORE_OP), Record, DepTable)),
-		case RefValue of
+        {RefValue, _RefVersion} = element:get(Name, types:to_crdt(Type, ?IGNORE_OP), Record, DepTable),
+		case utils:to_atom(RefValue) of
 			PK -> not element:is_visible(Record, TDepName, Tables, TxId);
 			_Else -> true
 		end

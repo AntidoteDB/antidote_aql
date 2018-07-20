@@ -31,27 +31,32 @@ exec({Table, _Tables}, Select, TxId) ->
 	%TName = table:name(Table),
 	Cols = table:columns(Table),
 	Projection = projection(Select),
-	% TODO validate projection fields
-	Condition = where(Select),
-	NewCondition = send_offset(Condition, Cols, []),
-	Filter = prepare_filter(Table, Projection, NewCondition),
-	case antidote:query_objects(Filter, TxId) of
-		{ok, Result} ->
-			FinalResult = apply_offset(Result, Cols, []),
-			{ok, FinalResult};
-		{error, _} = ErrorMsg ->
-			ErrorMsg
-	end.
-	%Keys = where:scan(TName, Condition, TxId),
-	%case Keys of
-	%	[] -> {ok, []};
-	%	_Else ->
-	%		{ok, Results} = antidote:read_objects(Keys, TxId),
-	%		VisibleResults = filter_visible(Results, TName, Tables, TxId),
-	%		ProjectionResult = project(Projection, VisibleResults, [], Cols),
-	%		ActualRes = apply_offset(ProjectionResult, Cols, []),
-	%		{ok, ActualRes}
-	%end.
+    case validate_projection(Projection, column:s_names(Cols)) of
+        {error, Msg} ->
+            throw(Msg);
+        {ok, _Projection} ->
+            Condition = where(Select),
+            NewCondition = send_offset(Condition, Cols, []),
+            Filter = prepare_filter(Table, Projection, NewCondition),
+            case antidote:query_objects(Filter, TxId) of
+                {ok, Result} ->
+                    FinalResult = apply_offset(Result, Cols, []),
+                    {ok, FinalResult};
+                {error, _} = ErrorMsg ->
+                    ErrorMsg
+            end
+            %Keys = where:scan(TName, Condition, TxId),
+            %case Keys of
+            %	[] -> {ok, []};
+            %	_Else ->
+            %		{ok, Results} = antidote:read_objects(Keys, TxId),
+            %		VisibleResults = filter_visible(Results, TName, Tables, TxId),
+            %		ProjectionResult = project(Projection, VisibleResults, [], Cols),
+            %		ActualRes = apply_offset(ProjectionResult, Cols, []),
+            %		{ok, ActualRes}
+            %end.
+
+    end.
 
 table({TName, _Projection, _Where}) -> TName.
 
@@ -62,6 +67,26 @@ where({_TName, _Projection, Where}) -> Where.
 %% ====================================================================
 %% Private functions
 %% ====================================================================
+validate_projection(?PARSER_WILDCARD, Columns) ->
+    {ok, Columns};
+validate_projection(Projection, Columns) ->
+    Invalid = lists:foldl(fun(ProjCol, AccInvalid) ->
+        case lists:member(ProjCol, Columns) of
+            true ->
+                AccInvalid;
+            false ->
+                lists:append(AccInvalid, [ProjCol])
+        end
+    end, [], Projection),
+    case Invalid of
+        [] ->
+            {ok, Projection};
+        _Else ->
+            ErrMsg = lists:flatten(io_lib:format("Column ~p does not exist", [Invalid])),
+            {error, ErrMsg}
+    end.
+
+
 send_offset(?PARSER_WILDCARD, _Cols, Acc) -> Acc;
 send_offset([{disjunctive, _} = Cond | Conds], Cols, Acc) ->
 	send_offset(Conds, Cols, lists:append(Acc, [Cond]));
@@ -72,16 +97,16 @@ send_offset([Condition | Conds], Cols, Acc) when is_list(Condition) ->
 	send_offset(Conds, Cols, lists:append(Acc, [NewAcc]));
 send_offset([Condition | Conds], Cols, Acc) ->
 	?CONDITION(FieldName, Comparator, Value) = Condition,
-	Column = maps:get(FieldName, Cols),
+	Column = column:s_get(Cols, FieldName),
 	Constraint = column:constraint(Column),
 	Type = column:type(Column),
 	case {Type, Constraint} of
 		{?AQL_COUNTER_INT, ?CHECK_KEY({_Key, ?COMPARATOR_KEY(Comp), Offset})} ->
 			InvertComp = case Comp of
-										 ?PARSER_LESSER -> invert_comparator(Comparator);
-										 ?PARSER_LEQ -> invert_comparator(Comparator);
-										 _ -> Comparator
-									 end,
+							 ?PARSER_LESSER -> invert_comparator(Comparator);
+							 ?PARSER_LEQ -> invert_comparator(Comparator);
+							 _ -> Comparator
+						 end,
 			AQLCounterValue = bcounter:to_bcounter(Value, Offset, Comp),
 			NewCond = ?CONDITION(FieldName, InvertComp, AQLCounterValue),
 			send_offset(Conds, Cols, lists:append(Acc, [NewCond]));
@@ -99,9 +124,9 @@ invert_comparator(Comp) -> Comp.
 prepare_filter(Table, Projection, Conditions) ->
 	VisibilityConds = visibility_condition(Table),
 	NewConditions = case Conditions of
-										[] -> VisibilityConds;
-										Conditions -> lists:append([[Conditions], [?CONJUNCTION], VisibilityConds])
-									end,
+						[] -> VisibilityConds;
+						Conditions -> lists:append([[Conditions], [?CONJUNCTION], VisibilityConds])
+					end,
 
 	Conjunctions = group_conjunctions(NewConditions),
 
@@ -277,9 +302,9 @@ conjunction_test() ->
   Res1 = group_conjunctions(TestClause1),
   Res2 = group_conjunctions(TestClause2),
   Res3 = group_conjunctions(TestClause3),
-  ?assertEqual(Res1, [[DefaultComp, DefaultComp], [DefaultComp]]),
-  ?assertEqual(Res2, [[DefaultComp], [DefaultComp], [DefaultComp]]),
-  ?assertEqual(Res3, [[DefaultComp, DefaultComp, DefaultComp]]).
+  ?assertEqual({disjunction, [[DefaultComp, DefaultComp], [DefaultComp]]}, Res1),
+  ?assertEqual({disjunction, [[DefaultComp], [DefaultComp], [DefaultComp]]}, Res2),
+  ?assertEqual({disjunction, [[DefaultComp, DefaultComp, DefaultComp]]}, Res3).
 
 conjunction_parenthesis_test() ->
 	DefaultComp = {attr, [{equality, ignore}], val},
@@ -293,6 +318,14 @@ conjunction_parenthesis_test() ->
 		DefaultComp
 	],
 	Res1 = group_conjunctions(TestClause1),
-	?assertEqual([[{sub, [[DefaultComp, DefaultComp], [DefaultComp]]}, DefaultComp]], Res1).
+	Expected = {
+		disjunction,
+		[[{sub, {
+			disjunction,
+			[[DefaultComp, DefaultComp], [DefaultComp]]}
+		}, DefaultComp]
+		]
+	},
+	?assertEqual(Expected, Res1).
 
 -endif.

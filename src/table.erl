@@ -14,17 +14,18 @@
 -export([exec/2]).
 
 -export([read_tables/1,
-				write_table/2,
-				lookup/2, lookup/3,
-				dependants/2,
-				prepare_table/3,
-				create_table_update/1]).
+         write_table/2,
+         lookup/2, lookup/3,
+         dependants/2,
+         prepare_table/3,
+         create_table_update/1]).
 
 -export([name/1,
-				policy/1,
-				columns/1,
-				shadow_columns/1,
-				indexes/1]).
+         policy/1,
+         columns/1,
+	     shadow_columns/1,
+	     indexes/1,
+	     partition_col/1]).
 
 exec(Table, TxId) ->
 	write_table(Table, TxId).
@@ -77,10 +78,6 @@ prepare_table(Table, Tables, TxId) ->
 	Policy1 = crp:set_dep_level(DepRule, Policy),
 	Table2 = set_policy(Policy1, Table1),
 	Table3 = prepare_foreign_keys(Table2, Tables),
-          %case crp:dep_level(Policy1) of
-					%	 ?REMOVE_WINS -> prepare_foreign_keys(Table2, Tables);
-					%	 _ -> Table2
-					% end,
 	set_indexes([], Table3).
 
 prepare_cols(Table) ->
@@ -157,27 +154,29 @@ references(_TName, [], Acc) -> Acc.
 %% Table Props functions
 %% ====================================================================
 
-name(?T_TABLE(Name, _Policy, _Cols, _SCols, _Idx)) -> Name.
+name(?T_TABLE(Name, _Policy, _Cols, _SCols, _Idx, _PartCol)) -> Name.
 
-policy(?T_TABLE(_Name, Policy, _Cols, _SCols, _Idx)) -> Policy.
+policy(?T_TABLE(_Name, Policy, _Cols, _SCols, _Idx, _PartCol)) -> Policy.
 
-set_policy(Policy, ?T_TABLE(Name, _Policy, Cols, SCols, Idx)) ->
-	?T_TABLE(Name, Policy, Cols, SCols, Idx).
+set_policy(Policy, ?T_TABLE(Name, _Policy, Cols, SCols, Idx, PartCol)) ->
+	?T_TABLE(Name, Policy, Cols, SCols, Idx, PartCol).
 
-columns(?T_TABLE(_Name, _Policy, Cols, _SCols, _Idx)) -> Cols.
+columns(?T_TABLE(_Name, _Policy, Cols, _SCols, _Idx, _PartCol)) -> Cols.
 
-set_columns(Cols, ?T_TABLE(Name, Policy, _Cols, SCols, Idx)) ->
-	?T_TABLE(Name, Policy, Cols, SCols, Idx).
+set_columns(Cols, ?T_TABLE(Name, Policy, _Cols, SCols, Idx, PartCol)) ->
+	?T_TABLE(Name, Policy, Cols, SCols, Idx, PartCol).
 
-shadow_columns(?T_TABLE(_Name, _Policy, _Cols, SCols, _Idx)) -> SCols.
+shadow_columns(?T_TABLE(_Name, _Policy, _Cols, SCols, _Idx, _PartCol)) -> SCols.
 
-set_shadow_columns(SCols, ?T_TABLE(Name, Policy, Cols, _SCols, Idx)) ->
-	?T_TABLE(Name, Policy, Cols, SCols, Idx).
+set_shadow_columns(SCols, ?T_TABLE(Name, Policy, Cols, _SCols, Idx, PartCol)) ->
+	?T_TABLE(Name, Policy, Cols, SCols, Idx, PartCol).
 
-indexes(?T_TABLE(_Name, _Policy, _Cols, _SCols, Idx)) -> Idx.
+indexes(?T_TABLE(_Name, _Policy, _Cols, _SCols, Idx, _PartCol)) -> Idx.
 
-set_indexes(Idx, ?T_TABLE(Name, Policy, Cols, SCols, _Idx)) ->
-	?T_TABLE(Name, Policy, Cols, SCols, Idx).
+set_indexes(Idx, ?T_TABLE(Name, Policy, Cols, SCols, _Idx, PartCol)) ->
+	?T_TABLE(Name, Policy, Cols, SCols, Idx, PartCol).
+
+partition_col(?T_TABLE(_Name, _Policy, _Cols, _SCols, _Idx, PartCol)) -> PartCol.
 
 %% ====================================================================
 %% Internal functions

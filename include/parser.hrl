@@ -45,6 +45,9 @@
 % create
 -define(CREATE_TOKEN, create).
 -define(CREATE_CLAUSE(TokenChars), {?CREATE_TOKEN, TokenChars}).
+% partitioned
+-define(PARTITION_TOKEN, partition).
+-define(PARTITION_CLAUSE(TokenChars), {?PARTITION_TOKEN, TokenChars}).
 %% table
 -define(TABLE_TOKEN, table).
 -define(TABLE_KEY(TokenChars), {?TABLE_TOKEN, TokenChars}).

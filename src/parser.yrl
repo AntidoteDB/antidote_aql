@@ -45,7 +45,7 @@ insert into values
 %delete
 delete
 %create
-create table table_policy primary foreign key references default check
+create table partition table_policy primary foreign key references default check
 attribute_type dep_policy cascade
 %update
 update set
@@ -268,7 +268,11 @@ set_assignment ->
 %%--------------------------------------------------------------------
 create_query ->
 	create table_policy table atom start_list create_keys end_list :
-	?CREATE_CLAUSE(?T_TABLE('$4', crp:set_table_level(unwrap_type('$2'), crp:new()), '$6', [], [])).
+	?CREATE_CLAUSE(?T_TABLE('$4', crp:set_table_level(unwrap_type('$2'), crp:new()), '$6', [], [], undefined)).
+
+create_query ->
+    create table_policy table atom start_list create_keys end_list partition on start_list attribute_name end_list :
+    ?CREATE_CLAUSE(?T_TABLE('$4', crp:set_table_level(unwrap_type('$2'), crp:new()), '$6', [], [], ['$11'])).
 
 create_query ->
     create index atom on atom start_list create_index_keys end_list :
@@ -435,6 +439,9 @@ create_table_fk_test() ->
 
 create_table_fk_cascade_test() ->
     test_parser("CREATE RW TABLE TestA (a VARCHAR, b INTEGER FOREIGN KEY DELETE-WINS REFERENCES TestB(b) ON DELETE CASCADE)").
+
+create_table_partition_test() ->
+    test_parser("CREATE AW TABLE Test (a VARCHAR, b INTEGER) PARTITION ON (b)").
 
 create_index_simple_test() ->
     test_parser("CREATE INDEX TestIdx ON Table (a)"),
