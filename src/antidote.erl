@@ -19,7 +19,8 @@
 									| antidote_crdt_set_rw
 									| antidote_crdt_flag_ew
 									| antidote_crdt_flag_dw
-									| antidote_crdt_index.
+									| antidote_crdt_index
+	                                | antidote_crdt_index_p.
 
 -type bucket() :: atom().
 -type bound_object() :: {key(), crdt_type(), bucket()}.

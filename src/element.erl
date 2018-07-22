@@ -80,7 +80,7 @@ create_key_from_table(Key, Table, TxId) ->
         [_] ->
             Index = index:p_keys(TName, TxId),
             %% for now we only care about the first key of the list
-            {_, [BObj | _Rest]} = lists:keyfind(utils:to_atom(Key), 1, Index),
+            {_, BObj} = lists:keyfind(utils:to_atom(Key), 1, Index),
             BObj;
         undefined ->
             create_key(Key, TName)

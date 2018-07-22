@@ -162,9 +162,9 @@ exec(?SHOW_CLAUSE(?TABLES_TOKEN), Tx) ->
 	TNames;
 exec(?SHOW_CLAUSE({?INDEX_TOKEN, TName}), Tx) ->
 	Keys = index:p_keys(TName, Tx),
-	lists:foreach(fun({Key, BObjList}) ->
-		AuxList = lists:map(fun({_Key, _Type, Bucket}) -> Bucket end, BObjList),
-		io:fwrite("{key: ~p, tables: ~p}~n", [Key, AuxList])
+	lists:foreach(fun({Key, BObj}) ->
+		{_Key, _Type, Bucket} = BObj,
+		io:fwrite("{key: ~p, table: ~p}~n", [Key, Bucket])
 	end, Keys),
 	Keys;
 exec(?SHOW_CLAUSE({?INDEX_TOKEN, IndexName, TName}), Tx) ->

@@ -8,7 +8,8 @@
 -export([%to_aql/1,
         to_crdt/2,
         to_parser/1,
-        to_insert_op/3]).
+        to_insert_op/3,
+        to_insert_op/2]).
 
 %%to_aql(?CRDT_INTEGER) -> ?AQL_INTEGER;
 %%to_aql(?CRDT_BOOLEAN) -> ?AQL_BOOLEAN;
@@ -50,3 +51,19 @@ to_insert_op(?AQL_VARCHAR, _, OpParam) -> crdt:assign_lww(OpParam);
 to_insert_op(Invalid, _Constraint, _OpParam) ->
   ErrorMsg = io_lib:format("No mapping available for: ~p", [Invalid]),
   throw(lists:flatten(ErrorMsg)).
+
+% Since CRDT_INTEGER is a LWW register type, we can ignore this case.
+%to_insert_op(?CRDT_INTEGER, OpParam) -> crdt:set_integer(OpParam);
+to_insert_op(?CRDT_BOOLEAN, OpParam) ->
+    case OpParam of
+        "true" ->
+            crdt:enable_flag();
+        _Else ->
+            crdt:disable_flag()
+    end;
+to_insert_op(?CRDT_BCOUNTER_INT, OpParam) -> crdt:increment_bcounter(OpParam);
+to_insert_op(?CRDT_COUNTER_INT, OpParam) -> crdt:increment_counter(OpParam);
+to_insert_op(?CRDT_VARCHAR, OpParam) -> crdt:assign_lww(OpParam);
+to_insert_op(Invalid, _OpParam) ->
+    ErrorMsg = io_lib:format("No mapping available for: ~p", [Invalid]),
+    throw(lists:flatten(ErrorMsg)).

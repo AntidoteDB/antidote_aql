@@ -8,7 +8,7 @@
 -include("types.hrl").
 -include("parser.hrl").
 
--define(INDEX_CRDT, antidote_crdt_index).
+-define(INDEX_CRDT, antidote_crdt_index_p).
 -define(SINDEX_CRDT, antidote_crdt_index).
 -define(INDEX_ENTRY_DT, antidote_crdt_register_lww).
 -define(ITAG_CRDT, antidote_crdt_map_go).
@@ -80,11 +80,8 @@ secondary_index(TName, IndexName, TxId) ->
 p_keys(TName, TxId) ->
     BoundObject = crdt:create_bound_object(p_name(TName), ?INDEX_CRDT, ?METADATA_BUCKET),
     {ok, [Res]} = antidote:read_objects(BoundObject, TxId),
-    lists:map(fun({Key, Set}) ->
-        BObjList = lists:map(fun(SubKey) ->
-            element:create_key(SubKey, TName)
-        end, ordsets:to_list(Set)),
-        {utils:to_atom(Key), BObjList}
+    lists:map(fun({Key, BoundObj}) ->
+        {utils:to_atom(Key), BoundObj}
     end, Res).
 
 %% Reads a secondary index
