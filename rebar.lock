@@ -1,7 +1,7 @@
 {"1.1.0",
 [{<<"antidote_crdt">>,
   {git,"https://github.com/pedromslopes/antidote_crdt",
-       {ref,"226fd25049c468dca3713a8edc915bcf537e1f36"}},
+       {ref,"441fd9e3fe52e5bf183b8b289e4c9c08484dd133"}},
   0},
  {<<"elli">>,{pkg,<<"elli">>,<<"3.0.0">>},0},
  {<<"jsx">>,{pkg,<<"jsx">>,<<"2.9.0">>},0},

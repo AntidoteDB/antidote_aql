@@ -176,13 +176,13 @@ generate_updates(Acc, [{Key, Record} | Keys], Table, Tables, SetClause, TxId) ->
             _Else ->
                 FieldUpdates2 = lists:append(FieldUpdates1, [version_op(Record, Table)]),
 
-                lists:foldl(fun({{ColName, ColType}, Value}, Acc) ->
+                lists:foldl(fun({{ColName, ColType}, Value}, UpdAcc) ->
                     case element:get_by_name(ColName, FieldUpdates2) of
                         undefined ->
                             MapOp = crdt:field_map_op({ColName, ColType}, types:to_insert_op(ColType, Value)),
-                            Acc ++ [MapOp];
+                            UpdAcc ++ [MapOp];
                         _ ->
-                            Acc
+                            UpdAcc
                     end
                 end, FieldUpdates2, Record)
         end,
