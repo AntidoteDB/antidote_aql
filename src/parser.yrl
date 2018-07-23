@@ -24,6 +24,8 @@ update_query set_clause set_assignments set_assignment
 begin_transaction commit_transaction abort_transaction
 %utils
 value atom number_unwrap
+%quit program
+quit_program
 .
 
 %%====================================================================
@@ -57,6 +59,8 @@ atom_value string number boolean
 assign increment decrement conjunctive disjunctive
 %list
 sep start_list end_list semi_colon
+%quit
+quit
 .
 
 %%====================================================================
@@ -70,11 +74,11 @@ Rootsymbol query.
 
 query -> statement : '$1'.
 
-query -> admin: '$1'.
-
-statement -> statement semi_colon statement :	lists:append('$1', '$3').
+statement -> statement semi_colon statement : lists:append('$1', '$3').
 
 statement -> statement semi_colon :	'$1'.
+
+statement -> admin : '$1'.
 
 statement -> select_query : ['$1'].
 
@@ -91,6 +95,8 @@ statement -> begin_transaction : ['$1'].
 statement -> commit_transaction : ['$1'].
 
 statement -> abort_transaction : ['$1'].
+
+statement -> quit_program : ['$1'].
 
 comparison -> equality : '$1'.
 comparison -> notequality : '$1'.
@@ -360,6 +366,13 @@ abort_transaction ->
     ?ABORT_CLAUSE(?TRANSACTION_TOKEN).
 
 %%--------------------------------------------------------------------
+%% quit program
+%%--------------------------------------------------------------------
+quit_program ->
+    quit :
+    ?QUIT_CLAUSE(?QUIT_TOKEN).
+
+%%--------------------------------------------------------------------
 %% utils
 %%--------------------------------------------------------------------
 atom ->
@@ -498,5 +511,9 @@ transaction_test() ->
     test_parser("BEGIN TRANSACTION"),
     test_parser("COMMIT TRANSACTION"),
     test_parser("ABORT TRANSACTION").
+
+quit_test() ->
+    test_parser("QUIT"),
+    test_parser("quit").
 
 -endif.

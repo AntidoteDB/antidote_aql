@@ -11,4 +11,4 @@ fi
 # echo "Using AQL node name: $AQL_NAME"
 # echo "Using Antidote node name: $NODE_NAME"
 
-erl -pa ./_build/default/lib/aql/ebin -name $AQL_NAME -setcookie antidote -noshell -eval "aqlparser:start_shell('$NODE_NAME')"
+erl -pa ./_build/default/lib/aql/ebin -name $AQL_NAME -setcookie antidote -noshell -eval "aqlparser:start_shell('$NODE_NAME')" -s erlang halt

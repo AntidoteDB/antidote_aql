@@ -61,6 +61,9 @@ Rules.
 (abort|ABORT) : {token, ?ABORT_CLAUSE(TokenChars)}.
 (transaction|TRANSACTION) : {token, ?TRANSACTION_KEY(TokenChars)}.
 
+% quit program related token
+(quit|QUIT) : {token, ?QUIT_CLAUSE(TokenChars)}.
+
 % conflict resolution policies
 (aw|AW) : {token, ?TABLE_POLICY_KEY(?ADD_WINS)}.
 (rw|RW) : {token, ?TABLE_POLICY_KEY(?REMOVE_WINS)}.

@@ -125,6 +125,10 @@
 -define(TRANSACTION_TOKEN, transaction).
 -define(TRANSACTION_KEY(TokenChars), {?TRANSACTION_TOKEN, TokenChars}).
 
+% quit program
+-define(QUIT_TOKEN, quit).
+-define(QUIT_CLAUSE(TokenChars), {?QUIT_TOKEN, TokenChars}).
+
 %terms
 -define(PARSER_BOOLEAN_TOKEN, boolean).
 -define(PARSER_ATOM_TOKEN, atom_value).

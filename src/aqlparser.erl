@@ -62,6 +62,8 @@ start_shell(Node) when is_atom(Node) ->
 read_and_exec(Node, Tx) ->
 	Line = io:get_line("AQL> "),
 	case parse({str, Line}, Node, Tx) of
+        {ok, Res, quit} ->
+            io:fwrite("~p~n", [Res]);
 		{ok, Res, RetTx} ->
 			io:fwrite("~p~n", [Res]),
 			read_and_exec(Node, RetTx);
@@ -84,6 +86,8 @@ exec([Query | Tail], Acc, Node, Tx) ->
 	case Res of
 		ok ->
 			exec(Tail, Acc, Node, Tx);
+        {ok, quit} ->
+            {ok, lists:append(Acc, [Res]), quit};
 		{ok, {begin_tx, Tx2}} ->
 			exec(Tail, lists:append(Acc, [Res]), Node, Tx2);
 		{ok, {commit_tx, Tx2}} ->
@@ -142,6 +146,8 @@ exec(?ABORT_CLAUSE(?TRANSACTION_TOKEN), Node, PassedTX) when is_atom(Node) ->
 		_Else ->
 			{ok, {abort_tx, PassedTX}}
 	end;
+exec(?QUIT_CLAUSE(_), _Node, _PassedTx) ->
+    {ok, quit};
 
 exec(Query, Node, undefined) when is_atom(Node) ->
 	{ok, Tx} = antidote:start_transaction(Node),
