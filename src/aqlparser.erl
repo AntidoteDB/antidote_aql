@@ -33,13 +33,7 @@ parse({str, Query}, Node, Tx) ->
 			ParseRes = parser:parse(Tokens),
 			case ParseRes of
 				{ok, ParseTree} ->
-					try exec(ParseTree, [], Node, Tx) of
-						Ok -> Ok
-					catch
-						Reason ->
-							%io:fwrite("Syntax Error: ~p~n", [Reason]),
-							{error, Reason}
-					end;
+					exec(ParseTree, [], Node, Tx);
 				_Else ->
 					ParseRes
 			end;
@@ -67,9 +61,9 @@ read_and_exec(Node, Tx) ->
 		{ok, Res, RetTx} ->
 			io:fwrite("~p~n", [Res]),
 			read_and_exec(Node, RetTx);
-		{error, Msg} ->
-			io:fwrite("~p~n", [{error, Msg}]),
-			read_and_exec(Node, undefined);
+        {error, Msg} ->
+            io:fwrite("~p~n", [{error, Msg}]),
+            read_and_exec(Node, undefined);
 		{ok, RetTx} ->
 			read_and_exec(Node, RetTx);
 		Else ->
@@ -87,6 +81,10 @@ exec([Query | Tail], Acc, Node, Tx) ->
 		ok ->
 			exec(Tail, Acc, Node, Tx);
         {ok, quit} ->
+            case Tx of
+                undefined -> ok;
+                _ -> abort_transaction(undefined, Tx)
+            end,
             {ok, lists:append(Acc, [Res]), quit};
 		{ok, {begin_tx, Tx2}} ->
 			exec(Tail, lists:append(Acc, [Res]), Node, Tx2);
@@ -98,6 +96,9 @@ exec([Query | Tail], Acc, Node, Tx) ->
 			exec(Tail, lists:append(Acc, [AbortRes]), Node, undefined);
 		{ok, NewNode} ->
 			exec(Tail, Acc, NewNode, Tx);
+        {error, Msg, AbortedTx} ->
+            abort_transaction(ignore, AbortedTx),
+            exec(Tail, lists:append(Acc, [{error, Msg}]), Node, undefined);
 		Res ->
 			exec(Tail, lists:append(Acc, [Res]), Node, Tx)
 	end;
@@ -106,6 +107,7 @@ exec([], Acc, _Node, Tx) ->
 
 commit_transaction(Res, Tx) ->
 	CommitRes = antidote:commit_transaction(Tx),
+    ok = antidote:release_locks(lock_mgr_es, Tx),
 	case CommitRes of
 		{ok, _CT} ->
 			Res;
@@ -115,6 +117,7 @@ commit_transaction(Res, Tx) ->
 
 abort_transaction(Res, Tx) ->
 	antidote:abort_transaction(Tx),
+    ok = antidote:release_locks(lock_mgr_es, Tx),
 	Res.
 	%% TODO to be uncommented when Antidote implements transaction abortion
 	%case AbortRes of
@@ -151,15 +154,26 @@ exec(?QUIT_CLAUSE(_), _Node, _PassedTx) ->
 
 exec(Query, Node, undefined) when is_atom(Node) ->
 	{ok, Tx} = antidote:start_transaction(Node),
-	Res = exec(Query, Tx),
-	case Res of
-		{error, _} ->
-			Res;
-		_Else ->
-			commit_transaction(Res, Tx)
-	end;
+	try
+        exec(Query, Tx)
+    of
+        {error, _} = Res ->
+            Res;
+        Else ->
+            commit_transaction(Else, Tx)
+    catch
+        Reason ->
+            {error, Reason, Tx}
+    end;
 exec(Query, Node, PassedTx) when is_atom(Node) ->
-	exec(Query, PassedTx).
+    try
+        exec(Query, PassedTx)
+    of
+        Res -> Res
+    catch
+        Reason ->
+            {error, Reason, PassedTx}
+    end.
 
 exec(?SHOW_CLAUSE(?TABLES_TOKEN), Tx) ->
 	Tables = table:read_tables(Tx),

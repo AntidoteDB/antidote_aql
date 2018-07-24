@@ -24,7 +24,8 @@ exec({Table, Tables}, Props, TxId) ->
 	lists:foreach(fun (Key) ->
 		delete_cascade(Key, Table, Tables, TxId),
 		ok = antidote:update_objects(crdt:ipa_update(Key, ipa:delete()), TxId)
-	end, Keys).
+	end, Keys),
+    ok = antidote:release_locks(lock_mgr_es, TxId).
 
 table({TName, _Where}) -> TName.
 
@@ -35,6 +36,7 @@ where({_TName, Where}) -> Where.
 %% ====================================================================
 
 delete_cascade(Key, Table, Tables, TxId) ->
+	antidote:get_locks([], [Key], TxId),
 	{ok, [Data]} = antidote:read_objects(Key, TxId),
 	case length(Data) of
 		0 -> ok;

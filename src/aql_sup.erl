@@ -36,7 +36,17 @@ init([]) ->
         5000,
         worker,
         [elli]},
-    {ok, { {one_for_one, 5, 10}, [ElliSpec]} }.
+
+    AntidoteSpec = {
+        antidote,
+        {antidote, start_link, []},
+        permanent,
+        5000,
+        worker,
+        [antidote]
+    },
+
+    {ok, { {one_for_one, 5, 10}, [ElliSpec, AntidoteSpec]} }.
 
 %%====================================================================
 %% Internal functions
