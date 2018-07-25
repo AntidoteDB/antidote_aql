@@ -34,10 +34,10 @@ exec({Table, _Tables}, Select, TxId) ->
     case validate_projection(Projection, column:s_names(Cols)) of
         {error, Msg} ->
             throw(Msg);
-        {ok, _Projection} ->
+        {ok, ResProjection} ->
             Condition = where(Select),
             NewCondition = send_offset(Condition, Cols, []),
-            Filter = prepare_filter(Table, Projection, NewCondition),
+            Filter = prepare_filter(Table, ResProjection, NewCondition),
             case antidote:query_objects(Filter, TxId) of
                 {ok, Result} ->
                     FinalResult = apply_offset(Result, Cols, []),
