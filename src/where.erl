@@ -7,7 +7,7 @@
 
 scan(TName, ?PARSER_WILDCARD, TxId) ->
     Index = index:p_keys(TName, TxId),
-    lists:map(fun({_Key, BObj}) -> BObj end, Index);
+    lists:map(fun({_Key, [BObj]}) -> BObj end, Index);
 scan(TName, Conditions, TxId) ->
     Keys = evaluate(TName, Conditions, []),
     filter_keys(Keys, TName, TxId).
@@ -35,7 +35,7 @@ filter_keys(Keys, TName, TxId) ->
             false ->
                 io:format("Error: Cannot update/delete row with value ~p. Row does not exist.~n", [K]),
                 AccKeys;
-            {K, BObj} ->
+            {K, [BObj]} ->
                 lists:append(AccKeys, [BObj])
         end
     end, [], Keys).

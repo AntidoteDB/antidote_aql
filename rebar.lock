@@ -5,7 +5,7 @@
   0},
  {<<"antidote_pb">>,
   {git,"https://github.com/pedromslopes/antidote_pb.git",
-       {ref,"a4c2872e88b3dbd1a80ce16e5bc7bba8ad7c113b"}},
+       {ref,"61ad841d538dbc8a8d508529e28b54c62402bc0d"}},
   0},
  {<<"elli">>,{pkg,<<"elli">>,<<"3.0.0">>},0},
  {<<"goldrush">>,
@@ -31,7 +31,7 @@
   1},
  {<<"riak_pb">>,
   {git,"git://github.com/pedromslopes/riak_pb",
-       {ref,"85a2256fd3b70f0d79ddf42f868dbb4adf0becbc"}},
+       {ref,"d74a888e89ef8202d2de7bb4cd5cf2c1b9ecfbc5"}},
   1}]}.
 [
 {pkg_hash,[

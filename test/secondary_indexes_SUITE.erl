@@ -26,6 +26,7 @@
 -export([insert_data_after/1, insert_data_before/1, bcounter_index/1]).
 
 init_per_suite(Config) ->
+  aqlparser:start(),
   TestTable = "TableAIdx",
   TestTable2 = "TableBCIdx",
   {ok, [], _Tx} = tutils:aql(lists:concat(["CREATE AW TABLE ", TestTable,
@@ -41,6 +42,7 @@ init_per_suite(Config) ->
      {update_greater, lists:concat(["UPDATE ", TestTable2, " SET Z ~s WHERE X = ~s"])}]).
 
 end_per_suite(Config) ->
+  aqlparser:stop(),
   Config.
 
 init_per_testcase(_Case, Config) ->

@@ -14,7 +14,7 @@ TESTNUM=$2
 TESTCONTENT=TEST$TESTNUM[@]
 TEST=("${!TESTCONTENT}")
 
-EXEC_CMD="erl -pa $AQL_DIR/_build/default/lib/aql/ebin -name $AQL_NAME -setcookie antidote -noshell -eval "
+EXEC_CMD="erl -pa $AQL_DIR/_build/default/lib/*/ebin -name $AQL_NAME -setcookie antidote -noshell -eval "
 	
 ## Deleting the old database state
 function reset_db {
@@ -44,7 +44,7 @@ function create_db {
 	echo "> Creating the database..."
 	array=("${!1}")
 	for k in $(seq 0 $((${#array[@]}-1))); do
-		aql_func="Res = aqlparser:parse({str, \"${array[$k]}\"}, '\''$NODE'\'', $TX), io:format(\"~p~n~n\", [Res])"
+		aql_func="aqlparser:start(), Res = aqlparser:parse({str, \"${array[$k]}\"}, '\''$NODE'\'', $TX), io:format(\"~p~n~n\", [Res])"
 		cmd="$EXEC_CMD '$aql_func' -s erlang halt"
 		#echo $cmd
 		eval $cmd
@@ -57,7 +57,7 @@ function init_db {
 	echo "> Initializing the database..."
 	array=("${!1}")
 	for k in $(seq 0 $((${#array[@]}-1))); do
-		aql_func="Res = aqlparser:parse({str, \"${array[$k]}\"}, '\''$NODE'\'', $TX), io:format(\"~p~n~n\", [Res])"
+		aql_func="aqlparser:start(), Res = aqlparser:parse({str, \"${array[$k]}\"}, '\''$NODE'\'', $TX), io:format(\"~p~n~n\", [Res])"
 		cmd="$EXEC_CMD '$aql_func' -s erlang halt"
 		#echo $cmd
 		eval $cmd
@@ -70,7 +70,7 @@ function build_query_command {
 	expected="$2"
 	#echo "Query: $query"
 	#echo "Expected: $expected"
-	local cmd="{ok, [Res], _} = aqlparser:parse({str, \"$query\"}, '\''$NODE'\'', $TX), "
+	local cmd="aqlparser:start(), {ok, [Res], _} = aqlparser:parse({str, \"$query\"}, '\''$NODE'\'', $TX), "
 	cmd="$cmd case length(Res) of $expected -> io:format(\"{ok, ~p}~n~n\", [Res]);"
 	cmd="$cmd Else -> io:format(\"{error, {expected, $expected}, {got, ~p}}~n~n\", [Else]) end"
 	echo $cmd

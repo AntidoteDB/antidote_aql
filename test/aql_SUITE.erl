@@ -35,6 +35,7 @@
         error_transaction/1]).
 
 init_per_suite(Config) ->
+  aqlparser:start(),
   TNameArtist = "ArtistTest",
   TNameAlbum = "AlbumTest",
   TNameTrack = "TrackTest",
@@ -71,6 +72,7 @@ init_per_suite(Config) ->
   ]).
 
 end_per_suite(Config) ->
+  aqlparser:stop(),
   Config.
 
 init_per_testcase(_Case, Config) ->
@@ -176,7 +178,7 @@ error_transaction(Config) ->
 
   {ok, [{ok, {begin_tx, Tx}}], Tx} = tutils:aql("BEGIN TRANSACTION"),
 
-  {error, _} = tutils:aql(lists:concat(["CREATE AW TABLE ", TNameAlbum,
+  {ok, [{error, _}], _} = tutils:aql(lists:concat(["CREATE AW TABLE ", TNameAlbum,
     " (Name VARCHAR PRIMARY KEY,",
     " IsSingle BOOLEAN DEFAULT ", DefaultAlbum, ",",
     " Art INT FOREIGN KEY UPDATE-WINS REFERENCES ",

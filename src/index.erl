@@ -103,7 +103,7 @@ s_keys_formatted(TName, IndexName, TxId) ->
             lists:map(fun({EntryKey, EntryVal}) ->
                 AQLCounterValue = bcounter:from_bcounter(Comp, EntryKey, Offset),
                 {AQLCounterValue, EntryVal}
-                      end, IndexData);
+            end, IndexData);
         _Else ->
             IndexData
     end.

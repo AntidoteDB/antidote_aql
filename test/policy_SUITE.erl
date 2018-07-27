@@ -28,9 +28,11 @@
         three_levels/1]).
 
 init_per_suite(Config) ->
+  aqlparser:start(),
   Config.
 
 end_per_suite(Config) ->
+  aqlparser:stop(),
   Config.
 
 init_per_testcase(_Case, Config) ->

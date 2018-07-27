@@ -13,8 +13,16 @@
 
 -define(DEFAULT_NODE, 'antidote@127.0.0.1').
 
+-export([start/0, stop/0]).
+
 %% Application callbacks
 -export([parse/2, parse/3, start_shell/0, start_shell/1]).
+
+start() ->
+  {ok, _} = application:ensure_all_started(aql).
+
+stop() ->
+  application:stop(aql).
 
 %%====================================================================
 %% API
@@ -33,13 +41,7 @@ parse({str, Query}, Node, Tx) ->
 			ParseRes = parser:parse(Tokens),
 			case ParseRes of
 				{ok, ParseTree} ->
-					try exec(ParseTree, [], Node, Tx) of
-						Ok -> Ok
-					catch
-						Reason ->
-							%io:fwrite("Syntax Error: ~p~n", [Reason]),
-							{error, Reason}
-					end;
+					exec(ParseTree, [], Node, Tx);
 				_Else ->
 					ParseRes
 			end;
@@ -55,6 +57,7 @@ start_shell() ->
 	start_shell(?DEFAULT_NODE).
 
 start_shell(Node) when is_atom(Node) ->
+  start(),
 	io:fwrite("Welcome to the AQL Shell.~n"),
 	io:format("(connected to node ~p)~n", [Node]),
 	read_and_exec(Node, undefined).
@@ -62,8 +65,8 @@ start_shell(Node) when is_atom(Node) ->
 read_and_exec(Node, Tx) ->
 	Line = io:get_line("AQL> "),
 	case parse({str, Line}, Node, Tx) of
-        {ok, Res, quit} ->
-            io:fwrite("~p~n", [Res]);
+		{ok, Res, quit} ->
+			io:fwrite("~p~n", [Res]);
 		{ok, Res, RetTx} ->
 			io:fwrite("~p~n", [Res]),
 			read_and_exec(Node, RetTx);
@@ -86,8 +89,12 @@ exec([Query | Tail], Acc, Node, Tx) ->
 	case Res of
 		ok ->
 			exec(Tail, Acc, Node, Tx);
-        {ok, quit} ->
-            {ok, lists:append(Acc, [Res]), quit};
+		{ok, quit} ->
+			case Tx of
+				undefined -> ok;
+				_ -> abort_transaction(undefined, Tx)
+			end,
+			{ok, lists:append(Acc, [Res]), quit};
 		{ok, {begin_tx, Tx2}} ->
 			exec(Tail, lists:append(Acc, [Res]), Node, Tx2);
 		{ok, {commit_tx, Tx2}} ->
@@ -98,6 +105,9 @@ exec([Query | Tail], Acc, Node, Tx) ->
 			exec(Tail, lists:append(Acc, [AbortRes]), Node, undefined);
 		{ok, NewNode} ->
 			exec(Tail, Acc, NewNode, Tx);
+		{error, Msg, AbortedTx} ->
+			abort_transaction(ignore, AbortedTx),
+			exec(Tail, lists:append(Acc, [{error, Msg}]), Node, undefined);
 		Res ->
 			exec(Tail, lists:append(Acc, [Res]), Node, Tx)
 	end;
@@ -151,15 +161,26 @@ exec(?QUIT_CLAUSE(_), _Node, _PassedTx) ->
 
 exec(Query, Node, undefined) when is_atom(Node) ->
 	{ok, Tx} = antidote:start_transaction(Node),
-	Res = exec(Query, Tx),
-	case Res of
-		{error, _} ->
+	try
+		exec(Query, Tx)
+	of
+		{error, _} = Res ->
 			Res;
-		_Else ->
-			commit_transaction(Res, Tx)
+		Else ->
+			commit_transaction(Else, Tx)
+	catch
+		Reason ->
+			{error, Reason, Tx}
 	end;
 exec(Query, Node, PassedTx) when is_atom(Node) ->
-	exec(Query, PassedTx).
+  try
+		exec(Query, PassedTx)
+  of
+		Res -> Res
+  catch
+		Reason ->
+			{error, Reason, PassedTx}
+  end.
 
 exec(?SHOW_CLAUSE(?TABLES_TOKEN), Tx) ->
 	Tables = table:read_tables(Tx),
@@ -168,7 +189,7 @@ exec(?SHOW_CLAUSE(?TABLES_TOKEN), Tx) ->
 	TNames;
 exec(?SHOW_CLAUSE({?INDEX_TOKEN, TName}), Tx) ->
 	Keys = index:p_keys(TName, Tx),
-	lists:foreach(fun({Key, BObj}) ->
+	lists:foreach(fun({Key, [BObj]}) ->
 		{_Key, _Type, Bucket} = BObj,
 		io:fwrite("{key: ~p, table: ~p}~n", [Key, Bucket])
 	end, Keys),
@@ -213,7 +234,6 @@ eval(QName, Props, M, Tx) ->
 			Status = M:exec(Tables, Props, Tx)
 	end,
 	eval_status(QName, Status).
-
 
 eval_status(Query, Status) ->
 	%AQuery = list_to_atom(Query),
