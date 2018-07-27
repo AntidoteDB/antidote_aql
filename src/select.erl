@@ -152,13 +152,13 @@ prepare_filter(Table, Projection, Conditions) ->
 visibility_condition(Table) ->
 	Policy = table:policy(Table),
 	Rule = crp:get_rule(Policy),
-	ShCols = lists:foldl(fun(?T_FK(FkName, _, FkTable, _, _), Acc) ->
-		case length(FkName) of
-			1 -> lists:append(Acc, [[?COLUMN(FkName), FkTable]]);
-			_ -> Acc
-		end
-	end, [], table:shadow_columns(Table)),
-	Func = ?FUNCTION(assert_visibility, [?COLUMN('#st'), Rule, ShCols]),
+%%	ShCols = lists:foldl(fun(?T_FK(FkName, _, FkTable, _, _), Acc) ->
+%%		case length(FkName) of
+%%			1 -> lists:append(Acc, [[?COLUMN(FkName), FkTable]]);
+%%			_ -> Acc
+%%		end
+%%	end, [], table:shadow_columns(Table)),
+	Func = ?FUNCTION(assert_visibility, [?COLUMN('#st'), Rule, []]),
 	[{Func, ?PARSER_EQUALITY, true}].
 
 filter_visible(Results, TName, Tables, TxId) ->

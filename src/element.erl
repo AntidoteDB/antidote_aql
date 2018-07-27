@@ -124,13 +124,13 @@ is_visible(Element, Tables, TxId) when is_tuple(Element) ->
     is_visible(Data, TName, Tables, TxId).
 
 is_visible([], _TName, _Tables, _TxId) -> false;
-is_visible(Data, TName, Tables, TxId) ->
+is_visible(Data, TName, Tables, _TxId) ->
     Table = table:lookup(TName, Tables),
     Policy = table:policy(Table),
     Rule = crp:get_rule(Policy),
     ExplicitState = explicit_state(Data, Rule),
-    ipa:is_visible(ExplicitState) andalso
-        implicit_state(Table, Data, Tables, TxId).
+    ipa:is_visible(ExplicitState).% andalso
+    %    implicit_state(Table, Data, Tables, TxId).
     %case length(Data) of
     %    1 ->
     %        ipa:is_visible(ExplicitState);
@@ -350,44 +350,44 @@ foreign_keys(Fks, Data, TName) ->
         {{CName, CType}, {FkTable, FkAttr}, DeleteRule, Value}
     end, Fks).
 
-implicit_state(Table, RecordData, Tables, TxId) ->
-    FKs = table:shadow_columns(Table),
-    implicit_state(Table, RecordData, Tables, FKs, TxId).
-
-implicit_state(Table, Data, Tables, [?T_FK(FkName, _, FKTName, _, _) | Fks], TxId)
-    when length(FkName) == 1 ->
-    Policy = table:policy(Table),
-    {RefValue, RefVersion} = element:get(FkName, ?CRDT_VARCHAR, Data, Table),
-
-    %FKBoundObj = create_key(RefValue, FKTName),
-    %{ok, [FKData]} = antidote:read_objects(FKBoundObj, TxId),
-    FKTable = table:lookup(FKTName, Tables),
-    FKData = read_record(RefValue, FKTable, TxId),
-    IsVisible =
-        case FKData of
-            [] ->
-                throwNoSuchRow(RefValue, FKTName);
-            _Else ->
-                FkVersion = element:get(?VERSION, ?VERSION_TYPE, FKData, FKTable),
-                case crp:dep_level(Policy) of
-                    ?REMOVE_WINS ->
-                        FkVersion =:= RefVersion andalso
-                            is_visible(FKData, FKTName, Tables, TxId);
-                    _ ->
-                        case crp:dep_level(table:policy(FKTable)) of
-                            ?REMOVE_WINS ->
-                                is_visible(FKData, FKTName, Tables, TxId);
-                            _ ->
-                                true
-                        end
-                end
-        end,
-
-    IsVisible andalso implicit_state(Table, Data, Tables, Fks, TxId);
-implicit_state(Table, Data, Tables, [_Fk | Fks], TxId) ->
-    true andalso implicit_state(Table, Data, Tables, Fks, TxId);
-implicit_state(_Table, _Data, _Tables, [], _TxId) ->
-    true.
+%%implicit_state(Table, RecordData, Tables, TxId) ->
+%%    FKs = table:shadow_columns(Table),
+%%    implicit_state(Table, RecordData, Tables, FKs, TxId).
+%%
+%%implicit_state(Table, Data, Tables, [?T_FK(FkName, _, FKTName, _, _) | Fks], TxId)
+%%    when length(FkName) == 1 ->
+%%    Policy = table:policy(Table),
+%%    {RefValue, RefVersion} = element:get(FkName, ?CRDT_VARCHAR, Data, Table),
+%%
+%%    %FKBoundObj = create_key(RefValue, FKTName),
+%%    %{ok, [FKData]} = antidote:read_objects(FKBoundObj, TxId),
+%%    FKTable = table:lookup(FKTName, Tables),
+%%    FKData = read_record(RefValue, FKTable, TxId),
+%%    IsVisible =
+%%        case FKData of
+%%            [] ->
+%%                throwNoSuchRow(RefValue, FKTName);
+%%            _Else ->
+%%                FkVersion = element:get(?VERSION, ?VERSION_TYPE, FKData, FKTable),
+%%                case crp:dep_level(Policy) of
+%%                    ?REMOVE_WINS ->
+%%                        FkVersion =:= RefVersion andalso
+%%                            is_visible(FKData, FKTName, Tables, TxId);
+%%                    _ ->
+%%                        case crp:dep_level(table:policy(FKTable)) of
+%%                            ?REMOVE_WINS ->
+%%                                is_visible(FKData, FKTName, Tables, TxId);
+%%                            _ ->
+%%                                true
+%%                        end
+%%                end
+%%        end,
+%%
+%%    IsVisible andalso implicit_state(Table, Data, Tables, Fks, TxId);
+%%implicit_state(Table, Data, Tables, [_Fk | Fks], TxId) ->
+%%    true andalso implicit_state(Table, Data, Tables, Fks, TxId);
+%%implicit_state(_Table, _Data, _Tables, [], _TxId) ->
+%%    true.
 
 delete(ObjKey, TxId) ->
     StateOp = crdt:field_map_op(element:st_key(), crdt:assign_lww(ipa:delete())),

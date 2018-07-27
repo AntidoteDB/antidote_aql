@@ -17,12 +17,12 @@
 -include_lib("eunit/include/eunit.hrl").
 -endif.
 
-exec({Table, Tables}, Props, TxId) ->
+exec({_Table, _Tables}, Props, TxId) ->
 	TName = table(Props),
 	Condition = where(Props),
 	Keys = where:scan(TName, Condition, TxId),
 	lists:foreach(fun (Key) ->
-		delete_cascade(Key, Table, Tables, TxId),
+		%delete_cascade(Key, Table, Tables, TxId),
 		ok = antidote:update_objects(crdt:ipa_update(Key, ipa:delete()), TxId)
 	end, Keys).
 

@@ -21,17 +21,17 @@
 
 -export([touch_cascade/5]).
 
-exec({Table, Tables}, Props, TxId) ->
+exec({Table, _Tables}, Props, TxId) ->
 	Keys = keys(Props, Table),
 	Values = values(Props),
 	Keys1 = handle_defaults(Keys, Values, Table),
 	AnnElement = element:new(Table),
 	{ok, Element} = element:put(Keys1, Values, AnnElement),
-  	Element1 = element:set_version(Element, TxId),
-	Element2 = element:build_fks(Element1, Tables, TxId),
-	ok = element:insert(Element2, TxId),
+	%Element1 = element:set_version(Element, TxId),
+	%Element2 = element:build_fks(Element1, Tables, TxId),
+	ok = element:insert(Element, TxId),
 
-	touch_cascade(element, Element2, Table, Tables, TxId),
+	%touch_cascade(element, Element2, Table, Tables, TxId),
 	ok.
 
 table({TName, _Keys, _Values}) -> TName.
