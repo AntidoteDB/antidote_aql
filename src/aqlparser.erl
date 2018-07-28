@@ -13,16 +13,8 @@
 
 -define(DEFAULT_NODE, 'antidote@127.0.0.1').
 
--export([start/0, stop/0]).
-
 %% Application callbacks
 -export([parse/2, parse/3, start_shell/0, start_shell/1]).
-
-start() ->
-  {ok, _} = application:ensure_all_started(aql).
-
-stop() ->
-  application:stop(aql).
 
 %%====================================================================
 %% API
@@ -57,7 +49,6 @@ start_shell() ->
 	start_shell(?DEFAULT_NODE).
 
 start_shell(Node) when is_atom(Node) ->
-  start(),
 	io:fwrite("Welcome to the AQL Shell.~n"),
 	io:format("(connected to node ~p)~n", [Node]),
 	read_and_exec(Node, undefined).

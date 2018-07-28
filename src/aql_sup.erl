@@ -14,7 +14,8 @@
 -export([init/1]).
 
 -define(SERVER, ?MODULE).
--define(ANTIDOTE_OPS, ["127.0.0.1", 8087]).
+-define(DEFAULT_PB_ADDRESS, "127.0.0.1").
+-define(DEFAULT_PB_PORT, 8087).
 
 %%====================================================================
 %% API functions
@@ -38,23 +39,25 @@ init([]) ->
     worker,
     [elli]},
 
+  PBAddress =
+    case application:get_env(aql, pb_address) of
+      {ok, Address} -> Address;
+      undefined -> ?DEFAULT_PB_ADDRESS
+    end,
+  PBPort =
+    case application:get_env(aql, pb_port) of
+      {ok, Port} -> Port;
+      undefined -> ?DEFAULT_PB_PORT
+    end,
+
   AntidoteSpec = {
     antidote,
-    {antidote, start_link, ?ANTIDOTE_OPS},
+    {antidote, start_link, [PBAddress, PBPort]},
     permanent,
     5000,
     worker,
     [antidote]
   },
-
-%%  ShellSpec = {
-%%    aqlparser,
-%%    {aqlparser, start_link, []},
-%%    permanent,
-%%    5000,
-%%    worker,
-%%    [aqlparser]
-%%  },
 
   {ok, {{one_for_one, 5, 10}, [ElliSpec, AntidoteSpec]}}.
 
