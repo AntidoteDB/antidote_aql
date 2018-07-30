@@ -27,6 +27,7 @@
 %% ====================================================================
 
 init_per_suite(Config) ->
+  aql:start(),
   TNameGreater = "BCGreater",
   TNameSmaller = "BCSmaller",
   BoundGreaterA = 0,
@@ -56,6 +57,7 @@ init_per_suite(Config) ->
   ]).
 
 end_per_suite(Config) ->
+  aql:stop(),
   Config.
 
 init_per_testcase(_Case, Config) ->
@@ -92,9 +94,9 @@ greater_insert_basic(Config) ->
 greater_insert_fail(Config) ->
   BoundA = ?value(bound_greater_a, Config),
   BoundB = ?value(bound_greater_b, Config),
-  {error, Msg1} = tutils:aql(?format(insert_greater, [10, BoundA, BoundB+1], Config)),
-  {error, Msg2} = tutils:aql(?format(insert_greater, [11, BoundA+1, BoundB], Config)),
-  {error, Msg3} = tutils:aql(?format(insert_greater, [12, BoundA, BoundB-1], Config)),
+  {_, [{error, Msg1}], _} = tutils:aql(?format(insert_greater, [10, BoundA, BoundB+1], Config)),
+  {_, [{error, Msg2}], _} = tutils:aql(?format(insert_greater, [11, BoundA+1, BoundB], Config)),
+  {_, [{error, Msg3}], _} = tutils:aql(?format(insert_greater, [12, BoundA, BoundB-1], Config)),
 
   ?assertEqual(?INSERT_ERROR("0", "bcA"), Msg1),
   ?assertEqual(?INSERT_ERROR("10", "bcB"), Msg2),
@@ -156,9 +158,9 @@ smaller_insert_basic(Config) ->
 smaller_insert_fail(Config) ->
   BoundA = ?value(bound_smaller_a, Config),
   BoundB = ?value(bound_smaller_b, Config),
-  {error, Msg1} = tutils:aql(?format(insert_smaller, [10, BoundA, BoundB-1], Config)),
-  {error, Msg2} = tutils:aql(?format(insert_smaller, [11, BoundA-1, BoundB], Config)),
-  {error, Msg3} = tutils:aql(?format(insert_smaller, [12, BoundA, BoundB], Config)),
+  {_, [{error, Msg1}], _} = tutils:aql(?format(insert_smaller, [10, BoundA, BoundB-1], Config)),
+  {_, [{error, Msg2}], _} = tutils:aql(?format(insert_smaller, [11, BoundA-1, BoundB], Config)),
+  {_, [{error, Msg3}], _} = tutils:aql(?format(insert_smaller, [12, BoundA, BoundB], Config)),
 
   ?assertEqual(?INSERT_ERROR("5", "bcA"), Msg1),
   ?assertEqual(?INSERT_ERROR("15", "bcB"), Msg2),

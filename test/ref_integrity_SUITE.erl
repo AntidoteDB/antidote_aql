@@ -37,9 +37,11 @@
 -export([]).
 
 init_per_suite(Config) ->
+  aql:start(),
   Config.
 
 end_per_suite(Config) ->
+  aql:stop(),
   Config.
 
 init_per_testcase(dc_update_wins, Config) ->
@@ -107,13 +109,13 @@ dc_delete_wins(_Config) ->
   tutils:assertState(false, "TestRefC", "1").
 
 restrict_delete(_Config) ->
-  {error, Msg1} = tutils:aql("DELETE FROM TestRefA WHERE ID = 1"),
+  {_, [{error, Msg1}], _} = tutils:aql("DELETE FROM TestRefA WHERE ID = 1"),
   ?assertEqual(?DELETE_ERROR('TestRefB', '1'), Msg1),
 
   %% Delete a key from TestRefC
   {ok, _, _Tx} = tutils:delete_by_key("TestRefC", "1"),
   tutils:assertState(false, "TestRefC", "1"),
-  {error, Msg2} = tutils:aql("DELETE FROM TestRefA WHERE ID = 1"),
+  {_, [{error, Msg2}], _} = tutils:aql("DELETE FROM TestRefA WHERE ID = 1"),
   ?assertEqual(?DELETE_ERROR('TestRefB', '2'), Msg2),
 
   %% Delete the second key from TestRefC
