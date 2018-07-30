@@ -63,7 +63,7 @@ cascade_dependants(Key, Table, AllTables, [{_TName, Table} | Tables], TxId, Acc)
 	cascade_dependants(Key, Table, AllTables, Tables, TxId, Acc);
 cascade_dependants(Key, Table, AllTables, [{{T1TName, _}, Table2} | Tables], TxId, Acc) ->
 	TName = table:name(Table),
-    Fks = table:shadow_columns(Table2),
+	Fks = table:shadow_columns(Table2),
 	Refs = fetch_cascade(Key, TName, T1TName, AllTables, Fks, TxId, []),
 	case Refs of
 		error ->
