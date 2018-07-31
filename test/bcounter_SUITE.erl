@@ -26,6 +26,7 @@
 %% ====================================================================
 
 init_per_suite(Config) ->
+<<<<<<< HEAD
     TNameGreater = "BCGreater",
     TNameSmaller = "BCSmaller",
     BoundGreaterA = 0,
@@ -56,6 +57,40 @@ init_per_suite(Config) ->
 
 end_per_suite(Config) ->
     Config.
+=======
+  aql:start(),
+  TNameGreater = "BCGreater",
+  TNameSmaller = "BCSmaller",
+  BoundGreaterA = 0,
+  BoundGreaterB = 10,
+  BoundSmallerA = 5,
+  BoundSmallerB = 15,
+  Query = ["CREATE AW TABLE ", TNameGreater, " (ID INT PRIMARY KEY, ",
+  "bcA COUNTER_INT CHECK (bcA > ", BoundGreaterA, "), ",
+  "bcB COUNTER_INT CHECK (bcB > ", BoundGreaterB, ")",
+  ");",
+  "CREATE AW TABLE ", TNameSmaller, " (ID INT PRIMARY KEY, ",
+  "bcA COUNTER_INT CHECK (bcA < ", BoundSmallerA, "), ",
+  "bcB COUNTER_INT CHECK (bcB < ", BoundSmallerB, ")",
+  ");"],
+  {ok, [], _Tx} = tutils:aql(lists:concat(Query)),
+  lists:append(Config, [
+    {tname_greater, TNameGreater},
+    {tname_smaller, TNameSmaller},
+    {bound_greater_a, BoundGreaterA},
+    {bound_greater_b, BoundGreaterB},
+    {bound_smaller_a, BoundSmallerA},
+    {bound_smaller_b, BoundSmallerB},
+    {insert_greater, lists:concat(["INSERT INTO ", TNameGreater, " VALUES (~p, ~p, ~p)"])},
+    {insert_smaller, lists:concat(["INSERT INTO ", TNameSmaller, " VALUES (~p, ~p, ~p)"])},
+    {update_greater, lists:concat(["UPDATE ", TNameGreater, " SET bcA ~s AND bcB ~s WHERE ID = ~p"])},
+    {update_smaller, lists:concat(["UPDATE ", TNameSmaller, " SET bcA ~s AND bcB ~s WHERE ID = ~p"])}
+  ]).
+
+end_per_suite(Config) ->
+  aql:stop(),
+  Config.
+>>>>>>> 5c22887a31ac543b25d619f381fa2512e2cc1a59
 
 init_per_testcase(_Case, Config) ->
     Config.
@@ -89,11 +124,19 @@ greater_insert_basic(Config) ->
     ?assertEqual(BoundB + 1, V4).
 
 greater_insert_fail(Config) ->
+<<<<<<< HEAD
     BoundA = ?value(bound_greater_a, Config),
     BoundB = ?value(bound_greater_b, Config),
     {_, [{error, Msg1}], _} = tutils:aql(?format(insert_greater, [10, BoundA, BoundB + 1], Config)),
     {_, [{error, Msg2}], _} = tutils:aql(?format(insert_greater, [11, BoundA + 1, BoundB], Config)),
     {_, [{error, Msg3}], _} = tutils:aql(?format(insert_greater, [12, BoundA, BoundB - 1], Config)),
+=======
+  BoundA = ?value(bound_greater_a, Config),
+  BoundB = ?value(bound_greater_b, Config),
+  {_, [{error, Msg1}], _} = tutils:aql(?format(insert_greater, [10, BoundA, BoundB+1], Config)),
+  {_, [{error, Msg2}], _} = tutils:aql(?format(insert_greater, [11, BoundA+1, BoundB], Config)),
+  {_, [{error, Msg3}], _} = tutils:aql(?format(insert_greater, [12, BoundA, BoundB-1], Config)),
+>>>>>>> 5c22887a31ac543b25d619f381fa2512e2cc1a59
 
     ?assertEqual(?INSERT_ERROR("0", "bcA"), Msg1),
     ?assertEqual(?INSERT_ERROR("10", "bcB"), Msg2),
@@ -153,11 +196,19 @@ smaller_insert_basic(Config) ->
     reset_counters(Key, ?PARSER_LESSER, BoundA - 1, BoundB - 1, Config).
 
 smaller_insert_fail(Config) ->
+<<<<<<< HEAD
     BoundA = ?value(bound_smaller_a, Config),
     BoundB = ?value(bound_smaller_b, Config),
     {_, [{error, Msg1}], _} = tutils:aql(?format(insert_smaller, [10, BoundA, BoundB - 1], Config)),
     {_, [{error, Msg2}], _} = tutils:aql(?format(insert_smaller, [11, BoundA - 1, BoundB], Config)),
     {_, [{error, Msg3}], _} = tutils:aql(?format(insert_smaller, [12, BoundA, BoundB], Config)),
+=======
+  BoundA = ?value(bound_smaller_a, Config),
+  BoundB = ?value(bound_smaller_b, Config),
+  {_, [{error, Msg1}], _} = tutils:aql(?format(insert_smaller, [10, BoundA, BoundB-1], Config)),
+  {_, [{error, Msg2}], _} = tutils:aql(?format(insert_smaller, [11, BoundA-1, BoundB], Config)),
+  {_, [{error, Msg3}], _} = tutils:aql(?format(insert_smaller, [12, BoundA, BoundB], Config)),
+>>>>>>> 5c22887a31ac543b25d619f381fa2512e2cc1a59
 
     ?assertEqual(?INSERT_ERROR("5", "bcA"), Msg1),
     ?assertEqual(?INSERT_ERROR("15", "bcB"), Msg2),

@@ -27,6 +27,7 @@
     reference_deleted_fail/1]).
 
 init_per_suite(Config) ->
+<<<<<<< HEAD
     {ok, [], _Tx} = tutils:create_single_table("FkA", "AW"),
     {ok, [], _Tx} = tutils:create_dc_fk_table("FkB", "FkA", "AW", ?FK_POLICY_RW),
     {ok, [], _Tx} = tutils:create_dc_fk_table("FkC", "FkB", "AW", ?FK_POLICY_RW),
@@ -35,6 +36,18 @@ init_per_suite(Config) ->
 
 end_per_suite(Config) ->
     Config.
+=======
+  aql:start(),
+  {ok, [], _Tx} = tutils:create_single_table("FkA", "AW"),
+  {ok, [], _Tx} = tutils:create_dc_fk_table("FkB", "FkA", "AW", ?FK_POLICY_RW),
+  {ok, [], _Tx} = tutils:create_dc_fk_table("FkC", "FkB", "AW", ?FK_POLICY_RW),
+  {ok, [], _Tx} = tutils:create_dc_fk_table("FkD", "FkC", "AW", ?FK_POLICY_RW),
+  Config.
+
+end_per_suite(Config) ->
+  aql:stop(),
+  Config.
+>>>>>>> 5c22887a31ac543b25d619f381fa2512e2cc1a59
 
 init_per_testcase(_Case, Config) ->
     {ok, [], _Tx} = tutils:aql("INSERT INTO FkA VALUES (1)"),
@@ -69,6 +82,7 @@ indirect_foreign_keys(_Config) ->
     ?assertMatch({1, _}, proplists:get_value(?SHADOW_BC, ResD)).
 
 create_table_fail(_Config) ->
+<<<<<<< HEAD
     % cannot create table that points to a non-existant table
     {_, [{error, Msg1}], _} = tutils:create_dc_fk_table("FkETest", "FkFTest"),
     ?assertEqual("No such table: 'FkFTest'", Msg1),
@@ -78,6 +92,17 @@ create_table_fail(_Config) ->
     % cannot create a table that points to a non-primary key column
     {_, [{error, Msg3}], _} = tutils:create_dc_fk_table("FkETest", "FkB", "FkA", "AW", "DELETE-WINS"),
     ?assertEqual("Foreign keys can only reference unique columns", Msg3).
+=======
+  % cannot create table that points to a non-existant table
+  {_, [{error, Msg1}], _} = tutils:create_dc_fk_table("FkETest", "FkFTest"),
+  ?assertEqual("No such table: 'FkFTest'", Msg1),
+  % cannot create a table that points to a non-existant column
+  {_, [{error, Msg2}], _} = tutils:create_dc_fk_table("FkETest", "FkA", "ABC", "AW", "DELETE-WINS"),
+  ?assertEqual("Column 'ABC' does not exist in table 'FkA'", Msg2),
+  % cannot create a table that points to a non-primary key column
+  {_, [{error, Msg3}], _} = tutils:create_dc_fk_table("FkETest", "FkB", "FkA", "AW", "DELETE-WINS"),
+  ?assertEqual("Foreign keys can only reference unique columns", Msg3).
+>>>>>>> 5c22887a31ac543b25d619f381fa2512e2cc1a59
 
 %%touch_cascade(_Config) ->
 %%  tutils:assertExists(index:tag_key('FkB', [{'FkB', 'FkA'}])),
@@ -119,9 +144,15 @@ delete_multilevel(_Config) ->
     tutils:assertState(false, "FkD", "1").
 
 reference_deleted_fail(_Config) ->
+<<<<<<< HEAD
     {ok, [], _Tx} = tutils:delete_by_key("FkA", "1"),
     {_, [{error, Msg1}], _} = tutils:aql("INSERT INTO FkB VALUES (2, 1)"),
     {_, [{error, Msg2}], _} = tutils:aql("INSERT INTO FkC VALUES (1, 1)"),
+=======
+  {ok, [], _Tx} = tutils:delete_by_key("FkA", "1"),
+  {_, [{error, Msg1}], _} = tutils:aql("INSERT INTO FkB VALUES (2, 1)"),
+  {_, [{error, Msg2}], _} = tutils:aql("INSERT INTO FkC VALUES (1, 1)"),
+>>>>>>> 5c22887a31ac543b25d619f381fa2512e2cc1a59
 
     ?assertEqual("Cannot find row '1' in table 'FkA'", Msg1),
     ?assertEqual("Cannot find row '1' in table 'FkB'", Msg2).

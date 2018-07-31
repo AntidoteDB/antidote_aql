@@ -27,7 +27,7 @@ exec({Table, Tables}, Props, TxId) ->
 	Keys1 = handle_defaults(Keys, Values, Table),
 	AnnElement = element:new(Table),
 	{ok, Element} = element:put(Keys1, Values, AnnElement),
-  	Element1 = element:set_version(Element, TxId),
+	Element1 = element:set_version(Element, TxId),
 	Element2 = element:build_fks(Element1, Tables, TxId),
 	ok = element:insert(Element2, TxId),
 
@@ -65,16 +65,16 @@ read_fks(Fks, Tables, TxId, false) ->
 	lists:map(fun({_Col, {PTabName, _PTabAttr}, _DelRule, Value} = Fk) ->
 		%TKey = element:create_key(Value, PTabName),
 		%{ok, [Data]} = antidote:read_objects(TKey, TxId),
-        PTable = table:lookup(PTabName, Tables),
-        Data = element:read_record(Value, PTable, TxId),
+		PTable = table:lookup(PTabName, Tables),
+		Data = element:read_record(Value, PTable, TxId),
 		{Fk, Data}
 	end, Fks);
 read_fks(Fks, Tables, TxId, true) ->
 	lists:map(fun({_Col, {PTabName, _PTabAttr}, _DelRule, Value} = Fk) ->
 		%TKey = element:create_key(Value, PTabName),
 		%{ok, [Data]} = antidote:read_objects(TKey, TxId),
-        PTable = table:lookup(PTabName, Tables),
-        Data = element:read_record(Value, PTable, TxId),
+		PTable = table:lookup(PTabName, Tables),
+		Data = element:read_record(Value, PTable, TxId),
 		case element:is_visible(Data, PTabName, Tables, TxId) of
 			false ->
 				element:throwNoSuchRow(Value, PTabName);
@@ -85,7 +85,7 @@ read_fks(Fks, Tables, TxId, true) ->
 
 touch({_Col, {PTabName, _PTabAttr}, _DelRule, Value}, Data, Tables, TxId) ->
 	Table = table:lookup(PTabName, Tables),
-    TKey = element:create_key_from_table(Value, Table, TxId),
+	TKey = element:create_key_from_table(Value, Table, TxId),
 	Policy = table:policy(Table),
 	case crp:p_dep_level(Policy) of
 		?REMOVE_WINS -> ok;

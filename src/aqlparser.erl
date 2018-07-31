@@ -56,8 +56,8 @@ start_shell(Node) when is_atom(Node) ->
 read_and_exec(Node, Tx) ->
 	Line = io:get_line("AQL> "),
 	case parse({str, Line}, Node, Tx) of
-        {ok, Res, quit} ->
-            io:fwrite("~p~n", [Res]);
+		{ok, Res, quit} ->
+			io:fwrite("~p~n", [Res]);
 		{ok, Res, RetTx} ->
 			io:fwrite("~p~n", [Res]),
 			read_and_exec(Node, RetTx);
@@ -80,12 +80,12 @@ exec([Query | Tail], Acc, Node, Tx) ->
 	case Res of
 		ok ->
 			exec(Tail, Acc, Node, Tx);
-        {ok, quit} ->
-            case Tx of
-                undefined -> ok;
-                _ -> abort_transaction(undefined, Tx)
-            end,
-            {ok, lists:append(Acc, [Res]), quit};
+		{ok, quit} ->
+			case Tx of
+				undefined -> ok;
+				_ -> abort_transaction(undefined, Tx)
+			end,
+			{ok, lists:append(Acc, [Res]), quit};
 		{ok, {begin_tx, Tx2}} ->
 			exec(Tail, lists:append(Acc, [Res]), Node, Tx2);
 		{ok, {commit_tx, Tx2}} ->
@@ -96,9 +96,9 @@ exec([Query | Tail], Acc, Node, Tx) ->
 			exec(Tail, lists:append(Acc, [AbortRes]), Node, undefined);
 		{ok, NewNode} ->
 			exec(Tail, Acc, NewNode, Tx);
-        {error, Msg, AbortedTx} ->
-            abort_transaction(ignore, AbortedTx),
-            exec(Tail, lists:append(Acc, [{error, Msg}]), Node, undefined);
+		{error, Msg, AbortedTx} ->
+			abort_transaction(ignore, AbortedTx),
+			exec(Tail, lists:append(Acc, [{error, Msg}]), Node, undefined);
 		Res ->
 			exec(Tail, lists:append(Acc, [Res]), Node, Tx)
 	end;
@@ -155,25 +155,25 @@ exec(?QUIT_CLAUSE(_), _Node, _PassedTx) ->
 exec(Query, Node, undefined) when is_atom(Node) ->
 	{ok, Tx} = antidote:start_transaction(Node),
 	try
-        exec(Query, Tx)
-    of
-        {error, _} = Res ->
-            Res;
-        Else ->
-            commit_transaction(Else, Tx)
-    catch
-        Reason ->
-            {error, Reason, Tx}
-    end;
+		exec(Query, Tx)
+	of
+		{error, _} = Res ->
+			Res;
+		Else ->
+			commit_transaction(Else, Tx)
+	catch
+		Reason ->
+			{error, Reason, Tx}
+	end;
 exec(Query, Node, PassedTx) when is_atom(Node) ->
-    try
-        exec(Query, PassedTx)
-    of
-        Res -> Res
-    catch
-        Reason ->
-            {error, Reason, PassedTx}
-    end.
+  try
+		exec(Query, PassedTx)
+  of
+		Res -> Res
+  catch
+		Reason ->
+			{error, Reason, PassedTx}
+  end.
 
 exec(?SHOW_CLAUSE(?TABLES_TOKEN), Tx) ->
 	Tables = table:read_tables(Tx),

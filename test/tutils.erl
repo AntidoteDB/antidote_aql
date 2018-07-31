@@ -28,7 +28,7 @@ aql(Aql) ->
 
 aql(Aql, Tx) ->
   ct:log(info, lists:concat(["Query: ", Aql])),
-  aqlparser:parse({str, Aql}, ?TEST_SERVER, Tx).
+  aql:query(Aql, ?TEST_SERVER, Tx).
 
 create_single_table(Name, TablePolicy) ->
   Query = ["CREATE ", TablePolicy, " TABLE ", Name, " (ID INT PRIMARY KEY)"],

@@ -35,6 +35,7 @@
     error_transaction/1]).
 
 init_per_suite(Config) ->
+<<<<<<< HEAD
     TNameArtist = "ArtistTest",
     TNameAlbum = "AlbumTest",
     TNameTrack = "TrackTest",
@@ -72,6 +73,47 @@ init_per_suite(Config) ->
 
 end_per_suite(Config) ->
     Config.
+=======
+  aql:start(),
+  TNameArtist = "ArtistTest",
+  TNameAlbum = "AlbumTest",
+  TNameTrack = "TrackTest",
+  DefaultArtist = 0,
+  DefaultAlbum = false,
+  {ok, [], _Tx} = tutils:aql(lists:concat(["CREATE AW TABLE ", TNameArtist,
+    " (Name VARCHAR PRIMARY KEY, City VARCHAR,",
+    " Awards INTEGER DEFAULT ", DefaultArtist, ");"])),
+  {ok, [], _Tx} = tutils:aql(lists:concat(["CREATE AW TABLE ", TNameAlbum,
+    " (Name VARCHAR PRIMARY KEY,",
+    " IsSingle BOOLEAN DEFAULT ", DefaultAlbum, ");"])),
+  {ok, [], _Tx} = tutils:aql(lists:concat(["CREATE AW TABLE ", TNameTrack,
+    " (Name VARCHAR PRIMARY KEY, Plays COUNTER_INT CHECK (Plays > 0));"
+  ])),
+  lists:append(Config, [
+    {tname_artist, TNameArtist},
+    {tname_album, TNameAlbum},
+    {tname_track, TNameTrack},
+    {default_artist, DefaultArtist},
+    {default_album, DefaultAlbum},
+    {insert_artist, lists:concat(["INSERT INTO ", TNameArtist, " VALUES ('~s', '~s', ~p);"])},
+    {insert_artist_def, lists:concat(["INSERT INTO ", TNameArtist, " VALUES ('~s', '~s');"])},
+    {insert_album, lists:concat(["INSERT INTO ", TNameAlbum, " VALUES ('~s', ~p);"])},
+    {insert_track, lists:concat(["INSERT INTO ", TNameTrack, " VALUES ('~s', ~p);"])},
+    {update_artist, lists:concat(["UPDATE ", TNameArtist, " SET ~s WHERE Name = '~s';"])},
+    {update_album, lists:concat(["UPDATE ", TNameAlbum, " SET ~s WHERE Name = '~s';"])},
+    {update_track, lists:concat(["UPDATE ", TNameTrack, " SET ~s WHERE Name = '~s';"])},
+    {delete_artist, lists:concat(["DELETE FROM ", TNameArtist, " WHERE Name = '~s';"])},
+    {delete_album, lists:concat(["DELETE FROM ", TNameAlbum, " WHERE Name = '~s';"])},
+    {delete_track, lists:concat(["DELETE FROM ", TNameTrack, " WHERE Name = '~s';"])},
+    {select_artist, lists:concat(["SELECT * FROM ", TNameArtist, " WHERE Name = '~s';"])},
+    {select_album, lists:concat(["SELECT * FROM ", TNameAlbum, " WHERE Name = '~s';"])},
+    {select_track, lists:concat(["SELECT * FROM ", TNameTrack, " WHERE Name = '~s';"])}
+  ]).
+
+end_per_suite(Config) ->
+  aql:stop(),
+  Config.
+>>>>>>> 5c22887a31ac543b25d619f381fa2512e2cc1a59
 
 init_per_testcase(_Case, Config) ->
     Config.
@@ -176,8 +218,16 @@ error_transaction(Config) ->
 
     {ok, [{ok, {begin_tx, Tx}}], Tx} = tutils:aql("BEGIN TRANSACTION"),
 
+<<<<<<< HEAD
     {ok, [{error, _}], _} = tutils:aql(lists:concat(["CREATE AW TABLE ", TNameAlbum,
         " (Name VARCHAR PRIMARY KEY,",
         " IsSingle BOOLEAN DEFAULT ", DefaultAlbum, ",",
         " Art INT FOREIGN KEY UPDATE-WINS REFERENCES ",
         TNameArtist, "(Awards));"]), Tx).
+=======
+  {_, [{error, _}], _} = tutils:aql(lists:concat(["CREATE AW TABLE ", TNameAlbum,
+    " (Name VARCHAR PRIMARY KEY,",
+    " IsSingle BOOLEAN DEFAULT ", DefaultAlbum, ",",
+    " Art INT FOREIGN KEY UPDATE-WINS REFERENCES ",
+    TNameArtist, "(Awards));"]), Tx).
+>>>>>>> 5c22887a31ac543b25d619f381fa2512e2cc1a59
