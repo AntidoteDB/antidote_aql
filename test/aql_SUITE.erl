@@ -35,7 +35,7 @@
         error_transaction/1]).
 
 init_per_suite(Config) ->
-  aqlparser:start(),
+  aql:start(),
   TNameArtist = "ArtistTest",
   TNameAlbum = "AlbumTest",
   TNameTrack = "TrackTest",
@@ -72,7 +72,7 @@ init_per_suite(Config) ->
   ]).
 
 end_per_suite(Config) ->
-  aqlparser:stop(),
+  aql:stop(),
   Config.
 
 init_per_testcase(_Case, Config) ->

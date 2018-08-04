@@ -28,7 +28,7 @@
           reference_deleted_fail/1]).
 
 init_per_suite(Config) ->
-  aqlparser:start(),
+  aql:start(),
   {ok, [], _Tx} = tutils:create_single_table("FkA", "AW"),
   {ok, [], _Tx} = tutils:create_dc_fk_table("FkB", "FkA", "AW", ?FK_POLICY_RW),
   {ok, [], _Tx} = tutils:create_dc_fk_table("FkC", "FkB", "AW", ?FK_POLICY_RW),
@@ -36,7 +36,7 @@ init_per_suite(Config) ->
   Config.
 
 end_per_suite(Config) ->
-  aqlparser:stop(),
+  aql:stop(),
   Config.
 
 init_per_testcase(_Case, Config) ->

@@ -45,7 +45,7 @@
 -export([start/0, start/2, stop/0]).
 
 -export([start_shell/0, start_shell/1, start_shell/2]).
--export([query/1, query/2]).
+-export([query/1, query/2, query/3]).
 
 -spec start() -> ok.
 start() ->
@@ -83,3 +83,7 @@ query(Query) ->
 -spec query(query(), term()) -> {ok, term(), term()} | {ok, term()}.
 query(Query, Transaction) ->
   aqlparser:parse({str, Query}, ignore, Transaction).
+
+-spec query(query(), atom(), term()) -> {ok, term(), term()} | {ok, term()}.
+query(Query, Node, Transaction) ->
+  aqlparser:parse({str, Query}, Node, Transaction).

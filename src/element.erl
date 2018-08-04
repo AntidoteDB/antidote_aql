@@ -174,7 +174,7 @@ load_defaults(Element) ->
     {?DEFAULT_TOKEN, Value} = column:constraint(Column),
     Constraint = {?DEFAULT_TOKEN, Value},
     append(CName, Value, column:type(Column), Constraint, Acc)
-            end, Element, Defaults).
+  end, Element, Defaults).
 
 put([Key | OKeys], [Value | OValues], Element) ->
   utils:assert_same_size(OKeys, OValues, "Illegal number of keys and values"),
@@ -348,7 +348,7 @@ foreign_keys(Fks, Data, TName) ->
   lists:map(fun(?T_FK(CName, CType, FkTable, FkAttr, DeleteRule)) ->
     Value = get(CName, types:to_crdt(CType, ?IGNORE_OP), Data, TName),
     {{CName, CType}, {FkTable, FkAttr}, DeleteRule, Value}
-            end, Fks).
+  end, Fks).
 
 implicit_state(Table, RecordData, Tables, TxId) ->
   FKs = table:shadow_columns(Table),

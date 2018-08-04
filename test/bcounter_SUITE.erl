@@ -27,7 +27,7 @@
 %% ====================================================================
 
 init_per_suite(Config) ->
-  aqlparser:start(),
+  aql:start(),
   TNameGreater = "BCGreater",
   TNameSmaller = "BCSmaller",
   BoundGreaterA = 0,
@@ -57,7 +57,7 @@ init_per_suite(Config) ->
   ]).
 
 end_per_suite(Config) ->
-  aqlparser:stop(),
+  aql:stop(),
   Config.
 
 init_per_testcase(_Case, Config) ->

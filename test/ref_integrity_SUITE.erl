@@ -37,11 +37,11 @@
 -export([]).
 
 init_per_suite(Config) ->
-  aqlparser:start(),
+  aql:start(),
   Config.
 
 end_per_suite(Config) ->
-  aqlparser:stop(),
+  aql:stop(),
   Config.
 
 init_per_testcase(dc_update_wins, Config) ->
