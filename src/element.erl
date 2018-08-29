@@ -397,7 +397,6 @@ delete(ObjKey, TxId) ->
 
 read_record(PKey, Table, TxId) ->
   BoundKey = create_key_from_table(PKey, Table, TxId),
-  antidote:get_locks([single_lock], [], TxId),
   {ok, [Object]} = antidote:read_objects(BoundKey, TxId),
   Object.
 
