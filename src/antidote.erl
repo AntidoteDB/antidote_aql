@@ -3,7 +3,6 @@
 
 
 -module(antidote).
--behaviour(gen_server).
 
 -define(LOCK_WAIT_TIME, 10).
 -define(LOCK_WAIT_TIME_ES, 10).
@@ -59,19 +58,6 @@
 
 -type conditions_filter() :: {conditions, [condition()]}.
 
--record(state, {node = 'antidote@127.0.0.1', address, port, pid}).
-
-%% ====================================================================
-%% gen_server functions
-%% ====================================================================
--export([init/1,
-  start_link/0,
-  handle_call/3,
-  handle_cast/2,
-  handle_info/2,
-  terminate/2,
-  code_change/3]).
-
 %% ====================================================================
 %% API functions
 %% ====================================================================
@@ -86,60 +72,6 @@
 
 -export([handleBadRpc/1]).
 
-start_link() ->
-  gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
-
-init([]) ->
-  {ok, #state{}};
-init([Node]) ->
-  {ok, #state{node = Node}};
-init([NodeAddress, NodePort]) ->
-  State = #state{address = NodeAddress, port = NodePort},
-  ConnectTimeout = infinity, % timeout of TCP connection
-  KeepAlive = false,
-  case gen_tcp:connect(NodeAddress, NodePort,
-    [binary, {active, once}, {packet, 4},
-      {keepalive, KeepAlive}],
-    ConnectTimeout) of
-    {ok, Sock} ->
-      {ok, State#state{pid = Sock}};
-    {error, Reason} ->
-      {stop, {tcp, Reason}}
-  end.
-
-handle_call({start_transaction, Snapshot, Props}, _From, State = #state{pid = Pid}) ->
-  Clock = term_to_binary(Snapshot),
-  {ok, TxId} = antidotec_pb:start_transaction(Pid, Clock, Props),
-  {reply, {ok, TxId}, State};
-
-handle_call({commit_transaction, TxId}, _From, State = #state{pid = Pid}) ->
-  {ok, TimeStamp} = antidotec_pb:commit_transaction(Pid, TxId),
-  {reply, {ok, TimeStamp}, State};
-
-handle_call({abort_transaction, TxId}, _From, State = #state{pid = Pid}) ->
-  Result = antidotec_pb:abort_transaction(Pid, TxId),
-  {reply, Result, State};
-
-handle_call({read_objects, Objects, TxId}, _From, State = #state{pid = Pid}) ->
-  Result = antidotec_pb:read_objects(Pid, Objects, TxId),
-  {reply, Result, State};
-
-handle_call({update_objects, Objects, TxId}, _From, State = #state{pid = Pid}) ->
-  Result = antidotec_pb:update_objects(Pid, Objects, TxId),
-  {reply, Result, State}.
-
-handle_cast(_Request, State) ->
-  {noreply, State}.
-
-handle_info(_Info, State) ->
-  {noreply, State}.
-
-terminate(_Reason, _State) ->
-  ok.
-
-code_change(_OldVsn, State, _Extra) ->
-  {ok, State}.
-
 -spec start_transaction(node_ref()) -> {ok, ref()} | {error, reason()}.
 start_transaction(Node) ->
   start_transaction(Node, ignore, []).
@@ -147,7 +79,6 @@ start_transaction(Node) ->
 -spec start_transaction(node_ref(), snapshot_time(), properties()) -> {ok, ref()} | {error, reason()}.
 start_transaction(Node, Snapshot, Props) ->
   case call(Node, start_transaction, [Snapshot, Props]) of
-    %case gen_server:call(?MODULE, {start_transaction, Snapshot, Props}, infinity) of
     {ok, TxId} ->
       {ok, {Node, TxId}};
     Else ->
@@ -157,24 +88,20 @@ start_transaction(Node, Snapshot, Props) ->
 -spec commit_transaction(ref()) -> {ok, vectorclock()} | {error, reason()}.
 commit_transaction({Node, TxId}) ->
   call(Node, commit_transaction, [TxId]).
-%gen_server:call(?MODULE, {commit_transaction, TxId}, infinity).
 
 -spec abort_transaction(ref()) -> {ok, vectorclock()} | {error, reason()}.
 abort_transaction({Node, TxId}) ->
   call(Node, abort_transaction, [TxId]).
-%gen_server:call(?MODULE, {abort_transaction, TxId}, infinity).
 
 -spec read_objects(bound_objects(), ref()) -> {ok, [term()]}.
 read_objects(Objects, {Node, TxId}) when is_list(Objects) ->
   call(Node, read_objects, [Objects, TxId]);
-%gen_server:call(?MODULE, {read_objects, Objects, TxId}, infinity);
 read_objects(Object, Ref) ->
   read_objects([Object], Ref).
 
 -spec update_objects(bound_objects(), ref()) -> ok | {error, reason()}.
 update_objects(Objects, {Node, TxId}) when is_list(Objects) ->
   call(Node, update_objects, [Objects, TxId]);
-%gen_server:call(?MODULE, {update_objects, Objects, TxId}, infinity);
 update_objects(Object, Ref) ->
   update_objects([Object], Ref).
 
@@ -207,11 +134,6 @@ get_locks(Locks, {Node, TxId}) ->
 -spec get_locks([key()], [key()], ref()) -> {ok, [snapshot_time()]} | {missing_locks, [key()]} | {locks_in_use, [txid()]}.
 get_locks(SharedLocks, ExclusiveLocks, {Node, TxId}) ->
   Res = call(Node, get_locks, [?LOCK_WAIT_TIME_ES, SharedLocks, ExclusiveLocks, TxId]),
-  %Res = gen_server:call(lock_mgr_es, {get_locks, TxId, SharedLocks, ExclusiveLocks}),
-  %Res = rpc:call(Node, lock_mgr_es, get_locks, [TxId, SharedLocks, ExclusiveLocks]),
-  %Res = gen_statem:call(TxId#tx_id.server_pid, {get_locks, 6, TxId, SharedLocks, ExclusiveLocks}, infinity),
-  %io:format("Getting locks: ~p~n", [{SharedLocks, ExclusiveLocks}]),
-  %io:format("Response: ~p~n", [Res]),
   case Res of
     {ok, _} -> ok;
     {missing_locks, Keys} ->
@@ -234,10 +156,6 @@ get_locks(SharedLocks, ExclusiveLocks, {Node, TxId}) ->
 -spec release_locks(lock_mgr | lock_mgr_es, ref()) -> ok.
 release_locks(Type, {Node, TxId}) ->
   Res = call(Node, release_locks, [Type, TxId]),
-  %Res = gen_server:call(lock_mgr_es, {release_locks, TxId}),
-  %Res = gen_statem:call(TxId#tx_id.server_pid, {release_locks, TxId}, infinity),
-  %io:format("Releasing locks for transaction: ~p", [TxId]),
-  %io:format("Response: ~p", [Res]),
   Res.
 
 handleBadRpc({'EXIT', {{{badmatch, {error, no_permissions}}, _}}}) ->

@@ -9,21 +9,26 @@ main(ConfigFile) ->
 	
 	{antidote_nodes, Nodes} = lists:keyfind(antidote_nodes, 1, ReadParameters),
 	
-	%% Starting processes
-	lists:foreach(fun(Node) ->
-		ok = rpc:call(Node, inter_dc_manager, start_bg_processes, [stable])
-	end, Nodes),
+	case length(Nodes) of
+		0 -> ok;
+		1 -> ok;
+		_Else ->
+			%% Starting processes
+			lists:foreach(fun(Node) ->
+				ok = rpc:call(Node, inter_dc_manager, start_bg_processes, [stable])
+			end, Nodes),
 	
-	%% Getting node descriptors
-	Descriptors = lists:map(fun(Node) ->
-		{ok, Desc} = rpc:call(Node, inter_dc_manager, get_descriptor, []),
-		Desc
-	end, Nodes),
+			%% Getting node descriptors
+			Descriptors = lists:map(fun(Node) ->
+				{ok, Desc} = rpc:call(Node, inter_dc_manager, get_descriptor, []),
+				Desc
+			end, Nodes),
 	
-	%% Synchronize nodes
-	lists:foreach(fun(Node) ->
-		rpc:call(Node, inter_dc_manager, observe_dcs_sync, [Descriptors])
-	end, Nodes).
+			%% Synchronize nodes
+			lists:foreach(fun(Node) ->
+				rpc:call(Node, inter_dc_manager, observe_dcs_sync, [Descriptors])
+			end, Nodes)
+	end.
 	
 %% ===================================================================
 %% Internal functions

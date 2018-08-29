@@ -32,7 +32,7 @@ exec({Table, Tables}, Props, TxId) ->
 	ok = element:insert(Element2, TxId),
 
 	touch_cascade(element, Element2, Table, Tables, TxId),
-	antidote:release_locks(lock_mgr_es, TxId),
+	%antidote:release_locks(lock_mgr_es, TxId),
 	ok.
 
 table({TName, _Keys, _Values}) -> TName.
