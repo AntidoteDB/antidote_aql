@@ -26,8 +26,8 @@ exec({Table, Tables}, Props, TxId) ->
       ok ->
         ok = antidote:update_objects(crdt:ipa_update(Key, ipa:delete()), TxId)
     end
-  end, Keys),
-  ok = antidote:release_locks(lock_mgr_es, TxId).
+  end, Keys).
+  %ok = antidote:release_locks(lock_mgr_es, TxId).
 
 table({TName, _Where}) -> TName.
 
@@ -98,7 +98,7 @@ fetch_cascade(Key, TName, TDepName, Tables,
       PK -> element:is_visible(Record, TDepName, Tables, TxId);
       _Else -> false
     end
-                                  end, Keys),
+  end, Keys),
 
   case FilterDependants of
     [] ->
@@ -119,7 +119,7 @@ fetch_cascade(Key, TName, TDepName, Tables,
       PK -> not element:is_visible(Record, TDepName, Tables, TxId);
       _Else -> true
     end
-                                     end, Keys),
+  end, Keys),
 
   case FilterDependants of
     [] ->

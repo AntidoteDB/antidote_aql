@@ -107,7 +107,7 @@ exec([], Acc, _Node, Tx) ->
 
 commit_transaction(Res, Tx) ->
 	CommitRes = antidote:commit_transaction(Tx),
-    ok = antidote:release_locks(lock_mgr_es, Tx),
+	ok = antidote:release_locks(lock_mgr_es, Tx),
 	case CommitRes of
 		{ok, _CT} ->
 			Res;
@@ -117,7 +117,7 @@ commit_transaction(Res, Tx) ->
 
 abort_transaction(Res, Tx) ->
 	antidote:abort_transaction(Tx),
-    ok = antidote:release_locks(lock_mgr_es, Tx),
+	ok = antidote:release_locks(lock_mgr_es, Tx),
 	Res.
 	%% TODO to be uncommented when Antidote implements transaction abortion
 	%case AbortRes of
@@ -163,6 +163,7 @@ exec(Query, Node, undefined) when is_atom(Node) ->
 			commit_transaction(Else, Tx)
 	catch
 		Reason ->
+      abort_transaction(ignore, Tx),
 			{error, Reason, Tx}
 	end;
 exec(Query, Node, PassedTx) when is_atom(Node) ->
@@ -172,6 +173,7 @@ exec(Query, Node, PassedTx) when is_atom(Node) ->
 		Res -> Res
   catch
 		Reason ->
+			abort_transaction(ignore, PassedTx),
 			{error, Reason, PassedTx}
   end.
 
