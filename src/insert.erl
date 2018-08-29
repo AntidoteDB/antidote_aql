@@ -22,6 +22,7 @@
 -export([touch_cascade/5]).
 
 exec({Table, Tables}, Props, TxId) ->
+  antidote:get_locks([single_lock], [], TxId),
 	Keys = keys(Props, Table),
 	Values = values(Props),
 	Keys1 = handle_defaults(Keys, Values, Table),
