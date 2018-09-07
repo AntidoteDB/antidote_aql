@@ -41,7 +41,7 @@ init_per_suite(Config) ->
       {update_greater, lists:concat(["UPDATE ", TestTable2, " SET Z ~s WHERE X = ~s"])}]).
 
 end_per_suite(Config) ->
-  aql:stop(),
+  %aql:stop(),
   Config.
 
 init_per_testcase(_Case, Config) ->

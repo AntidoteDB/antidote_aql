@@ -224,7 +224,7 @@ set_version(Element, TxId) ->
   ElemData = data(Element),
 
   Key = primary_key(Element),
-  {ok, [CurrData]} = antidote:read_objects(Key, TxId),
+  {ok, [CurrData]} = antidote_handler:read_objects(Key, TxId),
   Version = case CurrData of
               [] -> 1;
               _Else ->
@@ -315,7 +315,7 @@ insert(Element) ->
   crdt:map_update(Key, Ops).
 insert(Element, TxId) ->
   Op = insert(Element),
-  antidote:update_objects(Op, TxId).
+  antidote_handler:update_objects(Op, TxId).
 
 append(Key, Value, AQL, Constraint, Element) ->
   Data = data(Element),
@@ -392,12 +392,12 @@ implicit_state(_Table, _Data, _Tables, [], _TxId) ->
 delete(ObjKey, TxId) ->
   StateOp = crdt:field_map_op(element:st_key(), crdt:assign_lww(ipa:delete())),
   Update = crdt:map_update(ObjKey, StateOp),
-  ok = antidote:update_objects(Update, TxId),
+  ok = antidote_handler:update_objects(Update, TxId),
   false.
 
 read_record(PKey, Table, TxId) ->
   BoundKey = create_key_from_table(PKey, Table, TxId),
-  {ok, [Object]} = antidote:read_objects(BoundKey, TxId),
+  {ok, [Object]} = antidote_handler:read_objects(BoundKey, TxId),
   Object.
 
 %%====================================================================

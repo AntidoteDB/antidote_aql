@@ -24,7 +24,7 @@ exec({Table, Tables}, Props, TxId) ->
     case delete_cascade(Key, Table, Tables, TxId) of
       false -> ok;
       ok ->
-        ok = antidote:update_objects(crdt:ipa_update(Key, ipa:delete()), TxId)
+        ok = antidote_handler:update_objects(crdt:ipa_update(Key, ipa:delete()), TxId)
     end
   end, Keys).
 
@@ -37,7 +37,7 @@ where({_TName, Where}) -> Where.
 %% ====================================================================
 
 delete_cascade(Key, Table, Tables, TxId) ->
-  {ok, [Data]} = antidote:read_objects(Key, TxId),
+  {ok, [Data]} = antidote_handler:read_objects(Key, TxId),
   case length(Data) of
     0 -> false;
     1 -> false;
@@ -59,7 +59,7 @@ delete_cascade_dependants(Key, Table, Tables, TxId) ->
     [] ->
       ok;
     _Else ->
-      ok = antidote:update_objects(DeleteUpdates, TxId)
+      ok = antidote_handler:update_objects(DeleteUpdates, TxId)
   end.
 
 cascade_dependants(Key, Table, Tables, TxId) ->
@@ -90,7 +90,7 @@ fetch_cascade(Key, TName, TDepName, Tables,
   Keys = where:scan(TDepName, ?PARSER_WILDCARD, TxId),
   DepTable = table:lookup(TDepName, Tables),
   FilterDependants = lists:filter(fun(K) ->
-    {ok, [Record]} = antidote:read_objects(K, TxId),
+    {ok, [Record]} = antidote_handler:read_objects(K, TxId),
     {RefValue, _RefVersion} = element:get(Name, types:to_crdt(Type, ?IGNORE_OP), Record, DepTable),
     case utils:to_atom(RefValue) of
       PK -> element:is_visible(Record, TDepName, Tables, TxId);
@@ -111,7 +111,7 @@ fetch_cascade(Key, TName, TDepName, Tables,
   Keys = where:scan(TDepName, ?PARSER_WILDCARD, TxId),
   DepTable = table:lookup(TDepName, Tables),
   FilterDependants = lists:dropwhile(fun(K) ->
-    {ok, [Record]} = antidote:read_objects(K, TxId),
+    {ok, [Record]} = antidote_handler:read_objects(K, TxId),
     {RefValue, _RefVersion} = element:get(Name, types:to_crdt(Type, ?IGNORE_OP), Record, DepTable),
     case utils:to_atom(RefValue) of
       PK -> not element:is_visible(Record, TDepName, Tables, TxId);

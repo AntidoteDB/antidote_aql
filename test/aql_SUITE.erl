@@ -72,7 +72,7 @@ init_per_suite(Config) ->
   ]).
 
 end_per_suite(Config) ->
-  aql:stop(),
+  %aql:stop(),
   Config.
 
 init_per_testcase(_Case, Config) ->

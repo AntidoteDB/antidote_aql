@@ -41,7 +41,7 @@ init_per_suite(Config) ->
   Config.
 
 end_per_suite(Config) ->
-  aql:stop(),
+  %aql:stop(),
   Config.
 
 init_per_testcase(dc_update_wins, Config) ->

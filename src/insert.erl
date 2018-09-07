@@ -88,7 +88,7 @@ touch({_Col, {PTabName, _PTabAttr}, _DelRule, Value}, Data, Tables, TxId) ->
 	Policy = table:policy(Table),
 	case crp:p_dep_level(Policy) of
 		?REMOVE_WINS -> ok;
-		_Else -> antidote:update_objects(crdt:ipa_update(TKey, ipa:touch()), TxId)
+		_Else -> antidote_handler:update_objects(crdt:ipa_update(TKey, ipa:touch()), TxId)
 	end,
 
 	% touch parents

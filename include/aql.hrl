@@ -26,7 +26,7 @@
 -define(CRDT_COUNTER_INT, antidote_crdt_counter_pn).
 
 % types
--export_type([]).%complete with private types
+-export_type([input/0, queries/0, queryResult/0]).
 
 -type input() :: input_str() | input_file().
 -type input_str() :: {str, list()}.

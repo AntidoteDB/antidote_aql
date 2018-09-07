@@ -25,7 +25,7 @@ exec({Table, Tables}, Props, TxId) ->
 
   Keys = where:scan(TName, WhereClause, TxId),
   VisibleKeys = lists:foldl(fun(Key, AccKeys) ->
-    {ok, [Record]} = antidote:read_objects(Key, TxId),
+    {ok, [Record]} = antidote_handler:read_objects(Key, TxId),
     case element:is_visible(Record, TName, Tables, TxId) of
       true -> AccKeys ++ [{Key, Record}];
       false -> AccKeys
@@ -37,7 +37,7 @@ exec({Table, Tables}, Props, TxId) ->
     case MapUpdates of
       [] -> ok;
       _Else ->
-        antidote:update_objects(MapUpdates, TxId)
+        antidote_handler:update_objects(MapUpdates, TxId)
     end,
 
   case UpdateMsg of
@@ -161,7 +161,7 @@ resolve_fail(CName, CType) ->
   {err, lists:flatten(Msg)}.
 
 touch_cascade(Key, Table, Tables, TxId) ->
-  {ok, [Record]} = antidote:read_objects(Key, TxId),
+  {ok, [Record]} = antidote_handler:read_objects(Key, TxId),
   insert:touch_cascade(record, Record, Table, Tables, TxId).
 
 generate_updates(Acc, [{Key, Record} | Keys], Table, Tables, SetClause, TxId) ->
@@ -208,39 +208,47 @@ create_column_aux(CName, CType) ->
   ?T_COL(CName, CType, ?NO_CONSTRAINT).
 
 resolve_op_varchar_test() ->
+  Table = ?T_TABLE(table, undef, [], [], [], []),
+  Tables = [{{table, antidote_crdt_register_lww}, Table}],
   CName = col1,
   CType = ?AQL_VARCHAR,
   Column = create_column_aux(CName, CType),
   Value = "Value",
-  Expected = {ok, [crdt:field_map_op(CName, ?CRDT_VARCHAR, crdt:assign_lww(Value))]},
-  Actual = resolve_op({k, t, b}, Column, ?ASSIGN_OP("SomeChars"), Value, table, [], ?IGNORE_OP),
+  Expected = {ok, {k, t, b}, [crdt:field_map_op(CName, ?CRDT_VARCHAR, crdt:assign_lww(Value))]},
+  Actual = resolve_op({k, t, b}, Column, ?ASSIGN_OP("SomeChars"), Value, table, Tables, ?IGNORE_OP),
   ?assertEqual(Expected, Actual).
 
 resolve_op_integer_test() ->
+  Table = ?T_TABLE(table, undef, [], [], [], []),
+  Tables = [{{table, antidote_crdt_register_lww}, Table}],
   CName = col1,
   CType = ?AQL_INTEGER,
   Column = create_column_aux(CName, CType),
   Value = 2,
-  Expected = {ok, crdt:field_map_op(CName, ?CRDT_INTEGER, crdt:set_integer(Value))},
-  Actual = resolve_op({k, t, b}, Column, ?ASSIGN_OP(2), Value, table, [], ?IGNORE_OP),
+  Expected = {ok, {k, t, b}, [crdt:field_map_op(CName, ?CRDT_INTEGER, crdt:set_integer(Value))]},
+  Actual = resolve_op({k, t, b}, Column, ?ASSIGN_OP(2), Value, table, Tables, ?IGNORE_OP),
   ?assertEqual(Expected, Actual).
 
 resolve_op_counter_increment_test() ->
+  Table = ?T_TABLE(table, undef, [], [], [], []),
+  Tables = [{{table, antidote_crdt_register_lww}, Table}],
   CName = col1,
   CType = ?AQL_COUNTER_INT,
   Column = create_column_aux(CName, CType),
   Value = 2,
-  Expected = {ok, crdt:field_map_op(CName, ?CRDT_COUNTER_INT, crdt:increment_counter(Value))},
-  Actual = resolve_op({k, t, b}, Column, ?INCREMENT_OP(3), Value, table, [], ?IGNORE_OP),
+  Expected = {ok, {k, t, b}, [crdt:field_map_op(CName, ?CRDT_COUNTER_INT, crdt:increment_counter(Value))]},
+  Actual = resolve_op({k, t, b}, Column, ?INCREMENT_OP(3), Value, table, Tables, ?IGNORE_OP),
   ?assertEqual(Expected, Actual).
 
 resolve_op_counter_decrement_test() ->
+  Table = ?T_TABLE(table, undef, [], [], [], []),
+  Tables = [{{table, antidote_crdt_register_lww}, Table}],
   CName = col1,
   CType = ?AQL_COUNTER_INT,
   Column = create_column_aux(CName, CType),
   Value = 2,
-  Expected = {ok, crdt:field_map_op(CName, ?CRDT_COUNTER_INT, crdt:decrement_counter(Value))},
-  Actual = resolve_op({k, t, b}, Column, ?DECREMENT_OP(3), Value, table, [], ?IGNORE_OP),
+  Expected = {ok, {k, t, b}, [crdt:field_map_op(CName, ?CRDT_COUNTER_INT, crdt:decrement_counter(Value))]},
+  Actual = resolve_op({k, t, b}, Column, ?DECREMENT_OP(3), Value, table, Tables, ?IGNORE_OP),
   ?assertEqual(Expected, Actual).
 
 -endif.

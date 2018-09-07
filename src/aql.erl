@@ -28,14 +28,13 @@
 -module(aql).
 
 %% Types
--type antidote_node() :: atom().
 -type query() :: list().
 
 %% API
 -export([start/0, stop/0]).
 
--export([start_shell/0, start_shell/1]).
--export([query/2, query/3]).
+-export([start_shell/0]).
+-export([query/1, query/2]).
 
 -spec start() -> ok.
 start() ->
@@ -50,15 +49,10 @@ start_shell() ->
   start(),
   aqlparser:start_shell().
 
--spec start_shell(antidote_node()) -> term().
-start_shell(AntidoteNode) ->
-  start(),
-  aqlparser:start_shell(AntidoteNode).
+-spec query(query()) -> {ok, term(), term()} | {ok, term()}.
+query(Query) ->
+  aqlparser:parse({str, Query}).
 
 -spec query(query(), term()) -> {ok, term(), term()} | {ok, term()}.
-query(Query, Node) ->
-  aqlparser:parse({str, Query}, Node).
-
--spec query(query(), atom(), term()) -> {ok, term(), term()} | {ok, term()}.
-query(Query, Node, Transaction) ->
-  aqlparser:parse({str, Query}, Node, Transaction).
+query(Query, Transaction) ->
+  aqlparser:parse({str, Query}, Transaction).
