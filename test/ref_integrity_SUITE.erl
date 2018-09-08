@@ -45,15 +45,15 @@ end_per_suite(Config) ->
   Config.
 
 init_per_testcase(dc_update_wins, Config) ->
-  ok = create_tables("AW", ?FK_POLICY_AW),
+  ok = create_tables("UPDATE-WINS", ?FK_POLICY_AW),
   ok = insert_data(),
   Config;
 init_per_testcase(dc_delete_wins, Config) ->
-  ok = create_tables("AW", ?FK_POLICY_RW),
+  ok = create_tables("UPDATE-WINS", ?FK_POLICY_RW),
   ok = insert_data(),
   Config;
 init_per_testcase(restrict_delete, Config) ->
-  ok = create_restrict_tables("AW", ?FK_POLICY_RW),
+  ok = create_restrict_tables("UPDATE-WINS", ?FK_POLICY_RW),
   ok = insert_data(),
   Config.
 

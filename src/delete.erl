@@ -22,9 +22,11 @@ exec({Table, Tables}, Props, TxId) ->
   Keys = where:scan(TName, Condition, TxId),
   lists:foreach(fun(Key) ->
     case delete_cascade(Key, Table, Tables, TxId) of
-      false -> ok;
-      ok ->
-        ok = antidote_handler:update_objects(crdt:ipa_update(Key, ipa:delete()), TxId)
+      [] -> ok;
+      DeleteUpds ->
+        %ok = antidote_handler:update_objects(crdt:ipa_update(Key, ipa:delete()), TxId)
+        %KeyDel = crdt:ipa_update(Key, ipa:delete()),
+        ok = antidote_handler:update_objects(DeleteUpds, TxId)
     end
   end, Keys).
 
@@ -37,11 +39,12 @@ where({_TName, Where}) -> Where.
 %% ====================================================================
 
 delete_cascade(Key, Table, Tables, TxId) ->
-  {ok, [Data]} = antidote_handler:read_objects(Key, TxId),
+  Data = element:exclusive_read(Key, Table, TxId),
+  %{ok, [Data]} = antidote_handler:read_objects(Key, TxId),
   case length(Data) of
-    0 -> false;
-    1 -> false;
-    _Else -> ok = delete_cascade_dependants(Key, Table, Tables, TxId)
+    0 -> [];
+    1 -> [];
+    _Else -> delete_cascade_dependants(Key, Table, Tables, TxId)
   end.
 
 delete_cascade_dependants(Key, Table, Tables, TxId) ->
@@ -50,17 +53,20 @@ delete_cascade_dependants(Key, Table, Tables, TxId) ->
     DepTable = table:lookup(TName, Tables),
     lists:foldl(fun(K, AccUpds2) ->
       case delete_cascade(K, DepTable, Tables, TxId) of
-        false -> AccUpds2;
-        ok -> lists:append(AccUpds2, [crdt:ipa_update(K, ipa:delete())])
+        [] ->
+          AccUpds2;
+        DeleteUpds ->
+          lists:append([AccUpds2, DeleteUpds])
       end
     end, AccUpds, Keys)
   end, [], Dependants),
-  case DeleteUpdates of
-    [] ->
-      ok;
-    _Else ->
-      ok = antidote_handler:update_objects(DeleteUpdates, TxId)
-  end.
+  lists:append([crdt:ipa_update(Key, ipa:delete())], DeleteUpdates).
+  %case DeleteUpdates of
+  %  [] ->
+  %    ok;
+  %  _Else ->
+  %    ok = antidote_handler:update_objects(DeleteUpdates, TxId)
+  %end.
 
 cascade_dependants(Key, Table, Tables, TxId) ->
   cascade_dependants(Key, Table, Tables, Tables, TxId, []).
@@ -96,7 +102,7 @@ fetch_cascade(Key, TName, TDepName, Tables,
       PK -> element:is_visible(Record, TDepName, Tables, TxId);
       _Else -> false
     end
-                                  end, Keys),
+  end, Keys),
 
   case FilterDependants of
     [] ->
@@ -117,7 +123,7 @@ fetch_cascade(Key, TName, TDepName, Tables,
       PK -> not element:is_visible(Record, TDepName, Tables, TxId);
       _Else -> true
     end
-                                     end, Keys),
+  end, Keys),
 
   case FilterDependants of
     [] ->

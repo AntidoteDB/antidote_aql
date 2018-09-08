@@ -104,6 +104,7 @@ exec([], Acc, Tx) ->
 
 commit_transaction(Res, Tx) ->
 	CommitRes = antidote_handler:commit_transaction(Tx),
+	ok = antidote_handler:release_locks(es_locks, Tx),
 	case CommitRes of
 		{ok, _CT} ->
 			Res;
@@ -112,15 +113,14 @@ commit_transaction(Res, Tx) ->
 	end.
 
 abort_transaction(Res, Tx) ->
-	antidote_handler:abort_transaction(Tx),
-	Res.
-	%% TODO to be uncommented when Antidote implements transaction abortion
-	%case AbortRes of
-	%	{ok, _CT} ->
-	%		Res;
-	%	_Else ->
-	%		{error, AbortRes}
-	%end.
+	AbortRes = antidote_handler:abort_transaction(Tx),
+	ok = antidote_handler:release_locks(es_locks, Tx),
+	case AbortRes of
+		ok ->
+			Res;
+		_Else ->
+			{error, AbortRes}
+	end.
 
 exec(?BEGIN_CLAUSE(?TRANSACTION_TOKEN), PassedTx) ->
 	case PassedTx of
@@ -137,7 +137,7 @@ exec(?COMMIT_CLAUSE(?TRANSACTION_TOKEN), PassedTx) ->
 		_Else ->
 			{ok, {commit_tx, PassedTx}}
 	end;
-exec(?ABORT_CLAUSE(?TRANSACTION_TOKEN), PassedTX) ->
+exec(?ROLLBACK_CLAUSE(?TRANSACTION_TOKEN), PassedTX) ->
 	case PassedTX of
 		undefined ->
 			{error, "There's no current ongoing transaction"};
@@ -158,6 +158,7 @@ exec(Query, undefined) ->
 			commit_transaction(Else, Tx)
 	catch
 		Reason ->
+      abort_transaction(ignore, Tx),
 			{error, Reason, Tx}
 	end;
 exec(Query, PassedTx) ->
@@ -167,6 +168,7 @@ exec(Query, PassedTx) ->
 		Res -> Res
   catch
 		Reason ->
+			abort_transaction(ignore, PassedTx),
 			{error, Reason, PassedTx}
   end.
 

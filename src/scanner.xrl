@@ -58,17 +58,19 @@ Rules.
 % transaction related tokens
 (begin|BEGIN) : {token, ?BEGIN_CLAUSE(TokenChars)}.
 (commit|COMMIT) : {token, ?COMMIT_CLAUSE(TokenChars)}.
-(abort|ABORT) : {token, ?ABORT_CLAUSE(TokenChars)}.
+(rollback|ROLLBACK) : {token, ?ROLLBACK_CLAUSE(TokenChars)}.
 (transaction|TRANSACTION) : {token, ?TRANSACTION_KEY(TokenChars)}.
 
 % quit program related token
 (quit|QUIT) : {token, ?QUIT_CLAUSE(TokenChars)}.
 
 % conflict resolution policies
-(aw|AW) : {token, ?TABLE_POLICY_KEY(?ADD_WINS)}.
-(rw|RW) : {token, ?TABLE_POLICY_KEY(?REMOVE_WINS)}.
-(update-wins|UPDATE-WINS) : {token, ?DEP_POLICY_KEY(?ADD_WINS)}.
-(delete-wins|DELETE-WINS) : {token, ?DEP_POLICY_KEY(?REMOVE_WINS)}.
+%(aw|AW) : {token, ?TABLE_POLICY_KEY(?ADD_WINS)}.
+%(rw|RW) : {token, ?TABLE_POLICY_KEY(?REMOVE_WINS)}.
+%(update-wins|UPDATE-WINS) : {token, ?DEP_POLICY_KEY(?ADD_WINS)}.
+%(delete-wins|DELETE-WINS) : {token, ?DEP_POLICY_KEY(?REMOVE_WINS)}.
+(update-wins|UPDATE-WINS) : {token, ?CRP_KEY(?ADD_WINS)}.
+(delete-wins|DELETE-WINS) : {token, ?CRP_KEY(?REMOVE_WINS)}.
 
 % update query related tokens
 (update|UPDATE) : {token, ?UPDATE_CLAUSE(TokenChars)}.

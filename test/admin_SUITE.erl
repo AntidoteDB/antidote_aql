@@ -40,13 +40,13 @@ all() ->
 %% ====================================================================
 
 show_tables(_Config) ->
-  tutils:create_single_table("ShowTablesTest", "AW"),
+  tutils:create_single_table("ShowTablesTest", "UPDATE-WINS"),
   {ok, [Res], _Tx} = tutils:aql("SHOW TABLES"),
   io:fwrite("~p~n", [Res]),
   ?assertEqual(true, is_list(Res)).
 
 show_index(_Config) ->
-  tutils:create_single_table("ShowIndexTest", "AW"),
+  tutils:create_single_table("ShowIndexTest", "UPDATE-WINS"),
   {ok, [], _Tx} = tutils:aql("INSERT INTO ShowIndexTest VALUES (1)"),
   {ok, [], _Tx} = tutils:aql("INSERT INTO ShowIndexTest VALUES (2)"),
   {ok, [], _Tx} = tutils:aql("INSERT INTO ShowIndexTest VALUES (3)"),
@@ -54,7 +54,7 @@ show_index(_Config) ->
   ?assertEqual(3, length(Index)).
 
 show_indexes(_Config) ->
-  {ok, [], _Tx} = tutils:aql(lists:concat(["CREATE AW TABLE ShowIndexesTest",
+  {ok, [], _Tx} = tutils:aql(lists:concat(["CREATE UPDATE-WINS TABLE ShowIndexesTest",
     " (Pk VARCHAR PRIMARY KEY, X INTEGER, Y VARCHAR, Z BOOLEAN);"])),
   {ok, [], _Tx} = tutils:aql("CREATE INDEX IndexTestA ON ShowIndexesTest (X)"),
   {ok, [], _Tx} = tutils:aql("CREATE INDEX IndexTestB ON ShowIndexesTest (Y)"),

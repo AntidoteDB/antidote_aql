@@ -82,7 +82,7 @@ p_keys(TName, TxId) ->
   {ok, [Res]} = antidote_handler:read_objects(BoundObject, TxId),
   lists:map(fun({Key, BoundObj}) ->
     {utils:to_atom(Key), BoundObj}
-            end, Res).
+  end, Res).
 
 %% Reads a secondary index
 s_keys(TName, IndexName, TxId) ->
@@ -173,7 +173,7 @@ check_keys(Table, Cols) ->
       true ->
         Acc
     end
-              end, [], Cols).
+  end, [], Cols).
 
 set_table_index(Idx, ?T_TABLE(Name, Policy, Cols, SCols, _Idx, PartCol)) ->
   ?T_TABLE(Name, Policy, Cols, SCols, Idx, PartCol).

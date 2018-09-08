@@ -19,18 +19,19 @@
   foreign_keys/1, foreign_keys/2, foreign_keys/3,
   attributes/1,
   data/1,
-  table/1]).
+  table/1,
+  parents/4]).
 
 -export([create_key/2, create_key/3,
   create_key_from_data/2, create_key_from_table/3,
   st_key/0, version_key/0, is_visible/3, is_visible/4]).
 
 -export([new/1, new/2,
-  put/3, set_version/2, build_fks/3,
+  put/3, set_version/2, build_fks/2, build_fks/3,
   get/2, get/3, get/4,
   get_by_name/2,
-  insert/1, insert/2,
-  delete/2, read_record/3]).
+  insert/1, insert/2, delete/2,
+  read_record/3, shared_read/3, exclusive_read/3]).
 
 -export([throwNoSuchRow/2]).
 
@@ -73,17 +74,19 @@ create_key(Key, TName, Prefix)
   BucketAtom = utils:to_atom(Bucket),
   crdt:create_bound_object(KeyAtom, ?CRDT_TYPE, BucketAtom).
 
-create_key_from_table(Key, Table, TxId) ->
+create_key_from_table({_K, _T, _B} = Key, _Table, _TxId) ->
+  Key;
+create_key_from_table(PKey, Table, TxId) ->
   TName = table:name(Table),
   PartCol = table:partition_col(Table),
   case PartCol of
     [_] ->
       Index = index:p_keys(TName, TxId),
       %% for now we only care about the first key of the list
-      {_, BObj} = lists:keyfind(utils:to_atom(Key), 1, Index),
+      {_, BObj} = lists:keyfind(utils:to_atom(PKey), 1, Index),
       BObj;
     undefined ->
-      create_key(Key, TName)
+      create_key(PKey, TName)
   end.
 
 create_key_from_data(Data, Table)
@@ -131,18 +134,6 @@ is_visible(Data, TName, Tables, TxId) ->
   ExplicitState = explicit_state(Data, Rule),
   ipa:is_visible(ExplicitState) andalso
     implicit_state(Table, Data, Tables, TxId).
-%case length(Data) of
-%    1 ->
-%        ipa:is_visible(ExplicitState);
-%    _Else ->
-%        case crp:dep_level(Policy) of
-%            ?REMOVE_WINS ->
-%                ipa:is_visible(ExplicitState) andalso
-%                    implicit_state(Table, Data, Tables, TxId);
-%            _Other ->
-%                ipa:is_visible(ExplicitState)
-%        end
-%end.
 
 throwNoSuchColumn(ColName, TableName) ->
   MsgFormat = io_lib:format("Column ~p does not exist in table ~p", [ColName, TableName]),
@@ -239,41 +230,48 @@ set_version(Element, TxId) ->
 build_fks(Element, Tables, TxId) ->
   Data = data(Element),
   Table = table(Element),
+  Parents = parents(Data, Table, Tables, TxId),
+  build_fks(Element, Parents).
+
+build_fks(Element, Parents) ->
+  Table = table(Element),
   Fks = table:shadow_columns(Table),
-  Parents = parents(Data, Fks, Table, Tables, TxId),
-  lists:foldl(fun(?T_FK(FkName, _, _, FkColName, _), AccElement) ->
+  lists:foldl(fun(?T_FK(FkName, _, FkTable, FkColName, _), AccElement) ->
     case length(FkName) of
       1 ->
         [{_, ParentId}] = FkName,
-        Parent = dict:fetch(ParentId, Parents),
+        {Parent, _} = dict:fetch({FkTable, ParentId}, Parents),
         Value = get_by_name(foreign_keys:to_cname(FkColName), Parent),
         ParentVersion = get_by_name(?VERSION, Parent),
         append(FkName, {Value, ParentVersion}, ?AQL_VARCHAR, ?IGNORE_OP, AccElement);
       _Else ->
-        [{_, ParentId} | ParentCol] = FkName,
-        Parent = dict:fetch(ParentId, Parents),
-        Value = get_by_name(ParentCol, Parent),
-        append(FkName, Value, ?AQL_VARCHAR, ?IGNORE_OP, AccElement)
+        %[{_, ParentId} | ParentCol] = FkName,
+        %Parent = dict:fetch({FkTable, ParentId}, Parents),
+        %Value = get_by_name(ParentCol, Parent),
+        %append(FkName, Value, ?AQL_VARCHAR, ?IGNORE_OP, AccElement)
+        AccElement
     end
   end, Element, Fks).
 
-parents(Data, Fks, Table, Tables, TxId) ->
+parents(Data, Table, Tables, TxId) ->
+  Fks = table:shadow_columns(Table),
   lists:foldl(fun(?T_FK(Name, Type, TTName, _, _), Dict) ->
     case Name of
       [ShCol] ->
         {_FkTable, FkName} = ShCol,
         Value = get(FkName, types:to_crdt(Type, ?IGNORE_OP), Data, Table),
         RefTable = table:lookup(TTName, Tables),
-        %Key = create_key(Value, TTName),
-        %{ok, [Parent]} = antidote:read_objects(Key, TxId),
-        Parent = read_record(Value, RefTable, TxId),
-        case Parent of
-          [] ->
+        Parent = shared_read(Value, RefTable, TxId),
+        case element:is_visible(Parent, TTName, Tables, TxId) of
+          false ->
             throwNoSuchRow(Value, TTName);
           _Else ->
-            dict:store(FkName, Parent, Dict)
+            dict:store({TTName, FkName},
+              {Parent, parents(Parent, RefTable, Tables, TxId)},
+              Dict)
         end;
-      _Else -> Dict
+      _Else ->
+        Dict
     end
   end, dict:new(), Fks).
 
@@ -354,34 +352,47 @@ implicit_state(Table, RecordData, Tables, TxId) ->
   FKs = table:shadow_columns(Table),
   implicit_state(Table, RecordData, Tables, FKs, TxId).
 
-implicit_state(Table, Data, Tables, [?T_FK(FkName, _, FKTName, _, _) | Fks], TxId)
-  when length(FkName) == 1 ->
+implicit_state(Table, Data, Tables, [?T_FK(FKName, _, FKTName, _, _) | Fks], TxId)
+  when length(FKName) == 1 ->
   Policy = table:policy(Table),
-  {RefValue, RefVersion} = element:get(FkName, ?CRDT_VARCHAR, Data, Table),
+  %{RefValue, RefVersion} = element:get(FkName, ?CRDT_VARCHAR, Data, Table),
 
-  %FKBoundObj = create_key(RefValue, FKTName),
-  %{ok, [FKData]} = antidote:read_objects(FKBoundObj, TxId),
   FKTable = table:lookup(FKTName, Tables),
-  FKData = read_record(RefValue, FKTable, TxId),
+  %FKData = read_record(RefValue, FKTable, TxId),
   IsVisible =
-    case FKData of
-      [] ->
-        throwNoSuchRow(RefValue, FKTName);
-      _Else ->
-        FkVersion = element:get(?VERSION, ?VERSION_TYPE, FKData, FKTable),
-        case crp:dep_level(Policy) of
+    case crp:dep_level(Policy) of
+      ?REMOVE_WINS ->
+        {_, RefVersion, RefData} = get_parent_info(Data, Table, FKName, FKTable, TxId),
+        FkVersion = get(?VERSION, ?VERSION_TYPE, RefData, FKTable),
+        FkVersion =:= RefVersion andalso
+          is_visible(RefData, FKTName, Tables, TxId);
+      _ ->
+        case crp:dep_level(table:policy(FKTable)) of
           ?REMOVE_WINS ->
-            FkVersion =:= RefVersion andalso
-              is_visible(FKData, FKTName, Tables, TxId);
+            {_, _, RefData} = get_parent_info(Data, Table, FKName, FKTable, TxId),
+            is_visible(RefData, FKTName, Tables, TxId);
           _ ->
-            case crp:dep_level(table:policy(FKTable)) of
-              ?REMOVE_WINS ->
-                is_visible(FKData, FKTName, Tables, TxId);
-              _ ->
-                true
-            end
+            true
         end
     end,
+%%    case FKData of
+%%      [] ->
+%%        throwNoSuchRow(RefValue, FKTName);
+%%      _Else ->
+%%        case crp:dep_level(Policy) of
+%%          ?REMOVE_WINS ->
+%%            FkVersion = element:get(?VERSION, ?VERSION_TYPE, FKData, FKTable),
+%%            FkVersion =:= RefVersion andalso
+%%              is_visible(FKData, FKTName, Tables, TxId);
+%%          _ ->
+%%            case crp:dep_level(table:policy(FKTable)) of
+%%              ?REMOVE_WINS ->
+%%                is_visible(FKData, FKTName, Tables, TxId);
+%%              _ ->
+%%                true
+%%            end
+%%        end
+%%    end,
 
   IsVisible andalso implicit_state(Table, Data, Tables, Fks, TxId);
 implicit_state(Table, Data, Tables, [_Fk | Fks], TxId) ->
@@ -389,14 +400,48 @@ implicit_state(Table, Data, Tables, [_Fk | Fks], TxId) ->
 implicit_state(_Table, _Data, _Tables, [], _TxId) ->
   true.
 
+get_parent_info(Record, Table, FKName, FKTable, TxId) ->
+  {RefValue, RefVersion} = element:get(FKName, ?CRDT_VARCHAR, Record, Table),
+  FKData = read_record(RefValue, FKTable, TxId),
+  case FKData of
+    [] ->
+      throwNoSuchRow(RefValue, table:name(FKTable));
+    _ ->
+      {RefValue, RefVersion, FKData}
+  end.
+
 delete(ObjKey, TxId) ->
   StateOp = crdt:field_map_op(element:st_key(), crdt:assign_lww(ipa:delete())),
   Update = crdt:map_update(ObjKey, StateOp),
   ok = antidote_handler:update_objects(Update, TxId),
   false.
 
-read_record(PKey, Table, TxId) ->
-  BoundKey = create_key_from_table(PKey, Table, TxId),
+read_record(Key, Table, TxId) ->
+  BoundKey = create_key_from_table(Key, Table, TxId),
+  {ok, [Object]} = antidote_handler:read_objects(BoundKey, TxId),
+  Object.
+
+shared_read(Key, Table, TxId) ->
+  BoundKey = create_key_from_table(Key, Table, TxId),
+  TPolicy = table:policy(Table),
+  case crp:p_dep_level(TPolicy) of
+    ?NO_CONCURRENCY ->
+      lock_manager:acquire_shared_lock(BoundKey, TxId);
+    _ ->
+      ok
+  end,
+  {ok, [Object]} = antidote_handler:read_objects(BoundKey, TxId),
+  Object.
+
+exclusive_read(Key, Table, TxId) ->
+  BoundKey = create_key_from_table(Key, Table, TxId),
+  TPolicy = table:policy(Table),
+  case crp:p_dep_level(TPolicy) of
+    ?NO_CONCURRENCY ->
+      lock_manager:acquire_exclusive_lock(BoundKey, TxId);
+    _ ->
+      ok
+  end,
   {ok, [Object]} = antidote_handler:read_objects(BoundKey, TxId),
   Object.
 

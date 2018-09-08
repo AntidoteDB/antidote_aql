@@ -35,11 +35,11 @@ create_single_table(Name, TablePolicy) ->
   aql(lists:concat(Query)).
 
 create_fk_table(Name, Pointer) ->
-  create_fk_table(Name, Pointer, "ID", "AW", "UPDATE-WINS").
+  create_fk_table(Name, Pointer, "ID", "UPDATE-WINS", "UPDATE-WINS").
 create_fk_table(Name, Pointer, TablePolicy, FK_Policy) ->
   create_fk_table(Name, Pointer, "ID", TablePolicy, FK_Policy).
 create_dc_fk_table(Name, Pointer) ->
-  create_dc_fk_table(Name, Pointer, "ID", "AW", "UPDATE-WINS").
+  create_dc_fk_table(Name, Pointer, "ID", "UPDATE-WINS", "UPDATE-WINS").
 create_dc_fk_table(Name, Pointer, TablePolicy, FK_Policy) ->
   create_dc_fk_table(Name, Pointer, "ID", TablePolicy, FK_Policy).
 

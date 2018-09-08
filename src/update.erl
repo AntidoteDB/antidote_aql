@@ -42,7 +42,9 @@ exec({Table, Tables}, Props, TxId) ->
 
   case UpdateMsg of
     ok ->
-      lists:foreach(fun(Key) -> touch_cascade(Key, Table, Tables, TxId) end, NewKeys),
+      lists:foreach(fun(Key) ->
+        touch_cascade(Key, Table, Tables, TxId)
+      end, NewKeys),
       ok;
     Msg -> Msg
   end.
@@ -162,7 +164,9 @@ resolve_fail(CName, CType) ->
 
 touch_cascade(Key, Table, Tables, TxId) ->
   {ok, [Record]} = antidote_handler:read_objects(Key, TxId),
-  insert:touch_cascade(record, Record, Table, Tables, TxId).
+  Parents = element:parents(Record, Table, Tables, TxId),
+  insert:touch_cascade(Parents, Table, Tables, TxId).
+  %insert:touch_cascade(record, Record, Table, Tables, TxId).
 
 generate_updates(Acc, [{Key, Record} | Keys], Table, Tables, SetClause, TxId) ->
   StateOp = crdt:field_map_op(element:st_key(), crdt:assign_lww(ipa:insert())),

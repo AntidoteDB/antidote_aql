@@ -29,10 +29,10 @@
 
 init_per_suite(Config) ->
   aql:start(),
-  {ok, [], _Tx} = tutils:create_single_table("FkA", "AW"),
-  {ok, [], _Tx} = tutils:create_dc_fk_table("FkB", "FkA", "AW", ?FK_POLICY_RW),
-  {ok, [], _Tx} = tutils:create_dc_fk_table("FkC", "FkB", "AW", ?FK_POLICY_RW),
-  {ok, [], _Tx} = tutils:create_dc_fk_table("FkD", "FkC", "AW", ?FK_POLICY_RW),
+  {ok, [], _Tx} = tutils:create_single_table("FkA", "UPDATE-WINS"),
+  {ok, [], _Tx} = tutils:create_dc_fk_table("FkB", "FkA", "UPDATE-WINS", ?FK_POLICY_RW),
+  {ok, [], _Tx} = tutils:create_dc_fk_table("FkC", "FkB", "UPDATE-WINS", ?FK_POLICY_RW),
+  {ok, [], _Tx} = tutils:create_dc_fk_table("FkD", "FkC", "UPDATE-WINS", ?FK_POLICY_RW),
   Config.
 
 end_per_suite(Config) ->
@@ -76,10 +76,10 @@ create_table_fail(_Config) ->
   {_, [{error, Msg1}], _} = tutils:create_dc_fk_table("FkETest", "FkFTest"),
   ?assertEqual("No such table: 'FkFTest'", Msg1),
   % cannot create a table that points to a non-existant column
-  {_, [{error, Msg2}], _} = tutils:create_dc_fk_table("FkETest", "FkA", "ABC", "AW", "DELETE-WINS"),
+  {_, [{error, Msg2}], _} = tutils:create_dc_fk_table("FkETest", "FkA", "ABC", "UPDATE-WINS", "DELETE-WINS"),
   ?assertEqual("Column 'ABC' does not exist in table 'FkA'", Msg2),
   % cannot create a table that points to a non-primary key column
-  {_, [{error, Msg3}], _} = tutils:create_dc_fk_table("FkETest", "FkB", "FkA", "AW", "DELETE-WINS"),
+  {_, [{error, Msg3}], _} = tutils:create_dc_fk_table("FkETest", "FkB", "FkA", "UPDATE-WINS", "DELETE-WINS"),
   ?assertEqual("Foreign keys can only reference unique columns", Msg3).
 
 %%touch_cascade(_Config) ->
