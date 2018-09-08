@@ -35,8 +35,14 @@ compile:
 	$(REBAR) compile
 	mkdir -p _build/test/logs
 	
+clean:
+	$(REBAR) clean
+	
 release:
 	$(REBAR) release
+
+relclean:
+	rm -rf _build/default/rel
 
 test:
 	$(REBAR) eunit --cover

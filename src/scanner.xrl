@@ -65,10 +65,6 @@ Rules.
 (quit|QUIT) : {token, ?QUIT_CLAUSE(TokenChars)}.
 
 % conflict resolution policies
-%(aw|AW) : {token, ?TABLE_POLICY_KEY(?ADD_WINS)}.
-%(rw|RW) : {token, ?TABLE_POLICY_KEY(?REMOVE_WINS)}.
-%(update-wins|UPDATE-WINS) : {token, ?DEP_POLICY_KEY(?ADD_WINS)}.
-%(delete-wins|DELETE-WINS) : {token, ?DEP_POLICY_KEY(?REMOVE_WINS)}.
 (update-wins|UPDATE-WINS) : {token, ?CRP_KEY(?ADD_WINS)}.
 (delete-wins|DELETE-WINS) : {token, ?CRP_KEY(?REMOVE_WINS)}.
 
@@ -80,10 +76,6 @@ Rules.
 (assign|ASSIGN) : {token, ?ASSIGN_OP(TokenChars)}.
 (increment|INCREMENT) : {token, ?INCREMENT_OP(TokenChars)}.
 (decrement|DECREMENT) : {token, ?DECREMENT_OP(TokenChars)}.
-
-% comparators - DEPRECATED
-% (smaller|SMALLER) : {token, ?SMALLER_KEY}.
-% (greater|GREATER) : {token, ?GREATER_KEY}.
 
 % constraints
 (primary|PRIMARY) : {token, ?PRIMARY_KEY(TokenChars)}.

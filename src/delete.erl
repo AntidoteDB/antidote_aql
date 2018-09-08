@@ -24,8 +24,6 @@ exec({Table, Tables}, Props, TxId) ->
     case delete_cascade(Key, Table, Tables, TxId) of
       [] -> ok;
       DeleteUpds ->
-        %ok = antidote_handler:update_objects(crdt:ipa_update(Key, ipa:delete()), TxId)
-        %KeyDel = crdt:ipa_update(Key, ipa:delete()),
         ok = antidote_handler:update_objects(DeleteUpds, TxId)
     end
   end, Keys).
@@ -61,12 +59,6 @@ delete_cascade_dependants(Key, Table, Tables, TxId) ->
     end, AccUpds, Keys)
   end, [], Dependants),
   lists:append([crdt:ipa_update(Key, ipa:delete())], DeleteUpdates).
-  %case DeleteUpdates of
-  %  [] ->
-  %    ok;
-  %  _Else ->
-  %    ok = antidote_handler:update_objects(DeleteUpdates, TxId)
-  %end.
 
 cascade_dependants(Key, Table, Tables, TxId) ->
   cascade_dependants(Key, Table, Tables, Tables, TxId, []).

@@ -8,7 +8,7 @@
 -include_lib("eunit/include/eunit.hrl").
 -include_lib("ct_aql.hrl").
 
--define(UPDATE_ERROR, {error, "Unexpected error"}).
+-define(UPDATE_ERROR, {error, "A numeric invariant has been breached."}).
 -define(INSERT_ERROR(ExpecVal, Col), "Invalid value " ++ ExpecVal ++ " for column " ++ Col).
 
 -export([init_per_suite/1,
@@ -27,7 +27,7 @@
 %% ====================================================================
 
 init_per_suite(Config) ->
-  aql:start(),
+  %aql:start(),
   TNameGreater = "BCGreater",
   TNameSmaller = "BCSmaller",
   BoundGreaterA = 0,

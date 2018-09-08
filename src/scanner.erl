@@ -12,7 +12,7 @@
 -export([format_error/1]).
 
 %% User code. This is placed here to allow extra attributes.
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/scanner.xrl", 136).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/scanner.xrl", 128).
 
 -include("parser.hrl").
 -include("aql.hrl").
@@ -307,7 +307,7 @@ adjust_line(T, A, [_|Cs], L) ->
 %% return signal either an unrecognised character or end of current
 %% input.
 
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/scanner.erl", 309).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/scanner.erl", 309).
 yystate() -> 390.
 
 yystate(393, [82|Ics], Line, Tlen, _, _) ->
@@ -4281,290 +4281,290 @@ yyaction(56, _, _, _) ->
 yyaction(_, _, _, _) -> error.
 
 -compile({inline,yyaction_0/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/scanner.xrl", 26).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/scanner.xrl", 26).
 yyaction_0(TokenChars) ->
      { token, ? SHOW_CLAUSE (TokenChars) } .
 
 -compile({inline,yyaction_1/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/scanner.xrl", 27).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/scanner.xrl", 27).
 yyaction_1(TokenChars) ->
      { token, ? TABLES_CLAUSE (TokenChars) } .
 
 -compile({inline,yyaction_2/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/scanner.xrl", 30).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/scanner.xrl", 30).
 yyaction_2(TokenChars) ->
      { token, ? INDEX_CLAUSE (TokenChars) } .
 
 -compile({inline,yyaction_3/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/scanner.xrl", 31).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/scanner.xrl", 31).
 yyaction_3(TokenChars) ->
      { token, ? INDEXES_CLAUSE (TokenChars) } .
 
 -compile({inline,yyaction_4/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/scanner.xrl", 32).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/scanner.xrl", 32).
 yyaction_4(TokenChars) ->
      { token, ? ON_KEY (TokenChars) } .
 
 -compile({inline,yyaction_5/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/scanner.xrl", 35).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/scanner.xrl", 35).
 yyaction_5(TokenChars) ->
      { token, ? SELECT_CLAUSE (TokenChars) } .
 
 -compile({inline,yyaction_6/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/scanner.xrl", 36).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/scanner.xrl", 36).
 yyaction_6(TokenChars) ->
      { token, ? FROM_CLAUSE (TokenChars) } .
 
 -compile({inline,yyaction_7/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/scanner.xrl", 39).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/scanner.xrl", 39).
 yyaction_7(TokenChars) ->
      { token, ? WHERE_CLAUSE (TokenChars) } .
 
 -compile({inline,yyaction_8/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/scanner.xrl", 40).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/scanner.xrl", 40).
 yyaction_8(TokenChars) ->
      { token, ? CONJUNCTIVE_KEY (TokenChars) } .
 
 -compile({inline,yyaction_9/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/scanner.xrl", 41).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/scanner.xrl", 41).
 yyaction_9(TokenChars) ->
      { token, ? DISJUNCTIVE_KEY (TokenChars) } .
 
 -compile({inline,yyaction_10/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/scanner.xrl", 44).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/scanner.xrl", 44).
 yyaction_10(TokenChars) ->
      { token, ? INSERT_CLAUSE (TokenChars) } .
 
 -compile({inline,yyaction_11/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/scanner.xrl", 45).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/scanner.xrl", 45).
 yyaction_11(TokenChars) ->
      { token, ? INTO_KEY (TokenChars) } .
 
 -compile({inline,yyaction_12/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/scanner.xrl", 48).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/scanner.xrl", 48).
 yyaction_12(TokenChars) ->
      { token, ? CREATE_CLAUSE (TokenChars) } .
 
 -compile({inline,yyaction_13/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/scanner.xrl", 49).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/scanner.xrl", 49).
 yyaction_13(TokenChars) ->
      { token, ? TABLE_KEY (TokenChars) } .
 
 -compile({inline,yyaction_14/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/scanner.xrl", 50).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/scanner.xrl", 50).
 yyaction_14(TokenChars) ->
      { token, ? VALUES_CLAUSE (TokenChars) } .
 
 -compile({inline,yyaction_15/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/scanner.xrl", 51).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/scanner.xrl", 51).
 yyaction_15(TokenChars) ->
      { token, ? PARTITION_CLAUSE (TokenChars) } .
 
 -compile({inline,yyaction_16/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/scanner.xrl", 54).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/scanner.xrl", 54).
 yyaction_16(TokenChars) ->
      { token, ? DELETE_CLAUSE (TokenChars) } .
 
 -compile({inline,yyaction_17/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/scanner.xrl", 57).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/scanner.xrl", 57).
 yyaction_17(TokenChars) ->
      { token, ? BEGIN_CLAUSE (TokenChars) } .
 
 -compile({inline,yyaction_18/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/scanner.xrl", 58).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/scanner.xrl", 58).
 yyaction_18(TokenChars) ->
      { token, ? COMMIT_CLAUSE (TokenChars) } .
 
 -compile({inline,yyaction_19/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/scanner.xrl", 59).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/scanner.xrl", 59).
 yyaction_19(TokenChars) ->
      { token, ? ROLLBACK_CLAUSE (TokenChars) } .
 
 -compile({inline,yyaction_20/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/scanner.xrl", 60).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/scanner.xrl", 60).
 yyaction_20(TokenChars) ->
      { token, ? TRANSACTION_KEY (TokenChars) } .
 
 -compile({inline,yyaction_21/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/scanner.xrl", 63).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/scanner.xrl", 63).
 yyaction_21(TokenChars) ->
      { token, ? QUIT_CLAUSE (TokenChars) } .
 
 -compile({inline,yyaction_22/0}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/scanner.xrl", 70).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/scanner.xrl", 66).
 yyaction_22() ->
      { token, ? CRP_KEY (? ADD_WINS) } .
 
 -compile({inline,yyaction_23/0}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/scanner.xrl", 71).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/scanner.xrl", 67).
 yyaction_23() ->
      { token, ? CRP_KEY (? REMOVE_WINS) } .
 
 -compile({inline,yyaction_24/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/scanner.xrl", 74).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/scanner.xrl", 70).
 yyaction_24(TokenChars) ->
      { token, ? UPDATE_CLAUSE (TokenChars) } .
 
 -compile({inline,yyaction_25/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/scanner.xrl", 75).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/scanner.xrl", 71).
 yyaction_25(TokenChars) ->
      { token, ? SET_CLAUSE (TokenChars) } .
 
 -compile({inline,yyaction_26/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/scanner.xrl", 78).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/scanner.xrl", 74).
 yyaction_26(TokenChars) ->
      { token, ? ASSIGN_OP (TokenChars) } .
 
 -compile({inline,yyaction_27/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/scanner.xrl", 79).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/scanner.xrl", 75).
 yyaction_27(TokenChars) ->
      { token, ? INCREMENT_OP (TokenChars) } .
 
 -compile({inline,yyaction_28/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/scanner.xrl", 80).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/scanner.xrl", 76).
 yyaction_28(TokenChars) ->
      { token, ? DECREMENT_OP (TokenChars) } .
 
 -compile({inline,yyaction_29/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/scanner.xrl", 87).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/scanner.xrl", 79).
 yyaction_29(TokenChars) ->
      { token, ? PRIMARY_KEY (TokenChars) } .
 
 -compile({inline,yyaction_30/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/scanner.xrl", 88).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/scanner.xrl", 80).
 yyaction_30(TokenChars) ->
      { token, ? FOREIGN_KEY (TokenChars) } .
 
 -compile({inline,yyaction_31/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/scanner.xrl", 89).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/scanner.xrl", 81).
 yyaction_31(TokenChars) ->
      { token, ? KEY_KEY (TokenChars) } .
 
 -compile({inline,yyaction_32/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/scanner.xrl", 90).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/scanner.xrl", 82).
 yyaction_32(TokenChars) ->
      { token, ? REFERENCES_KEY (TokenChars) } .
 
 -compile({inline,yyaction_33/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/scanner.xrl", 91).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/scanner.xrl", 83).
 yyaction_33(TokenChars) ->
      { token, ? CHECK_KEY (TokenChars) } .
 
 -compile({inline,yyaction_34/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/scanner.xrl", 92).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/scanner.xrl", 84).
 yyaction_34(TokenChars) ->
      { token, ? CASCADE_CLAUSE (TokenChars) } .
 
 -compile({inline,yyaction_35/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/scanner.xrl", 95).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/scanner.xrl", 87).
 yyaction_35(TokenChars) ->
      { token, ? DEFAULT_KEY (TokenChars) } .
 
 -compile({inline,yyaction_36/0}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/scanner.xrl", 98).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/scanner.xrl", 90).
 yyaction_36() ->
      { token, ? ATTR_KEY (? AQL_VARCHAR) } .
 
 -compile({inline,yyaction_37/0}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/scanner.xrl", 99).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/scanner.xrl", 91).
 yyaction_37() ->
      { token, ? ATTR_KEY (? AQL_BOOLEAN) } .
 
 -compile({inline,yyaction_38/0}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/scanner.xrl", 100).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/scanner.xrl", 92).
 yyaction_38() ->
      { token, ? ATTR_KEY (? AQL_INTEGER) } .
 
 -compile({inline,yyaction_39/0}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/scanner.xrl", 101).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/scanner.xrl", 93).
 yyaction_39() ->
      { token, ? ATTR_KEY (? AQL_COUNTER_INT) } .
 
 -compile({inline,yyaction_40/0}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/scanner.xrl", 104).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/scanner.xrl", 96).
 yyaction_40() ->
      { token, ? PARSER_BOOLEAN (false) } .
 
 -compile({inline,yyaction_41/0}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/scanner.xrl", 105).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/scanner.xrl", 97).
 yyaction_41() ->
      { token, ? PARSER_BOOLEAN (true) } .
 
 -compile({inline,yyaction_42/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/scanner.xrl", 108).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/scanner.xrl", 100).
 yyaction_42(TokenChars) ->
      A = list_to_atom (TokenChars),
      { token, ? PARSER_ATOM (A) } .
 
 -compile({inline,yyaction_43/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/scanner.xrl", 111).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/scanner.xrl", 103).
 yyaction_43(TokenChars) ->
      S = strip_value (TokenChars),
      { token, ? PARSER_STRING (S) } .
 
 -compile({inline,yyaction_44/1}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/scanner.xrl", 114).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/scanner.xrl", 106).
 yyaction_44(TokenChars) ->
      { N, _ } = string : to_integer (TokenChars),
      { token, ? PARSER_NUMBER (N) } .
 
 -compile({inline,yyaction_45/0}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/scanner.xrl", 117).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/scanner.xrl", 109).
 yyaction_45() ->
      { token, ? PARSER_EQUALITY } .
 
 -compile({inline,yyaction_46/0}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/scanner.xrl", 118).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/scanner.xrl", 110).
 yyaction_46() ->
      { token, ? PARSER_NEQ } .
 
 -compile({inline,yyaction_47/0}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/scanner.xrl", 119).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/scanner.xrl", 111).
 yyaction_47() ->
      { token, ? PARSER_GREATER } .
 
 -compile({inline,yyaction_48/0}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/scanner.xrl", 120).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/scanner.xrl", 112).
 yyaction_48() ->
      { token, ? PARSER_LESSER } .
 
 -compile({inline,yyaction_49/0}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/scanner.xrl", 121).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/scanner.xrl", 113).
 yyaction_49() ->
      { token, ? PARSER_GEQ } .
 
 -compile({inline,yyaction_50/0}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/scanner.xrl", 122).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/scanner.xrl", 114).
 yyaction_50() ->
      { token, ? PARSER_LEQ } .
 
 -compile({inline,yyaction_51/0}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/scanner.xrl", 123).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/scanner.xrl", 115).
 yyaction_51() ->
      { token, ? PARSER_WILDCARD } .
 
 -compile({inline,yyaction_52/0}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/scanner.xrl", 124).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/scanner.xrl", 116).
 yyaction_52() ->
      skip_token .
 
 -compile({inline,yyaction_53/0}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/scanner.xrl", 126).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/scanner.xrl", 118).
 yyaction_53() ->
      { token, ? PARSER_SLIST } .
 
 -compile({inline,yyaction_54/0}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/scanner.xrl", 127).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/scanner.xrl", 119).
 yyaction_54() ->
      { token, ? PARSER_ELIST } .
 
 -compile({inline,yyaction_55/0}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/scanner.xrl", 128).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/scanner.xrl", 120).
 yyaction_55() ->
      { token, ? PARSER_SEP } .
 
 -compile({inline,yyaction_56/0}).
--file("/home/pedrolopes/Desktop/AQL/_build/default/lib/aql/src/scanner.xrl", 129).
+-file("/home/pedrolopes/Desktop/AQL/_build/test/lib/aql/src/scanner.xrl", 121).
 yyaction_56() ->
      { token, ? PARSER_SCOLON } .
 

@@ -20,7 +20,7 @@
           end_per_testcase/2,
           all/0]).
 
--export([indirect_foreign_keys/1,
+-export([%indirect_foreign_keys/1,
           %touch_cascade/1,
           insert_multilevel/1,
           delete_basic/1, delete_multilevel/1,
@@ -28,7 +28,7 @@
           reference_deleted_fail/1]).
 
 init_per_suite(Config) ->
-  aql:start(),
+  %aql:start(),
   {ok, [], _Tx} = tutils:create_single_table("FkA", "UPDATE-WINS"),
   {ok, [], _Tx} = tutils:create_dc_fk_table("FkB", "FkA", "UPDATE-WINS", ?FK_POLICY_RW),
   {ok, [], _Tx} = tutils:create_dc_fk_table("FkC", "FkB", "UPDATE-WINS", ?FK_POLICY_RW),
@@ -55,7 +55,7 @@ end_per_testcase(_, _) ->
 
 all() ->
   [
-    indirect_foreign_keys,
+    %indirect_foreign_keys,
     %touch_cascade,
     insert_multilevel,
     delete_basic, delete_multilevel,
@@ -63,13 +63,13 @@ all() ->
     reference_deleted_fail
   ].
 
-indirect_foreign_keys(_Config) ->
-  KeyC = element:create_key('1', 'FkC'),
-  KeyD = element:create_key('1', 'FkD'),
-  [ResC, ResD] = tutils:read_keys([KeyC, KeyD]),
-  ?assertMatch({1, _}, proplists:get_value(?SHADOW_AB, ResC)),
-  ?assertMatch({1, _}, proplists:get_value(?SHADOW_ABC, ResD)),
-  ?assertMatch({1, _}, proplists:get_value(?SHADOW_BC, ResD)).
+%%indirect_foreign_keys(_Config) ->
+%%  KeyC = element:create_key('1', 'FkC'),
+%%  KeyD = element:create_key('1', 'FkD'),
+%%  [ResC, ResD] = tutils:read_keys([KeyC, KeyD]),
+%%  ?assertMatch({1, _}, proplists:get_value(?SHADOW_AB, ResC)),
+%%  ?assertMatch({1, _}, proplists:get_value(?SHADOW_ABC, ResD)),
+%%  ?assertMatch({1, _}, proplists:get_value(?SHADOW_BC, ResD)).
 
 create_table_fail(_Config) ->
   % cannot create table that points to a non-existant table

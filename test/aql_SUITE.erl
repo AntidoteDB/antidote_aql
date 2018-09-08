@@ -35,7 +35,7 @@
         error_transaction/1]).
 
 init_per_suite(Config) ->
-  aql:start(),
+  %aql:start(),
   TNameArtist = "ArtistTest",
   TNameAlbum = "AlbumTest",
   TNameTrack = "TrackTest",
@@ -166,7 +166,7 @@ abort_transaction(Config) ->
   Awards = 5,
   {ok, [{ok, {begin_tx, Tx}}], Tx} = tutils:aql("BEGIN TRANSACTION"),
   {ok, [], Tx} = tutils:aql(?format(insert_artist, [Artist, City, Awards], Config), Tx),
-  {ok, [{ok, abort_tx}], _} = tutils:aql("ABORT TRANSACTION", Tx),
+  {ok, [{ok, abort_tx}], _} = tutils:aql("ROLLBACK TRANSACTION", Tx),
 
   SearchKey = lists:concat(["'", Artist, "'"]),
   [] = tutils:read_keys(TNameArtist, "Name", SearchKey, ["Name", "City", "Awards"]).

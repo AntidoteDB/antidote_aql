@@ -25,7 +25,7 @@
 -export([basic_range_queries/1, bcounter_range_queries/1]).
 
 init_per_suite(Config) ->
-  aql:start(),
+  %aql:start(),
   TestTable = "TableA",
   TestTable2 = "TableBC",
   {ok, [], _Tx} = tutils:aql(lists:concat(["CREATE UPDATE-WINS TABLE ", TestTable,

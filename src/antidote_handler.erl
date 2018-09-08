@@ -77,7 +77,7 @@
   get_locks/3,
   release_locks/2]).
 
--export([handleBadRpc/1]).
+-export([handleUpdateError/1]).
 
 -spec start_transaction() -> {ok, txid()} | {error, reason()}.
 start_transaction() ->
@@ -95,15 +95,31 @@ start_transaction(Snapshot, Props) ->
 
 -spec commit_transaction(txid()) -> {ok, vectorclock()} | {error, reason()}.
 commit_transaction(TxId) ->
-  %Res = call(commit_transaction, [TxId]),
-  Res = antidote:commit_transaction(TxId),
-  Res.
+  try
+    %Res = call(commit_transaction, [TxId]),
+    antidote:commit_transaction(TxId)
+  of
+    Res -> Res
+  catch
+    _:Exception ->
+      {error, Exception}
+    %Reason ->
+    %  {error, Reason}
+  end.
 
 -spec abort_transaction(txid()) -> {ok, vectorclock()} | {error, reason()}.
 abort_transaction(TxId) ->
-  %Res = call(abort_transaction, [TxId]),
-  Res = antidote:abort_transaction(TxId),
-  Res.
+  try
+    %Res = call(abort_transaction, [TxId]),
+    antidote:abort_transaction(TxId)
+  of
+    Res -> Res
+  catch
+    _:Exception ->
+      {error, Exception}
+    %Reason ->
+    %  {error, Reason}
+  end.
 
 -spec read_objects(bound_objects(), txid()) -> {ok, [term()]}.
 read_objects(Objects, TxId) when is_list(Objects) ->
@@ -114,8 +130,16 @@ read_objects(Object, Ref) ->
 
 -spec update_objects(bound_objects(), txid()) -> ok | {error, reason()}.
 update_objects(Objects, TxId) when is_list(Objects) ->
-  %call(update_objects, [Objects, TxId]);
-  antidote:update_objects(Objects, TxId);
+  %try
+    %call(update_objects, [Objects, TxId])
+    antidote:update_objects(Objects, TxId);
+  %of
+  %  Response -> Response
+  %catch
+  %  Reason ->
+      %throw("An error occurred while updating an object")
+  %    {error, Reason}
+  %end;
 update_objects(Object, Ref) ->
   update_objects([Object], Ref).
 
@@ -176,10 +200,11 @@ release_locks(Type, TxId) ->
   Res = antidote:release_locks(Type, TxId),
   Res.
 
-handleBadRpc({'EXIT', {{{badmatch, {error, no_permissions}}, _}}}) ->
-  {"Constraint Breach", "A numeric invariant has been breached."};
-handleBadRpc(_Msg) ->
-  {"Internal Error", "Unexpected error"}.
+handleUpdateError({{badmatch, {error, no_permissions}}, _}) ->
+  %{error, {{badmatch,{error,no_permissions}}
+  "A numeric invariant has been breached.";
+handleUpdateError(Msg) ->
+  Msg.
 
 
 %% ====================================================================

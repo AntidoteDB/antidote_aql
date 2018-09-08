@@ -355,10 +355,8 @@ implicit_state(Table, RecordData, Tables, TxId) ->
 implicit_state(Table, Data, Tables, [?T_FK(FKName, _, FKTName, _, _) | Fks], TxId)
   when length(FKName) == 1 ->
   Policy = table:policy(Table),
-  %{RefValue, RefVersion} = element:get(FkName, ?CRDT_VARCHAR, Data, Table),
 
   FKTable = table:lookup(FKTName, Tables),
-  %FKData = read_record(RefValue, FKTable, TxId),
   IsVisible =
     case crp:dep_level(Policy) of
       ?REMOVE_WINS ->
@@ -375,24 +373,6 @@ implicit_state(Table, Data, Tables, [?T_FK(FKName, _, FKTName, _, _) | Fks], TxI
             true
         end
     end,
-%%    case FKData of
-%%      [] ->
-%%        throwNoSuchRow(RefValue, FKTName);
-%%      _Else ->
-%%        case crp:dep_level(Policy) of
-%%          ?REMOVE_WINS ->
-%%            FkVersion = element:get(?VERSION, ?VERSION_TYPE, FKData, FKTable),
-%%            FkVersion =:= RefVersion andalso
-%%              is_visible(FKData, FKTName, Tables, TxId);
-%%          _ ->
-%%            case crp:dep_level(table:policy(FKTable)) of
-%%              ?REMOVE_WINS ->
-%%                is_visible(FKData, FKTName, Tables, TxId);
-%%              _ ->
-%%                true
-%%            end
-%%        end
-%%    end,
 
   IsVisible andalso implicit_state(Table, Data, Tables, Fks, TxId);
 implicit_state(Table, Data, Tables, [_Fk | Fks], TxId) ->

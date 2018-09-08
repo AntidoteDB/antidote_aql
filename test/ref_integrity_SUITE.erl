@@ -37,7 +37,7 @@
 -export([]).
 
 init_per_suite(Config) ->
-  aql:start(),
+  %aql:start(),
   Config.
 
 end_per_suite(Config) ->

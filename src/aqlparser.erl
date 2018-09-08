@@ -93,8 +93,7 @@ exec([Query | Tail], Acc, Tx) ->
 			exec(Tail, lists:append(Acc, [AbortRes]), undefined);
 		%{ok, NewNode} ->
 		%	exec(Tail, Acc, NewNode, Tx);
-		{error, Msg, AbortedTx} ->
-			abort_transaction(ignore, AbortedTx),
+		{error, Msg, _AbortedTx} ->
 			exec(Tail, lists:append(Acc, [{error, Msg}]), undefined);
 		Res ->
 			exec(Tail, lists:append(Acc, [Res]), Tx)
@@ -108,6 +107,8 @@ commit_transaction(Res, Tx) ->
 	case CommitRes of
 		{ok, _CT} ->
 			Res;
+    {error, Reason} ->
+      {error, Reason};
 		_Else ->
 			{error, CommitRes}
 	end.
@@ -118,6 +119,8 @@ abort_transaction(Res, Tx) ->
 	case AbortRes of
 		ok ->
 			Res;
+    {error, Reason} ->
+      {error, Reason};
 		_Else ->
 			{error, AbortRes}
 	end.
@@ -157,9 +160,13 @@ exec(Query, undefined) ->
 		Else ->
 			commit_transaction(Else, Tx)
 	catch
-		Reason ->
+		_:Exception ->
+      Error = antidote_handler:handleUpdateError(Exception),
       abort_transaction(ignore, Tx),
-			{error, Reason, Tx}
+			{error, Error, Tx}
+		%Reason ->
+    %  abort_transaction(ignore, Tx),
+    %  {error, Reason, Tx}
 	end;
 exec(Query, PassedTx) ->
   try
@@ -167,9 +174,13 @@ exec(Query, PassedTx) ->
   of
 		Res -> Res
   catch
-		Reason ->
+		_:Exception ->
+      Error = antidote_handler:handleUpdateError(Exception),
 			abort_transaction(ignore, PassedTx),
-			{error, Reason, PassedTx}
+			{error, Error, PassedTx}
+    %Reason ->
+    %  abort_transaction(ignore, PassedTx),
+    %  {error, Reason, PassedTx}
   end.
 
 execute(?SHOW_CLAUSE(?TABLES_TOKEN), Tx) ->
@@ -241,10 +252,10 @@ eval_status(Query, Status) ->
 		{error, Msg} ->
 			%io:fwrite("[Err] ~p: ~p~n", [AQuery, Msg]),
 			{error, Msg};
-		{badrpc, Msg} ->
-			{_Error, Desc} = antidote_handler:handleBadRpc(Msg),
-			%io:fwrite("[Err] ~p: ~p~n", [Error, Desc]),
-			{error, Desc};
+		%{badrpc, Msg} ->
+		%	{_Error, Desc} = antidote_handler:handleBadRpc(Msg),
+		%	%io:fwrite("[Err] ~p: ~p~n", [Error, Desc]),
+		%	{error, Desc};
 		Msg ->
 			%io:fwrite("[????] ~p: ~p~n", [AQuery, Msg]),
 			Msg
