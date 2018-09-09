@@ -96,7 +96,7 @@ start_transaction(Snapshot, Props) ->
 -spec commit_transaction(txid()) -> {ok, vectorclock()} | {error, reason()}.
 commit_transaction(TxId) ->
   try
-    %Res = call(commit_transaction, [TxId]),
+    %call(commit_transaction, [TxId])
     antidote:commit_transaction(TxId)
   of
     Res -> Res
@@ -110,7 +110,7 @@ commit_transaction(TxId) ->
 -spec abort_transaction(txid()) -> {ok, vectorclock()} | {error, reason()}.
 abort_transaction(TxId) ->
   try
-    %Res = call(abort_transaction, [TxId]),
+    %call(abort_transaction, [TxId])
     antidote:abort_transaction(TxId)
   of
     Res -> Res
@@ -130,16 +130,8 @@ read_objects(Object, Ref) ->
 
 -spec update_objects(bound_objects(), txid()) -> ok | {error, reason()}.
 update_objects(Objects, TxId) when is_list(Objects) ->
-  %try
-    %call(update_objects, [Objects, TxId])
-    antidote:update_objects(Objects, TxId);
-  %of
-  %  Response -> Response
-  %catch
-  %  Reason ->
-      %throw("An error occurred while updating an object")
-  %    {error, Reason}
-  %end;
+  %call(update_objects, [Objects, TxId]);
+  antidote:update_objects(Objects, TxId);
 update_objects(Object, Ref) ->
   update_objects([Object], Ref).
 

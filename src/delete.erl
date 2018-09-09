@@ -42,11 +42,14 @@ delete_cascade(Key, Table, Tables, TxId) ->
   case length(Data) of
     0 -> [];
     1 -> [];
-    _Else -> delete_cascade_dependants(Key, Table, Tables, TxId)
+    _Else ->
+      [?T_COL(PkName, PkAQLType, PkConst)] = column:s_primary_key(Table),
+      RawKey = element:get(PkName, types:to_crdt(PkAQLType, PkConst), Data, Table),
+      delete_cascade_dependants({Key, RawKey}, Table, Tables, TxId)
   end.
 
-delete_cascade_dependants(Key, Table, Tables, TxId) ->
-  Dependants = cascade_dependants(Key, Table, Tables, TxId),
+delete_cascade_dependants({Key, RawKey}, Table, Tables, TxId) ->
+  Dependants = cascade_dependants({Key, RawKey}, Table, Tables, TxId),
   DeleteUpdates = lists:foldl(fun({TName, Keys}, AccUpds) ->
     DepTable = table:lookup(TName, Tables),
     lists:foldl(fun(K, AccUpds2) ->
@@ -65,59 +68,73 @@ cascade_dependants(Key, Table, Tables, TxId) ->
 
 cascade_dependants(Key, Table, AllTables, [{_TName, Table} | Tables], TxId, Acc) ->
   cascade_dependants(Key, Table, AllTables, Tables, TxId, Acc);
-cascade_dependants(Key, Table, AllTables, [{{T1TName, _}, Table2} | Tables], TxId, Acc) ->
+cascade_dependants({Key, RawKey}, Table, AllTables, [{{T1TName, _}, Table2} | Tables], TxId, Acc) ->
   TName = table:name(Table),
   Fks = table:shadow_columns(Table2),
-  Refs = fetch_cascade(Key, TName, T1TName, AllTables, Fks, TxId, []),
+  Refs = fetch_cascade({Key, RawKey}, TName, T1TName, AllTables, Fks, TxId, []),
   case Refs of
     error ->
       {PKey, _, _} = Key,
       ErrorMsg = ?REFINTEG_ERROR(TName, PKey),
       throw(lists:flatten(ErrorMsg));
     [] ->
-      cascade_dependants(Key, Table, AllTables, Tables, TxId, Acc);
+      cascade_dependants({Key, RawKey}, Table, AllTables, Tables, TxId, Acc);
     _Else ->
-      cascade_dependants(Key, Table, AllTables, Tables, TxId, lists:append(Acc, [{T1TName, Refs}]))
+      cascade_dependants({Key, RawKey}, Table, AllTables, Tables, TxId, lists:append(Acc, [{T1TName, Refs}]))
   end;
 cascade_dependants(_Key, _Table, _AccTables, [], _TxId, Acc) -> Acc.
 
-fetch_cascade(Key, TName, TDepName, Tables,
-  [?T_FK(Name, Type, TName, _Attr, ?CASCADE_TOKEN) | Fks], TxId, Acc)
+fetch_cascade({Key, RawKey}, TName, TDepName, Tables,
+  [?T_FK(Name, _Type, TName, _Attr, ?CASCADE_TOKEN) | Fks], TxId, Acc)
   when length(Name) == 1 ->
-  {PK, _, _} = Key,
-  Keys = where:scan(TDepName, ?PARSER_WILDCARD, TxId),
+  %{PK, _, _} = Key,
+  %Keys = where:scan(TDepName, ?PARSER_WILDCARD, TxId),
+  [{TDepName, DepAttr}] = Name,
   DepTable = table:lookup(TDepName, Tables),
-  FilterDependants = lists:filter(fun(K) ->
-    {ok, [Record]} = antidote_handler:read_objects(K, TxId),
-    {RefValue, _RefVersion} = element:get(Name, types:to_crdt(Type, ?IGNORE_OP), Record, DepTable),
-    case utils:to_atom(RefValue) of
-      PK -> element:is_visible(Record, TDepName, Tables, TxId);
-      _Else -> false
-    end
-  end, Keys),
+  [?T_COL(DepPkName, _, _)] = column:s_primary_key(DepTable),
 
-  case FilterDependants of
+  %FilterDependants = lists:filter(fun(K) ->
+  %  {ok, [Record]} = antidote_handler:read_objects(K, TxId),
+  %  {RefValue, _RefVersion} = element:get(Name, types:to_crdt(Type, ?IGNORE_OP), Record, DepTable),
+  %  case utils:to_atom(RefValue) of
+  %    PK -> element:is_visible(Record, TDepName, Tables, TxId);
+  %    _Else -> false
+  %  end
+  %end, Keys),
+  DepFilter = {TDepName, [DepPkName], [{DepAttr, ?PARSER_EQUALITY, RawKey}]},
+  {ok, DependantRows} = select:exec({DepTable, ignore}, DepFilter, TxId),
+
+  case DependantRows of
     [] ->
       fetch_cascade(Key, TName, TDepName, Tables, Fks, TxId, Acc);
     _Else ->
-      fetch_cascade(Key, TName, TDepName, Tables, Fks, TxId, lists:append(Acc, FilterDependants))
+      DependantKeys =
+        lists:map(fun([{_, DepRawValue}]) ->
+          element:create_key_from_table(DepRawValue, DepTable, TxId)
+        end, DependantRows),
+      fetch_cascade(Key, TName, TDepName, Tables, Fks, TxId, lists:append(Acc, DependantKeys))
   end;
-fetch_cascade(Key, TName, TDepName, Tables,
-  [?T_FK(Name, Type, TName, _Attr, ?RESTRICT_TOKEN) | FKs], TxId, Acc)
+fetch_cascade({Key, RawKey}, TName, TDepName, Tables,
+  [?T_FK(Name, _Type, TName, _Attr, ?RESTRICT_TOKEN) | FKs], TxId, Acc)
   when length(Name) == 1 ->
-  {PK, _, _} = Key,
-  Keys = where:scan(TDepName, ?PARSER_WILDCARD, TxId),
+  %{PK, _, _} = Key,
+  %Keys = where:scan(TDepName, ?PARSER_WILDCARD, TxId),
+  [{TDepName, DepAttr}] = Name,
   DepTable = table:lookup(TDepName, Tables),
-  FilterDependants = lists:dropwhile(fun(K) ->
-    {ok, [Record]} = antidote_handler:read_objects(K, TxId),
-    {RefValue, _RefVersion} = element:get(Name, types:to_crdt(Type, ?IGNORE_OP), Record, DepTable),
-    case utils:to_atom(RefValue) of
-      PK -> not element:is_visible(Record, TDepName, Tables, TxId);
-      _Else -> true
-    end
-  end, Keys),
+  [?T_COL(DepPkName, _, _)] = column:s_primary_key(DepTable),
 
-  case FilterDependants of
+  %FilterDependants = lists:dropwhile(fun(K) ->
+  %  {ok, [Record]} = antidote_handler:read_objects(K, TxId),
+  %  {RefValue, _RefVersion} = element:get(Name, types:to_crdt(Type, ?IGNORE_OP), Record, DepTable),
+  %  case utils:to_atom(RefValue) of
+  %    PK -> not element:is_visible(Record, TDepName, Tables, TxId);
+  %    _Else -> true
+  %  end
+  %end, Keys),
+  DepFilter = {TDepName, [DepPkName], [{DepAttr, ?PARSER_EQUALITY, RawKey}]},
+  {ok, DependantRows} = select:exec({DepTable, ignore}, DepFilter, TxId),
+
+  case DependantRows of
     [] ->
       fetch_cascade(Key, TName, TDepName, Tables, FKs, TxId, Acc);
     _Else ->

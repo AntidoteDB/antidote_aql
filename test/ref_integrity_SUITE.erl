@@ -110,7 +110,7 @@ dc_delete_wins(_Config) ->
 
 restrict_delete(_Config) ->
   {_, [{error, Msg1}], _} = tutils:aql("DELETE FROM TestRefA WHERE ID = 1"),
-  ?assertEqual(?DELETE_ERROR('TestRefB', '1'), Msg1),
+  ?assertEqual(?DELETE_ERROR('TestRefB', '2'), Msg1),
 
   %% Delete a key from TestRefC
   {ok, _, _Tx} = tutils:delete_by_key("TestRefC", "1"),
