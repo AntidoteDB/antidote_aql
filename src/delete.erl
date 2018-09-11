@@ -87,20 +87,9 @@ cascade_dependants(_Key, _Table, _AccTables, [], _TxId, Acc) -> Acc.
 fetch_cascade({Key, RawKey}, TName, TDepName, Tables,
   [?T_FK(Name, _Type, TName, _Attr, ?CASCADE_TOKEN) | Fks], TxId, Acc)
   when length(Name) == 1 ->
-  %{PK, _, _} = Key,
-  %Keys = where:scan(TDepName, ?PARSER_WILDCARD, TxId),
   [{TDepName, DepAttr}] = Name,
   DepTable = table:lookup(TDepName, Tables),
   [?T_COL(DepPkName, _, _)] = column:s_primary_key(DepTable),
-
-  %FilterDependants = lists:filter(fun(K) ->
-  %  {ok, [Record]} = antidote_handler:read_objects(K, TxId),
-  %  {RefValue, _RefVersion} = element:get(Name, types:to_crdt(Type, ?IGNORE_OP), Record, DepTable),
-  %  case utils:to_atom(RefValue) of
-  %    PK -> element:is_visible(Record, TDepName, Tables, TxId);
-  %    _Else -> false
-  %  end
-  %end, Keys),
   DepFilter = {TDepName, [DepPkName], [{DepAttr, ?PARSER_EQUALITY, RawKey}]},
   {ok, DependantRows} = select:exec({DepTable, ignore}, DepFilter, TxId),
 
@@ -117,20 +106,9 @@ fetch_cascade({Key, RawKey}, TName, TDepName, Tables,
 fetch_cascade({Key, RawKey}, TName, TDepName, Tables,
   [?T_FK(Name, _Type, TName, _Attr, ?RESTRICT_TOKEN) | FKs], TxId, Acc)
   when length(Name) == 1 ->
-  %{PK, _, _} = Key,
-  %Keys = where:scan(TDepName, ?PARSER_WILDCARD, TxId),
   [{TDepName, DepAttr}] = Name,
   DepTable = table:lookup(TDepName, Tables),
   [?T_COL(DepPkName, _, _)] = column:s_primary_key(DepTable),
-
-  %FilterDependants = lists:dropwhile(fun(K) ->
-  %  {ok, [Record]} = antidote_handler:read_objects(K, TxId),
-  %  {RefValue, _RefVersion} = element:get(Name, types:to_crdt(Type, ?IGNORE_OP), Record, DepTable),
-  %  case utils:to_atom(RefValue) of
-  %    PK -> not element:is_visible(Record, TDepName, Tables, TxId);
-  %    _Else -> true
-  %  end
-  %end, Keys),
   DepFilter = {TDepName, [DepPkName], [{DepAttr, ?PARSER_EQUALITY, RawKey}]},
   {ok, DependantRows} = select:exec({DepTable, ignore}, DepFilter, TxId),
 

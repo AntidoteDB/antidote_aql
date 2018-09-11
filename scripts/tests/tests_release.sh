@@ -28,6 +28,7 @@ function start_aql {
 ## Creating new tables into the database
 function create_db {	
 	echo "> Creating the database..."
+	ts=$(date +%s%N) #; my_command ; tt=$((($(date +%s%N) - $ts)/1000000)) ; echo "Time elapsed: $tt milliseconds"
 	array=("${!1}")
 	for k in $(seq 0 $((${#array[@]}-1))); do
 		#aql_func="Res = aqlparser:parse({str, \"${array[$k]}\"}, '\''$NODE_NAME'\'', $TX), io:format(\"~p~n~n\", [Res])"
@@ -37,11 +38,14 @@ function create_db {
 		QUERY=$(echo "${array[$k]}" | sed -r 's/[*]/\\*/g')
 		$AQL_REL/bin/env eval "Res = aql:query(\"$QUERY\"), io:format(\"~p~n~n\", [Res])"
 	done
+	tt=$((($(date +%s%N) - $ts)/1000000)) ; echo "Time elapsed: $tt milliseconds"
+	echo ""
 }
 
 ## Initializing the database state by creating new records
 function init_db {
 	echo "> Initializing the database..."
+	ts=$(date +%s%N)
 	array=("${!1}")
 	for k in $(seq 0 $((${#array[@]}-1))); do
 		#aql_func="Res = aqlparser:parse({str, \"${array[$k]}\"}, '\''$NODE_NAME'\'', $TX), io:format(\"~p~n~n\", [Res])"
@@ -51,6 +55,8 @@ function init_db {
 		QUERY=$(echo "${array[$k]}" | sed -r 's/[*]/\\*/g')
 		$AQL_REL/bin/env eval "Res = aql:query(\"$QUERY\"), io:format(\"~p~n~n\", [Res])"
 	done
+	tt=$((($(date +%s%N) - $ts)/1000000)) ; echo "Time elapsed: $tt milliseconds"
+	echo ""
 }
 
 ## Testing the implementation by issuing high-level queries to the database
@@ -80,8 +86,10 @@ function querying_db {
 		echo "Result:"
 		#aql_func=$(build_query_command "${queries[$k]}" "${expected[$k]}")
 		#RESULT=$($QUERY_SCRIPT "${queries[$k]}")
+		ts=$(date +%s%N)
 		QUERY=$(echo "${queries[$k]}" | sed -r 's/[*]/\\*/g')
 		$AQL_REL/bin/env eval "Res = aql:query(\"$QUERY\"), io:format(\"~p~n~n\", [Res])"
+		tt=$((($(date +%s%N) - $ts)/1000000)) ; echo "Time elapsed: $tt milliseconds"
 		#LEN=$((${#RESULT} - 2))
 		#IFS=',' read -ra result_split <<< "${RESULT:1:LEN}"
 		#if [ "${result_split[0]}" = "ok"]; then
@@ -94,6 +102,7 @@ function querying_db {
 		#cmd="$EXEC_CMD '$aql_func' -s erlang halt"
 		#echo $cmd
 		#eval $cmd
+		echo ""
 	done
 	unset IFS
 }

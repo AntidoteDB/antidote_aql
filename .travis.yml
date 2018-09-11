@@ -7,13 +7,13 @@ notifications:
     on_failure: always
 otp_release:
   - 19.0
-before_install:
-  - chmod +x dockerfiles/install_antidotedb.sh
+#before_install:
+#  - chmod +x dockerfiles/install_antidotedb.sh
 install:
-  - ./dockerfiles/install_antidotedb.sh
-  - make compile
-before_script:
-  - make antidote
+#  - ./dockerfiles/install_antidotedb.sh
+  - make release
+#before_script:
+#  - make antidote
 script:
   - make test
   - make ct
