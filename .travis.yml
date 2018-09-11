@@ -12,8 +12,8 @@ otp_release:
 install:
 #  - ./dockerfiles/install_antidotedb.sh
   - make release
-#before_script:
-#  - make antidote
+before_script:
+  - epmd -daemon
 script:
   - make test
   - make ct
