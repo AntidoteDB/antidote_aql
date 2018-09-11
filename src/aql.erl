@@ -35,6 +35,7 @@
 
 -export([start_shell/0]).
 -export([query/1, query/2]).
+-export([read_file/1, read_file/2]).
 
 -spec start() -> ok.
 start() ->
@@ -56,3 +57,11 @@ query(Query) ->
 -spec query(query(), term()) -> {ok, term(), term()} | {ok, term()}.
 query(Query, Transaction) ->
   aqlparser:parse({str, Query}, Transaction).
+
+-spec read_file(term()) -> {ok, term(), term()} | {ok, term()}.
+read_file(Filename) ->
+  aqlparser:parse({file, Filename}).
+
+-spec read_file(term(), term()) -> {ok, term(), term()} | {ok, term()}.
+read_file(Filename, Transaction) ->
+  aqlparser:parse({file, Filename}, Transaction).
