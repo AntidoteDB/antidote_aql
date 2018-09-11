@@ -11,7 +11,7 @@ AQL can be used through Docker (recommended), or directly through rebar3.
 
 To use AQL through Docker simply pull the image from Docker Hub
 [here](https://hub.docker.com/r/pedromslopes/aql/). If docker can't 
-pull the lastest version of the image, do it manually by:
+pull the latest version of the image, do it manually by:
 
 ```
     docker pull pedromslopes/aql:<latest-version-available>
@@ -20,11 +20,13 @@ pull the lastest version of the image, do it manually by:
 This image starts an AntidoteDB server 
 (uses [this](https://hub.docker.com/r/pedromslopes/antidotedb/) image) on
 background and runs an AQL instance of top.
+Strictly speaking, AQL and AntidoteDB represent a single system, where AQL communicates
+with AntidoteDB via local calls.
 
 This is the recommended way of running AQL, at least for single-client use.
 
 ### Rebar3
-This project can also be installed "manually" through rebar3. In order to do so,
+This project can also be installed "manually" through Rebar3. In order to do so,
 clone this repository and checkout this branch:
 
 ```
@@ -35,11 +37,10 @@ clone this repository and checkout this branch:
 Open a terminal in the project folder (`cd AQL`) and then compile the project:
 
 ```
-    $ make compile
+    $ make release
 ```
 
-Now, to run the client, you must have one (or more) running instances of AntidoteDB.
-To start in shell mode run one of the following commands:
+Now, to run the client, you may start in shell mode by running one of the following commands:
 
 ```
     $ make aqlshell
@@ -48,12 +49,14 @@ or
 ```
     $ make shell
 ```
-The last command starts a Rebar3 shell which in turn initializes an HTTP server for AQL in background.
+The first command starts a native AQL shell where you can issue AQL queries to the database. To see
+which queries you can use, read the section API bellow.
+The second command starts an Erlang shell where you can write native Erlang commands and call
+directly exported functions from the modules supported by the AQL application. Use this
+shell if you are aware of the AQL internal structure.
 
-You can also start in development mode with:
-```
-    $ make dev
-```
+Both commands start an HTTP server for communication with AQL in background. The
+server listens on the TCP port 3002.
 
 ## Getting started
 
@@ -61,7 +64,7 @@ AQL is an SQL-variant, designed to work with AntidoteDB API.
 
 ### Shell
 AQL provides a shell mode, which is the easiest way to use the
-client. In shell mode (command `make aqlshell`), you'll see a prompt like this:
+client. In AQL's shell mode (command `make aqlshell`), you'll see a prompt like this:
 ```
     AQL>
 ```
@@ -70,23 +73,31 @@ Use the prompt to input AQL statements.
 ### API
 
 The AQL API is pretty straightforward. There is a main module called
-`aqlparser` with a method `parse`, which takes a tuple as well as the AntidoteDB node long name. The two options
-available are:
-```Erlang
-{str, AQLCommand}
-```
-Which parses the `AQLCommand` and outputs the result.
-```Erlang
-{file, AQLFile}
-```
-Which takes a path to a file (no specific format) and parses its content as an
-AQL command.
+`aql` with two methods, the `query` and `read_file`.
+The `query` method has two headers:
+* `query(Query)` receives a query and outputs the result;
+* `query(Query, Transaction)` receives a query and a transaction descriptor and outputs the
+final results.
 
-For instance, to show all existing tables in the database through the API, use:
+Similarly, the `read_file` supports two headers as well:
+* `read_file(Filename)` receives a file name, reads and parses a file with AQL statements and returns the result of applying the statements on the database;
+* `read_file(Filename, Transaction)` receives a file name and a transaction descriptor reads and parses a file 
+
+Therefore, exist two ways of performing a query in AQL. For instance, consider a query to show
+all existing tables in the database, While using the Erlang shell mode (activated through
+the `make shell` command) this query can me submitted as the following:
 ```Erlang
-aqlparser:parse({str, "SHOW TABLES"}, 'antidote@127.0.0.1').
+aql:query("SHOW TABLES").
 ```
-This API can only be used on the second shell alternative (the Rebar3 shell mode) and on the development mode.
+or
+```Erlang
+aql:query("SHOW TABLES;", TxId).
+```
+This latter example assumes you started a transaction previously (see next section).
+While using the native AQL shell (through the `make aqlshell`), this query is submitted on its raw form, like the following:
+```
+    AQL> SHOW TABLES;
+```
 
 ## AQL Docs
 
@@ -119,13 +130,13 @@ Creates a new table. If the table already exists the new table will overwrite it
  (any concurrent conflicts will be resolved with a *Last Writer Wins* CRP).
 
 ```SQL
-CREATE AW TABLE Student (
+CREATE UPDATE-WINS TABLE Student (
 	StudentID INT PRIMARY KEY,
 	Name VARCHAR,
 	Age INT DEFAULT 18,
 	YearsLeft COUNTER_INT CHECK (YearsLeft > 0),
 	Passport_id INTEGER FOREIGN KEY UPDATE-WINS REFERENCES Passport(id)
-);
+) PARTITION ON (Age);
 ```
 
 #### Primary keys
@@ -170,13 +181,24 @@ the parent column name (e.g. `id`). All foreign keys must point to columns with 
 unique constraint, which is only guaranteed in primary keys.
 
 Additionally you can define a row's behaviour upon a parent deletion through the notation
-`ON DELETE CASCADE`, which tells a record to be removed if its parent row is deleted.
+`ON DELETE CASCADE`, which tells a row to be removed if its parent row is deleted.
 The absence of this notation implies that the parent cannot be deleted if one or more rows point to it.
 
 Update-wins (`UPDATE-WINS`) and Delete-wins (`DELETE-WINS`) are conflict resolution policies used
 to resolve any referential integrity related conflicts generated by concurrent operations.
-Update-wins will revive all records (deleted) involved in the conflict, while
-Delete-wins deletes all involved records in case of conflict.
+Update-wins will revive all rows (deleted) involved in the conflict, while
+Delete-wins deletes all involved rows in case of conflict. If none of these policies is specified,
+the table assumes strong semantics that preclude parent rows to be deleted concurrently with the
+update of child rows.
+
+#### Partitioning
+
+The CREATE TABLE statement allows to partition a table by column, which is most known as horizontal partitioning.
+Hence, to partition a table use:
+```SQL
+PARTITION ON (column_name);
+```
+, which indicates that the table will split its rows by the column `column_name`.
 
 ### SELECT
 
@@ -186,8 +208,8 @@ a read operation in the database engine (AntidoteDB).
 SELECT * FROM Student WHERE StudentID = 20;
 ```
 
-This operation supports conjunctions (`AND`) and disjunctions (`OR`), and parenthesis to group sub queries.
-A sub query may be a sequence of one or more comparisons on the form:
+This operation supports conjunctions (`AND`) and disjunctions (`OR`), and parenthesis to group sub-queries.
+A sub-query may be a sequence of one or more comparisons on the form:
 ```SQL
 column_name [ = | <> | < | <= | > | >= ] value
 ```
@@ -250,7 +272,7 @@ query_1;
 query_2;
 ...
 query_n;
-[ COMMIT | ABORT ] TRANSACTION;
+[ COMMIT | ROLLBACK ] TRANSACTION;
 ```
 
 At the end, the transaction can be committed or aborted.
