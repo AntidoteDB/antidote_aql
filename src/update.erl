@@ -25,7 +25,7 @@ exec({Table, Tables}, Props, TxId) ->
 
   Keys = where:scan(TName, WhereClause, TxId),
   VisibleKeys = lists:foldl(fun(Key, AccKeys) ->
-    {ok, [Record]} = antidote:read_objects(Key, TxId),
+    {ok, [Record]} = antidote_handler:read_objects(Key, TxId),
     case element:is_visible(Record, TName, Tables, TxId) of
       true -> AccKeys ++ [{Key, Record}];
       false -> AccKeys
@@ -37,15 +37,8 @@ exec({Table, Tables}, Props, TxId) ->
     case MapUpdates of
       [] -> ok;
       _Else ->
-        antidote:update_objects(MapUpdates, TxId)
+        antidote_handler:update_objects(MapUpdates, TxId)
     end,
-
-%%    case UpdateMsg of
-%%        ok ->
-%%            lists:foreach(fun(Key) -> touch_cascade(Key, Table, Tables, TxId) end, NewKeys),
-%%            ok;
-%%        Msg -> Msg
-%%    end.
   UpdateMsg.
 
 table({TName, _Set, _Where}) -> TName.
@@ -96,7 +89,6 @@ resolve_op(Column, AQL, Op, Value, BoundObj, TName, Tables, _TxId) ->
   Constraint = column:constraint(Column),
   case CType of
     AQL ->
-      %FKUpdate = resolve_foreign_key({CName, CType, Constraint}, Value, TName, Tables, TxId),
       Update = crdt:field_map_op(CName, types:to_crdt(AQL, Constraint), Op(Value)),
       NewKey = set_partition(CName, Value, BoundObj, table:lookup(TName, Tables)),
       {ok, NewKey, [Update]};
@@ -116,26 +108,6 @@ resolve_op_counter(Column, Forward, Reverse) ->
     _Else ->
       Forward
   end.
-
-%%resolve_foreign_key({CName, _CType, ?FOREIGN_KEY(_) = FK}, FkValue, TName, Tables, TxId) ->
-%%    ?FOREIGN_KEY({FkTName, _, _}) = FK,
-%%
-%%    FkTable = table:lookup(FkTName, Tables),
-%%    Data = element:read_record(FkValue, FkTable, TxId),
-%%    case element:is_visible(Data, FkTName, Tables, TxId) of
-%%        false ->
-%%            element:throwNoSuchRow(FkValue, FkTName);
-%%        _Else ->
-%%            ParentVersion = proplists:get_value(element:version_key(), Data),
-%%            SendValue = {FkValue, ParentVersion},
-%%
-%%            OpKey = ?MAP_KEY([{TName, CName}], types:to_crdt(?AQL_VARCHAR, ?IGNORE_OP)),
-%%            OpVal = types:to_insert_op(?AQL_VARCHAR, ?IGNORE_OP, SendValue),
-%%
-%%            [{OpKey, OpVal}]
-%%    end;
-%%resolve_foreign_key(_, _, _, _, _) ->
-%%    [].
 
 set_partition(Col, Value, BoundObj, Table) ->
   case table:partition_col(Table) of
@@ -161,10 +133,6 @@ resolve_fail(CName, CType) ->
   Msg = io_lib:format("Cannot assign to column ~p of type ~p", [CName, CType]),
   {err, lists:flatten(Msg)}.
 
-%%touch_cascade(Key, Table, Tables, TxId) ->
-%%  {ok, [Record]} = antidote:read_objects(Key, TxId),
-%%  insert:touch_cascade(record, Record, Table, Tables, TxId).
-
 generate_updates(Acc, [{Key, Record} | Keys], Table, Tables, SetClause, TxId) ->
   StateOp = crdt:field_map_op(element:st_key(), crdt:assign_lww(ipa:insert())),
 
@@ -175,8 +143,6 @@ generate_updates(Acc, [{Key, Record} | Keys], Table, Tables, SetClause, TxId) ->
       Key ->
         FieldUpdates1;
       _Else ->
-        %%FieldUpdates2 = lists:append(FieldUpdates1, [version_op(Record, Table)]),
-
         lists:foldl(fun({{ColName, ColType}, Value}, UpdAcc) ->
           case element:get_by_name(ColName, FieldUpdates1) of
             undefined ->
@@ -195,11 +161,6 @@ generate_updates(Acc, [{Key, Record} | Keys], Table, Tables, SetClause, TxId) ->
 generate_updates(Acc, [], _Table, _Tables, _SetClause, _TxId) ->
   Acc.
 
-%%version_op(Record, Table) ->
-%%  {VrsCName, VrsCType} = element:version_key(),
-%%  Version = element:get(VrsCName, VrsCType, Record, Table),
-%%  crdt:field_map_op(element:version_key(), crdt:assign_lww(Version)).
-
 %%====================================================================
 %% Eunit tests
 %%====================================================================
@@ -209,39 +170,47 @@ create_column_aux(CName, CType) ->
   ?T_COL(CName, CType, ?NO_CONSTRAINT).
 
 resolve_op_varchar_test() ->
+  Table = ?T_TABLE(table, undef, [], [], [], []),
+  Tables = [{{table, antidote_crdt_register_lww}, Table}],
   CName = col1,
   CType = ?AQL_VARCHAR,
   Column = create_column_aux(CName, CType),
   Value = "Value",
-  Expected = {ok, [crdt:field_map_op(CName, ?CRDT_VARCHAR, crdt:assign_lww(Value))]},
-  Actual = resolve_op({k, t, b}, Column, ?ASSIGN_OP("SomeChars"), Value, table, [], ?IGNORE_OP),
+  Expected = {ok, {k, t, b}, [crdt:field_map_op(CName, ?CRDT_VARCHAR, crdt:assign_lww(Value))]},
+  Actual = resolve_op({k, t, b}, Column, ?ASSIGN_OP("SomeChars"), Value, table, Tables, ?IGNORE_OP),
   ?assertEqual(Expected, Actual).
 
 resolve_op_integer_test() ->
+  Table = ?T_TABLE(table, undef, [], [], [], []),
+  Tables = [{{table, antidote_crdt_register_lww}, Table}],
   CName = col1,
   CType = ?AQL_INTEGER,
   Column = create_column_aux(CName, CType),
   Value = 2,
-  Expected = {ok, crdt:field_map_op(CName, ?CRDT_INTEGER, crdt:set_integer(Value))},
-  Actual = resolve_op({k, t, b}, Column, ?ASSIGN_OP(2), Value, table, [], ?IGNORE_OP),
+  Expected = {ok, {k, t, b}, [crdt:field_map_op(CName, ?CRDT_INTEGER, crdt:set_integer(Value))]},
+  Actual = resolve_op({k, t, b}, Column, ?ASSIGN_OP(2), Value, table, Tables, ?IGNORE_OP),
   ?assertEqual(Expected, Actual).
 
 resolve_op_counter_increment_test() ->
+  Table = ?T_TABLE(table, undef, [], [], [], []),
+  Tables = [{{table, antidote_crdt_register_lww}, Table}],
   CName = col1,
   CType = ?AQL_COUNTER_INT,
   Column = create_column_aux(CName, CType),
   Value = 2,
-  Expected = {ok, crdt:field_map_op(CName, ?CRDT_COUNTER_INT, crdt:increment_counter(Value))},
-  Actual = resolve_op({k, t, b}, Column, ?INCREMENT_OP(3), Value, table, [], ?IGNORE_OP),
+  Expected = {ok, {k, t, b}, [crdt:field_map_op(CName, ?CRDT_COUNTER_INT, crdt:increment_counter(Value))]},
+  Actual = resolve_op({k, t, b}, Column, ?INCREMENT_OP(3), Value, table, Tables, ?IGNORE_OP),
   ?assertEqual(Expected, Actual).
 
 resolve_op_counter_decrement_test() ->
+  Table = ?T_TABLE(table, undef, [], [], [], []),
+  Tables = [{{table, antidote_crdt_register_lww}, Table}],
   CName = col1,
   CType = ?AQL_COUNTER_INT,
   Column = create_column_aux(CName, CType),
   Value = 2,
-  Expected = {ok, crdt:field_map_op(CName, ?CRDT_COUNTER_INT, crdt:decrement_counter(Value))},
-  Actual = resolve_op({k, t, b}, Column, ?DECREMENT_OP(3), Value, table, [], ?IGNORE_OP),
+  Expected = {ok, {k, t, b}, [crdt:field_map_op(CName, ?CRDT_COUNTER_INT, crdt:decrement_counter(Value))]},
+  Actual = resolve_op({k, t, b}, Column, ?DECREMENT_OP(3), Value, table, Tables, ?IGNORE_OP),
   ?assertEqual(Expected, Actual).
 
 -endif.

@@ -38,7 +38,7 @@ exec({Table, _Tables}, Select, TxId) ->
       Condition = where(Select),
       NewCondition = send_offset(Condition, Cols, []),
       Filter = prepare_filter(Table, ResProjection, NewCondition),
-      case antidote:query_objects(Filter, TxId) of
+      case antidote_handler:query_objects(Filter, TxId) of
         {ok, Result} ->
           FinalResult = apply_offset(Result, Cols, []),
           {ok, FinalResult};
@@ -151,25 +151,8 @@ prepare_filter(Table, Projection, Conditions) ->
 visibility_condition(Table) ->
 	Policy = table:policy(Table),
 	Rule = crp:get_rule(Policy),
-%%	ShCols = lists:foldl(fun(?T_FK(FkName, _, FkTable, _, _), Acc) ->
-%%		case length(FkName) of
-%%			1 -> lists:append(Acc, [[?COLUMN(FkName), FkTable]]);
-%%			_ -> Acc
-%%		end
-%%	end, [], table:shadow_columns(Table)),
 	Func = ?FUNCTION(assert_visibility, [?COLUMN('#st'), Rule, []]),
 	[{Func, ?PARSER_EQUALITY, true}].
-
-filter_visible(Results, TName, Tables, TxId) ->
-  filter_visible(Results, TName, Tables, TxId, []).
-
-filter_visible([Result | Results], TName, Tables, TxId, Acc) ->
-  case element:is_visible(Result, TName, Tables, TxId) of
-    true -> filter_visible(Results, TName, Tables, TxId, lists:append(Acc, [Result]));
-    _Else -> filter_visible(Results, TName, Tables, TxId, Acc)
-  end;
-filter_visible([], _TName, _Tables, _TxId, Acc) ->
-  Acc.
 
 % groups of elements
 apply_offset([Result | Results], Cols, Acc) when is_list(Result) ->
@@ -193,48 +176,6 @@ apply_offset([{{Key, Type}, V} | Values], Cols, Acc) ->
       apply_offset(Values, Cols, NewAcc)
   end;
 apply_offset([], _Cols, Acc) -> Acc.
-
-
-project(Projection, [[{{'#st', _T}, _V}] | Results], Acc, Cols) ->
-  project(Projection, Results, Acc, Cols);
-project(Projection, [[{{'#version', _T}, _V}] | Results], Acc, Cols) ->
-  project(Projection, Results, Acc, Cols);
-project(Projection, [[] | Results], Acc, Cols) ->
-  project(Projection, Results, Acc, Cols);
-project(Projection, [Result | Results], Acc, Cols) ->
-  ProjRes = project_row(Projection, Result, [], Cols),
-  project(Projection, Results, Acc ++ [ProjRes], Cols);
-project(_Projection, [], Acc, _Cols) ->
-  Acc.
-
-% if key is list (i.e. shadow col), ignore
-project_row(Projection, [{{Key, _T}, _V} | Data], Acc, Cols) when is_list(Key) ->
-  project_row(Projection, Data, Acc, Cols);
-% if wildcard, accumulate
-project_row(?PARSER_WILDCARD, [ColData | Data], Acc, Cols) ->
-  project_row(?PARSER_WILDCARD, Data, Acc ++ [ColData], Cols);
-% if wildcard and no more data to project, return data accumulated
-project_row(?PARSER_WILDCARD, [], Acc, _Cols) ->
-  Acc;
-project_row([ColName | Tail], Result, Acc, Cols) ->
-  {{Key, _Type}, Value} = get_value(ColName, Result),
-  Col = column:s_get(Cols, Key),
-  Type = column:type(Col),
-  NewResult = proplists:delete(ColName, Result),
-  NewAcc = Acc ++ [{{Key, Type}, Value}],
-  project_row(Tail, NewResult, NewAcc, Cols);
-project_row([], _Result, Acc, _Cols) ->
-  Acc.
-
-get_value(Key, [{{Name, _Type}, _Value} = H | T]) ->
-  case Key of
-    Name ->
-      H;
-    _Else ->
-      get_value(Key, T)
-  end;
-get_value(_Key, []) ->
-  undefined.
 
 group_conjunctions(?PARSER_WILDCARD) ->
   [];

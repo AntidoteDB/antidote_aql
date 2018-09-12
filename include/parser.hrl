@@ -73,12 +73,8 @@
 -define(CHECK_TOKEN, check).
 -define(CHECK_KEY(TokenChars), {?CHECK_TOKEN, TokenChars}).
 -define(COMPARATOR_KEY(Comparator), {comparator, Comparator}).
-%-define(GREATER_TOKEN, greater).
-%-define(GREATER_KEY, ?COMPARATOR_KEY(?GREATER_TOKEN)).
 -define(GREATER_KEY, ?COMPARATOR_KEY(?PARSER_GREATER)).
 -define(GREATEREQ_KEY, ?COMPARATOR_KEY(?PARSER_GEQ)).
-%-define(SMALLER_TOKEN, smaller).
-%-define(SMALLER_KEY, ?COMPARATOR_KEY(?SMALLER_TOKEN)).
 -define(LESSER_KEY, ?COMPARATOR_KEY(?PARSER_LESSER)).
 -define(LESSEREQ_KEY, ?COMPARATOR_KEY(?PARSER_LEQ)).
 %% default value
@@ -88,10 +84,13 @@
 -define(ATTR_TYPE_TOKEN, attribute_type).
 -define(ATTR_KEY(AttrType), {?ATTR_TYPE_TOKEN, AttrType}).
 %% table policies
--define(TABLE_POLICY_TOKEN, table_policy).
--define(TABLE_POLICY_KEY(Crp), {?TABLE_POLICY_TOKEN, Crp}).
--define(DEP_POLICY_TOKEN, dep_policy).
--define(DEP_POLICY_KEY(Crp), {?DEP_POLICY_TOKEN, Crp}).
+%-define(TABLE_POLICY_TOKEN, table_policy).
+%-define(TABLE_POLICY_KEY(Crp), {?TABLE_POLICY_TOKEN, Crp}).
+%-define(DEP_POLICY_TOKEN, dep_policy).
+%-define(DEP_POLICY_KEY(Crp), {?DEP_POLICY_TOKEN, Crp}).
+-define(CRP_TOKEN, crp).
+-define(CRP_KEY(Crp), {?CRP_TOKEN, Crp}).
+-define(NO_CONCURRENCY_KEY, {?CRP_TOKEN, noconcurrency}).
 
 % update
 -define(UPDATE_TOKEN, update).
@@ -118,9 +117,9 @@
 % commit transaction
 -define(COMMIT_TOKEN, commit).
 -define(COMMIT_CLAUSE(TokenChars), {?COMMIT_TOKEN, TokenChars}).
-% abort transaction
--define(ABORT_TOKEN, abort).
--define(ABORT_CLAUSE(TokenChars), {?ABORT_TOKEN, TokenChars}).
+% rollback transaction
+-define(ROLLBACK_TOKEN, rollback).
+-define(ROLLBACK_CLAUSE(TokenChars), {?ROLLBACK_TOKEN, TokenChars}).
 % transaction
 -define(TRANSACTION_TOKEN, transaction).
 -define(TRANSACTION_KEY(TokenChars), {?TRANSACTION_TOKEN, TokenChars}).

@@ -1,12 +1,12 @@
-REBAR = $(shell pwd)/rebar3
+AQL_HOME = $(shell pwd)
+REBAR = $(AQL_HOME)/rebar3
 AQL = ./_build/default/lib/aql
-AQL_NODE_NAME = 'aql@127.0.0.1'
-AQL_NODE_DEV_NAME = 'aqldev@127.0.0.1'
+NODE_NAME = 'aql@127.0.0.1'
+NODE_DEV_NAME = 'aqldev@127.0.0.1'
 COOKIE = antidote
-MAIN = "aqlparser:start_shell()"
+MAIN = "aql:start_shell()"
 EBIN = ./_build/default/lib/*/ebin
 TEST_LOGS = _build/test/logs
-ANTIDOTE = antidote/_build/default/rel/antidote
 SCRIPTS = ./scripts
 
 .PHONY: all test clean antidote
@@ -35,12 +35,19 @@ compile:
 	$(REBAR) compile
 	mkdir -p _build/test/logs
 
+clean:
+	$(REBAR) clean
+
+release:
+	$(REBAR) release
+
+relclean:
+	rm -rf _build/default/rel
+
 test:
 	$(REBAR) eunit --cover
 	$(REBAR) cover
 
-ct: compile
-	ct_run -pa $(EBIN) -logdir $(TEST_LOGS) -dir test -include include -erl_flags -name $(AQL_NODE_NAME) -setcookie $(COOKIE)
-
-antidote:
-	./$(ANTIDOTE)/bin/env start && sleep 10 && tail -f $(ANTIDOTE)/log/console.log &
+ct:
+	chmod +x $(SCRIPTS)/run_ct.sh; sync
+	$(SCRIPTS)/run_ct.sh $(TEST_LOGS) $(NODE_NAME) $(COOKIE)

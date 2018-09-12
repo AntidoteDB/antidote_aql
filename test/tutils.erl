@@ -2,7 +2,7 @@
 
 -module(tutils).
 
--define(TEST_SERVER, 'antidote@127.0.0.1').
+%-define(TEST_SERVER, 'antidote@127.0.0.1').
 
 -include_lib("eunit/include/eunit.hrl").
 -include("types.hrl").
@@ -28,18 +28,18 @@ aql(Aql) ->
 
 aql(Aql, Tx) ->
   ct:log(info, lists:concat(["Query: ", Aql])),
-  aql:query(Aql, ?TEST_SERVER, Tx).
+  aql:query(Aql, Tx).
 
 create_single_table(Name, TablePolicy) ->
   Query = ["CREATE ", TablePolicy, " TABLE ", Name, " (ID INT PRIMARY KEY)"],
   aql(lists:concat(Query)).
 
 create_fk_table(Name, Pointer) ->
-  create_fk_table(Name, Pointer, "ID", "AW", "UPDATE-WINS").
+  create_fk_table(Name, Pointer, "ID", "UPDATE-WINS", "UPDATE-WINS").
 create_fk_table(Name, Pointer, TablePolicy, FK_Policy) ->
   create_fk_table(Name, Pointer, "ID", TablePolicy, FK_Policy).
 create_dc_fk_table(Name, Pointer) ->
-  create_dc_fk_table(Name, Pointer, "ID", "AW", "UPDATE-WINS").
+  create_dc_fk_table(Name, Pointer, "ID", "UPDATE-WINS", "UPDATE-WINS").
 create_dc_fk_table(Name, Pointer, TablePolicy, FK_Policy) ->
   create_dc_fk_table(Name, Pointer, "ID", TablePolicy, FK_Policy).
 
@@ -70,11 +70,11 @@ delete_by_key(TName, Key) ->
 
 assertState(State, TName, Key) ->
   AQLKey = element:create_key(Key, TName),
-  {ok, TxId} = antidote:start_transaction(?TEST_SERVER),
+  {ok, TxId} = antidote_handler:start_transaction(),
   Tables = table:read_tables(TxId),
-  {ok, [Res]} = antidote:read_objects(AQLKey, TxId),
+  {ok, [Res]} = antidote_handler:read_objects(AQLKey, TxId),
   Actual = element:is_visible(Res, TName, Tables, TxId),
-  antidote:commit_transaction(TxId),
+  antidote_handler:commit_transaction(TxId),
   %ct:log(info, lists:concat(["State: ", State])),
   %ct:log(info, lists:concat(["Actual: ", Actual])),
   ?assertEqual(State, Actual).
@@ -82,10 +82,10 @@ assertState(State, TName, Key) ->
 print_state(TName, Key) ->
   TNameAtom = utils:to_atom(TName),
   AQLKey = element:create_key(Key, TNameAtom),
-  {ok, TxId} = antidote:start_transaction(?TEST_SERVER),
+  {ok, TxId} = antidote_handler:start_transaction(),
   Tables = table:read_tables(TxId),
   Table = table:lookup(TName, Tables),
-  {ok, [Data]} = antidote:read_objects(AQLKey, TxId),
+  {ok, [Data]} = antidote_handler:read_objects(AQLKey, TxId),
   io:fwrite("Tags for ~p(~p)~nData: ~p~n", [TNameAtom, Key, Data]),
   lists:foreach(fun(?T_FK(FkName, FkType, _, _, _)) ->
     FkValue = element:get(foreign_keys:to_cname(FkName), types:to_crdt(FkType, ignore), Data, Table),
@@ -93,34 +93,34 @@ print_state(TName, Key) ->
     io:fwrite("Tag(~p): ~p -> ~p~n", [FkValue, index:tag_name(TNameAtom, FkName), Tag])
   end, table:shadow_columns(Table)),
   io:fwrite("Final: ~p~n", [element:is_visible(Data, TName, Tables, TxId)]),
-antidote:commit_transaction(TxId).
+  antidote_handler:commit_transaction(TxId).
 
 select_all(TName) ->
   aql(lists:concat(["SELECT * FROM ", TName])).
 
 assert_table_policy(Expected, TName) ->
   TNameAtom = utils:to_atom(TName),
-  {ok, TxId} = antidote:start_transaction(?TEST_SERVER),
+  {ok, TxId} = antidote_handler:start_transaction(),
   Table = table:lookup(TNameAtom, TxId),
-  antidote:commit_transaction(TxId),
+  antidote_handler:commit_transaction(TxId),
   ?assertEqual(Expected, table:policy(Table)).
 
 assertExists(TName, Key) ->
   assertExists(element:create_key(Key, TName)).
 
 assertExists(Key) ->
-  {ok, Ref} = antidote:start_transaction(?TEST_SERVER),
-  {ok, [Res]} = antidote:read_objects(Key, Ref),
-  antidote:commit_transaction(Ref),
+  {ok, Ref} = antidote_handler:start_transaction(),
+  {ok, [Res]} = antidote_handler:read_objects(Key, Ref),
+  antidote_handler:commit_transaction(Ref),
   ?assertNotEqual([], Res).
 
 assertNotExists(TName, Key) ->
   assertNotExists(element:create_key(Key, TName)).
 
 assertNotExists(Key) ->
-  {ok, Ref} = antidote:start_transaction(?TEST_SERVER),
-  {ok, [Res]} = antidote:read_objects(Key, Ref),
-  antidote:commit_transaction(Ref),
+  {ok, Ref} = antidote_handler:start_transaction(),
+  {ok, [Res]} = antidote_handler:read_objects(Key, Ref),
+  antidote_handler:commit_transaction(Ref),
   ?assertEqual([], Res).
 
 read_keys(Table, IdName, ID, Keys, Tx) ->
@@ -139,15 +139,15 @@ read_keys(Table, ID, Keys) ->
   read_keys(Table, "ID", ID, Keys, undefined).
 
 read_keys(Keys) ->
-  {ok, Ref} = antidote:start_transaction(?TEST_SERVER),
-  {ok, Res} = antidote:read_objects(Keys, Ref),
-  antidote:commit_transaction(Ref),
+  {ok, Ref} = antidote_handler:start_transaction(),
+  {ok, Res} = antidote_handler:read_objects(Keys, Ref),
+  antidote_handler:commit_transaction(Ref),
   Res.
 
 read_index(TName, IndexName) ->
-  {ok, Ref} = antidote:start_transaction(?TEST_SERVER),
+  {ok, Ref} = antidote_handler:start_transaction(),
   IndexData = index:s_keys_formatted(TName, IndexName, Ref),
-  antidote:commit_transaction(Ref),
+  antidote_handler:commit_transaction(Ref),
   IndexData.
 
 join_keys([Key | Keys], []) ->

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-if [ -z "$AQL_NAME" ]; then
-	export AQL_NAME='aql@127.0.0.1'
+if [ -z "$NODE_NAME" ]; then
+	export NODE_NAME='aql@127.0.0.1'
 fi
 
-./rebar3 shell --name=$AQL_NAME --setcookie=antidote
+_build/default/rel/aql/bin/env console

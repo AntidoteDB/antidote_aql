@@ -28,11 +28,11 @@
         three_levels/1]).
 
 init_per_suite(Config) ->
-  aql:start(),
+  %aql:start(),
   Config.
 
 end_per_suite(Config) ->
-  aql:stop(),
+  %aql:stop(),
   Config.
 
 init_per_testcase(_Case, Config) ->
@@ -73,8 +73,8 @@ create_query(TName, TTName, TableLevel, DepLevel) ->
 one_level(_Config) ->
   AWTName = "LAAw",
   RWTName = "LARw",
-  AWQuery = create_query(AWTName, "AW"),
-  RWQuery = create_query(RWTName, "RW"),
+  AWQuery = create_query(AWTName, "UPDATE-WINS"),
+  RWQuery = create_query(RWTName, "DELETE-WINS"),
   {ok, [], _Tx} = tutils:aql(lists:concat([AWQuery, RWQuery])),
   tutils:assert_table_policy(create_crp(?ADD_WINS), AWTName),
   tutils:assert_table_policy(create_crp(?REMOVE_WINS), RWTName).
@@ -87,12 +87,12 @@ two_levels(_Config) ->
   RwFrTName = "LBBRwFr",
   RwIrTName = "LBBRwIr",
   {ok, [], _Tx} = tutils:aql(lists:concat([
-    create_query(AwTName, "AW"),
-    create_query(RwTName, "RW"),
-    create_query(AwFrTName, AwTName, "AW", "UPDATE-WINS"),
-    create_query(AwIrTName, RwTName, "AW", "DELETE-WINS"),
-    create_query(RwFrTName, AwTName, "RW", "UPDATE-WINS"),
-    create_query(RwIrTName, RwTName, "RW", "DELETE-WINS")])),
+    create_query(AwTName, "UPDATE-WINS"),
+    create_query(RwTName, "DELETE-WINS"),
+    create_query(AwFrTName, AwTName, "UPDATE-WINS", "UPDATE-WINS"),
+    create_query(AwIrTName, RwTName, "UPDATE-WINS", "DELETE-WINS"),
+    create_query(RwFrTName, AwTName, "DELETE-WINS", "UPDATE-WINS"),
+    create_query(RwIrTName, RwTName, "DELETE-WINS", "DELETE-WINS")])),
   tutils:assert_table_policy(create_crp(?ADD_WINS, undefined, ?ADD_WINS), AwTName),
   tutils:assert_table_policy(create_crp(?REMOVE_WINS, undefined, ?REMOVE_WINS), RwTName),
   tutils:assert_table_policy(create_crp(?ADD_WINS, ?ADD_WINS), AwFrTName),
@@ -115,16 +115,16 @@ three_levels(_Config) ->
   AwFr2TName = "LCCAwFr",
   RwFr2TName = "LCCRwFr",
   {ok, [], _Tx} = tutils:aql(lists:concat([
-    create_query(AwTName, "AW"),
-    create_query(RwTName, "RW"),
-    create_query(AwFr1TName, RwTName, "AW", "UPDATE-WINS"),
-    create_query(AwIr1TName, AwTName, "AW", "DELETE-WINS"),
-    create_query(RwFr1TName, RwTName, "RW", "UPDATE-WINS"),
-    create_query(RwIr1TName, AwTName, "RW", "DELETE-WINS"),
-    create_query(AwIr2TName, [AwIr1TName, RwIr1TName], "AW", "DELETE-WINS"),
-    create_query(RwIr2TName, [AwIr1TName, RwIr1TName], "RW", "DELETE-WINS"),
-    create_query(AwFr2TName, [AwFr1TName, RwFr1TName], "AW", "UPDATE-WINS"),
-    create_query(RwFr2TName, [AwFr1TName, RwFr1TName], "RW", "UPDATE-WINS")
+    create_query(AwTName, "UPDATE-WINS"),
+    create_query(RwTName, "DELETE-WINS"),
+    create_query(AwFr1TName, RwTName, "UPDATE-WINS", "UPDATE-WINS"),
+    create_query(AwIr1TName, AwTName, "UPDATE-WINS", "DELETE-WINS"),
+    create_query(RwFr1TName, RwTName, "DELETE-WINS", "UPDATE-WINS"),
+    create_query(RwIr1TName, AwTName, "DELETE-WINS", "DELETE-WINS"),
+    create_query(AwIr2TName, [AwIr1TName, RwIr1TName], "UPDATE-WINS", "DELETE-WINS"),
+    create_query(RwIr2TName, [AwIr1TName, RwIr1TName], "DELETE-WINS", "DELETE-WINS"),
+    create_query(AwFr2TName, [AwFr1TName, RwFr1TName], "UPDATE-WINS", "UPDATE-WINS"),
+    create_query(RwFr2TName, [AwFr1TName, RwFr1TName], "DELETE-WINS", "UPDATE-WINS")
   ])),
   tutils:assert_table_policy(create_crp(?ADD_WINS, undefined, ?REMOVE_WINS), AwTName),
   tutils:assert_table_policy(create_crp(?REMOVE_WINS, undefined, ?ADD_WINS), RwTName),

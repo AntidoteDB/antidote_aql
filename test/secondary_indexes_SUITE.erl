@@ -26,12 +26,12 @@
 -export([insert_data_after/1, insert_data_before/1, bcounter_index/1]).
 
 init_per_suite(Config) ->
-  aql:start(),
+  %aql:start(),
   TestTable = "TableAIdx",
   TestTable2 = "TableBCIdx",
-  {ok, [], _Tx} = tutils:aql(lists:concat(["CREATE AW TABLE ", TestTable,
+  {ok, [], _Tx} = tutils:aql(lists:concat(["CREATE UPDATE-WINS TABLE ", TestTable,
     " (X VARCHAR PRIMARY KEY, Y INTEGER);"])),
-  {ok, [], _Tx} = tutils:aql(lists:concat(["CREATE AW TABLE ", TestTable2,
+  {ok, [], _Tx} = tutils:aql(lists:concat(["CREATE UPDATE-WINS TABLE ", TestTable2,
     " (X VARCHAR PRIMARY KEY, Z COUNTER_INT CHECK (Z > 0));"])),
   lists:append(Config,
     [{table, TestTable},
@@ -42,7 +42,7 @@ init_per_suite(Config) ->
      {update_greater, lists:concat(["UPDATE ", TestTable2, " SET Z ~s WHERE X = ~s"])}]).
 
 end_per_suite(Config) ->
-  aql:stop(),
+  %aql:stop(),
   Config.
 
 init_per_testcase(_Case, Config) ->

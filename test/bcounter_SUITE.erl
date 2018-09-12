@@ -8,7 +8,7 @@
 -include_lib("eunit/include/eunit.hrl").
 -include_lib("ct_aql.hrl").
 
--define(UPDATE_ERROR, {error, "Unexpected error"}).
+-define(UPDATE_ERROR, {error, "A numeric invariant has been breached."}).
 -define(INSERT_ERROR(ExpecVal, Col), "Invalid value " ++ ExpecVal ++ " for column " ++ Col).
 
 -export([init_per_suite/1,
@@ -27,18 +27,18 @@
 %% ====================================================================
 
 init_per_suite(Config) ->
-  aql:start(),
+  %aql:start(),
   TNameGreater = "BCGreater",
   TNameSmaller = "BCSmaller",
   BoundGreaterA = 0,
   BoundGreaterB = 10,
   BoundSmallerA = 5,
   BoundSmallerB = 15,
-  Query = ["CREATE AW TABLE ", TNameGreater, " (ID INT PRIMARY KEY, ",
+  Query = ["CREATE UPDATE-WINS TABLE ", TNameGreater, " (ID INT PRIMARY KEY, ",
   "bcA COUNTER_INT CHECK (bcA > ", BoundGreaterA, "), ",
   "bcB COUNTER_INT CHECK (bcB > ", BoundGreaterB, ")",
   ");",
-  "CREATE AW TABLE ", TNameSmaller, " (ID INT PRIMARY KEY, ",
+  "CREATE UPDATE-WINS TABLE ", TNameSmaller, " (ID INT PRIMARY KEY, ",
   "bcA COUNTER_INT CHECK (bcA < ", BoundSmallerA, "), ",
   "bcB COUNTER_INT CHECK (bcB < ", BoundSmallerB, ")",
   ");"],
@@ -57,7 +57,7 @@ init_per_suite(Config) ->
   ]).
 
 end_per_suite(Config) ->
-  aql:stop(),
+  %aql:stop(),
   Config.
 
 init_per_testcase(_Case, Config) ->

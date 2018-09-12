@@ -35,51 +35,27 @@ exec(Table, TxId) ->
 %% ====================================================================
 
 read_tables(TxId) ->
-	{ok, [Tables]} = antidote:read_objects(?TABLE_META, TxId),
+	{ok, [Tables]} = antidote_handler:read_objects(?TABLE_META, TxId),
 	Tables.
 
 write_table(RawTable, TxId) ->
 	Tables = read_tables(TxId),
 	Table = prepare_table(RawTable, Tables, TxId),
 	TableUpdate = create_table_update(Table),
-	ok = antidote:update_objects(TableUpdate, TxId).
+	ok = antidote_handler:update_objects(TableUpdate, TxId).
 
 prepare_table(Table, _Tables, TxId) ->
 	{Table1, _Crps} = prepare_cols(Table),
-%%	Cols = columns(Table1),
-%%	DepRule = lists:foldl(fun({_CName, Rule}, CurrentRule) ->
-%%		case CurrentRule of
-%%			undefined -> Rule;
-%%			Rule -> Rule;
-%%			_Else ->
-%%				io:fwrite("Warning: Both 'Update-Wins' and 'Delete-Wins' found. 'Delete-Wins' will prevail.~n"),
-%%				?REMOVE_WINS
-%%		end
-%% 	end, undefined, Crps),
 	DepRule = undefined,
-%%	Ops = lists:foldl(fun({CName, _Rule}, CurrentOps) ->
-%%		Col = maps:get(CName, Cols),
-%%		?FOREIGN_KEY({T1TName, _T1CName, _DeleteRule}) = column:constraint(Col),
-%%		T1Table = lookup(T1TName, Tables),
-%%		T1Policy = policy(T1Table),
-%%		T1Policy1 = crp:set_p_dep_level(DepRule, T1Policy),
-%%		case T1Policy1 of
-%%			T1Policy -> CurrentOps;
-%%			_Else ->
-%%				T1Table1 = set_policy(T1Policy1, T1Table),
-%%				lists:append(CurrentOps, [create_table_update(T1Table1)])
-%%		end
-%%	end, [], Crps),
   Ops = [],
 	case Ops of
 		[] -> ok;
 		_Else ->
-			ok = antidote:update_objects(Ops, TxId)
+			ok = antidote_handler:update_objects(Ops, TxId)
 	end,
 	Policy = policy(Table1),
 	Policy1 = crp:set_dep_level(DepRule, Policy),
 	Table2 = set_policy(Policy1, Table1),
-%%	Table3 = prepare_foreign_keys(Table2, Tables),
 	set_indexes([], Table2).
 
 prepare_cols(Table) ->
@@ -87,27 +63,6 @@ prepare_cols(Table) ->
 	Builder = lists:foldl(fun columns_builder:put_raw/2, columns_builder:new(), RawCols),
 	{Cols, Crps} = columns_builder:build(Builder),
 	{set_columns(Cols, Table), Crps}.
-
-%%prepare_foreign_keys(Table, Tables) ->
-%%	TName = table:name(Table),
-%%	FKs = foreign_keys:from_table(Table),
-%%	ShadowCols = lists:map(fun (?T_FK(FkName, FkType, T1TName, T1CName, T1DeleteRule)) ->
-%%		ShFk = ?T_FK([{TName, FkName}], FkType, T1TName, T1CName, T1DeleteRule),
-%%		Err1 = io_lib:format("Table ~p in foreign key reference does not exist.", [T1TName]),
-%%		Err2 = io_lib:format("Column ~p does not exist in table ~p", [T1CName, T1TName]),
-%%		TargetTable = lookup(T1TName, Tables, lists:flatten(Err1)),
-%%		TargetCol = column:s_get(TargetTable, T1CName, lists:flatten(Err2)),
-%%		case column:is_primary_key(TargetCol) of
-%%			false -> throw("Foreign keys can only reference unique columns");
-%%			_Else ->
-%%				ParentFks = lists:map(fun(?T_FK(TFkName, TFKType, TFKTName, TFKTColName, TFKDeleteRule)) ->
-%%					TFKName1 = lists:append([{TName, FkName}], TFkName),
-%%					?T_FK(TFKName1, TFKType, TFKTName, TFKTColName, TFKDeleteRule)
-%%				end, shadow_columns(TargetTable)),
-%%				lists:append([ShFk], ParentFks)
-%%		end
-%%	end, FKs),
-%%	set_shadow_columns(lists:flatten(ShadowCols), Table).
 
 create_table_update(Table) ->
 	Name = name(Table),
@@ -169,9 +124,6 @@ set_columns(Cols, ?T_TABLE(Name, Policy, _Cols, SCols, Idx, PartCol)) ->
 	?T_TABLE(Name, Policy, Cols, SCols, Idx, PartCol).
 
 shadow_columns(?T_TABLE(_Name, _Policy, _Cols, SCols, _Idx, _PartCol)) -> SCols.
-
-%%set_shadow_columns(SCols, ?T_TABLE(Name, Policy, Cols, _SCols, Idx, PartCol)) ->
-%%	?T_TABLE(Name, Policy, Cols, SCols, Idx, PartCol).
 
 indexes(?T_TABLE(_Name, _Policy, _Cols, _SCols, Idx, _PartCol)) -> Idx.
 

@@ -35,19 +35,19 @@
         error_transaction/1]).
 
 init_per_suite(Config) ->
-  aql:start(),
+  %aql:start(),
   TNameArtist = "ArtistTest",
   TNameAlbum = "AlbumTest",
   TNameTrack = "TrackTest",
   DefaultArtist = 0,
   DefaultAlbum = false,
-  {ok, [], _Tx} = tutils:aql(lists:concat(["CREATE AW TABLE ", TNameArtist,
+  {ok, [], _Tx} = tutils:aql(lists:concat(["CREATE UPDATE-WINS TABLE ", TNameArtist,
     " (Name VARCHAR PRIMARY KEY, City VARCHAR,",
     " Awards INTEGER DEFAULT ", DefaultArtist, ");"])),
-  {ok, [], _Tx} = tutils:aql(lists:concat(["CREATE AW TABLE ", TNameAlbum,
+  {ok, [], _Tx} = tutils:aql(lists:concat(["CREATE UPDATE-WINS TABLE ", TNameAlbum,
     " (Name VARCHAR PRIMARY KEY,",
     " IsSingle BOOLEAN DEFAULT ", DefaultAlbum, ");"])),
-  {ok, [], _Tx} = tutils:aql(lists:concat(["CREATE AW TABLE ", TNameTrack,
+  {ok, [], _Tx} = tutils:aql(lists:concat(["CREATE UPDATE-WINS TABLE ", TNameTrack,
     " (Name VARCHAR PRIMARY KEY, Plays COUNTER_INT CHECK (Plays > 0));"
   ])),
   lists:append(Config, [
@@ -72,7 +72,7 @@ init_per_suite(Config) ->
   ]).
 
 end_per_suite(Config) ->
-  aql:stop(),
+  %aql:stop(),
   Config.
 
 init_per_testcase(_Case, Config) ->
@@ -97,8 +97,8 @@ all() ->
 select_all(_Config) ->
   TNameEmpty = "EmptyTableTest",
   TNameFull = "FullTableTest",
-  {ok, [], _Tx} = tutils:create_single_table(TNameEmpty, "AW"),
-  {ok, [], _Tx} = tutils:create_single_table(TNameFull, "AW"),
+  {ok, [], _Tx} = tutils:create_single_table(TNameEmpty, "UPDATE-WINS"),
+  {ok, [], _Tx} = tutils:create_single_table(TNameFull, "UPDATE-WINS"),
   {ok, [[]], _Tx} = tutils:select_all(TNameEmpty),
   {ok, [], _Tx} = tutils:insert_single(TNameFull, 1),
   {ok, [], _Tx} = tutils:insert_single(TNameFull, 2),
@@ -166,7 +166,7 @@ abort_transaction(Config) ->
   Awards = 5,
   {ok, [{ok, {begin_tx, Tx}}], Tx} = tutils:aql("BEGIN TRANSACTION"),
   {ok, [], Tx} = tutils:aql(?format(insert_artist, [Artist, City, Awards], Config), Tx),
-  {ok, [{ok, abort_tx}], _} = tutils:aql("ABORT TRANSACTION", Tx),
+  {ok, [{ok, abort_tx}], _} = tutils:aql("ROLLBACK TRANSACTION", Tx),
 
   SearchKey = lists:concat(["'", Artist, "'"]),
   [] = tutils:read_keys(TNameArtist, "Name", SearchKey, ["Name", "City", "Awards"]).
@@ -178,7 +178,7 @@ error_transaction(Config) ->
 
   {ok, [{ok, {begin_tx, Tx}}], Tx} = tutils:aql("BEGIN TRANSACTION"),
 
-  {_, [{error, _}], _} = tutils:aql(lists:concat(["CREATE AW TABLE ", TNameAlbum,
+  {_, [{error, _}], _} = tutils:aql(lists:concat(["CREATE UPDATE-WINS TABLE ", TNameAlbum,
     " (Name VARCHAR PRIMARY KEY,",
     " IsSingle BOOLEAN DEFAULT ", DefaultAlbum, ",",
     " Art INT FOREIGN KEY UPDATE-WINS REFERENCES ",

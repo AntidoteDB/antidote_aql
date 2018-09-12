@@ -21,7 +21,7 @@ attribute_name
 %update
 update_query set_clause set_assignments set_assignment
 %txs
-begin_transaction commit_transaction abort_transaction
+begin_transaction commit_transaction rollback_transaction
 %utils
 value atom number_unwrap
 %quit program
@@ -47,12 +47,12 @@ insert into values
 %delete
 delete
 %create
-create table partition table_policy primary foreign key references default check
-attribute_type dep_policy cascade
+create table partition crp primary foreign key references default check
+attribute_type crp cascade
 %update
 update set
 %tx
-begin commit abort transaction
+begin commit rollback transaction
 %types
 atom_value string number boolean
 %expression
@@ -94,7 +94,7 @@ statement -> begin_transaction : ['$1'].
 
 statement -> commit_transaction : ['$1'].
 
-statement -> abort_transaction : ['$1'].
+statement -> rollback_transaction : ['$1'].
 
 statement -> quit_program : ['$1'].
 
@@ -273,11 +273,11 @@ set_assignment ->
 %% create query
 %%--------------------------------------------------------------------
 create_query ->
-	create table_policy table atom start_list create_keys end_list :
+	create crp table atom start_list create_keys end_list :
 	?CREATE_CLAUSE(?T_TABLE('$4', crp:set_table_level(unwrap_type('$2'), crp:new()), '$6', [], [], undefined)).
 
 create_query ->
-    create table_policy table atom start_list create_keys end_list partition on start_list attribute_name end_list :
+    create crp table atom start_list create_keys end_list partition on start_list attribute_name end_list :
     ?CREATE_CLAUSE(?T_TABLE('$4', crp:set_table_level(unwrap_type('$2'), crp:new()), '$6', [], [], ['$11'])).
 
 create_query ->
@@ -305,12 +305,20 @@ attribute_constraint ->
 	?PRIMARY_TOKEN.
 
 attribute_constraint ->
-	foreign key dep_policy references atom start_list atom end_list :
+	foreign key crp references atom start_list atom end_list :
 	?FOREIGN_KEY({'$5', '$7', unwrap_type('$3'), ?RESTRICT_TOKEN}).
 
 attribute_constraint ->
-	foreign key dep_policy references atom start_list atom end_list on delete cascade :
+    foreign key references atom start_list atom end_list :
+    ?FOREIGN_KEY({'$4', '$6', unwrap_type(?NO_CONCURRENCY_KEY), ?RESTRICT_TOKEN}).
+
+attribute_constraint ->
+	foreign key crp references atom start_list atom end_list on delete cascade :
 	?FOREIGN_KEY({'$5', '$7', unwrap_type('$3'), ?CASCADE_TOKEN}).
+
+attribute_constraint ->
+	foreign key references atom start_list atom end_list on delete cascade :
+	?FOREIGN_KEY({'$4', '$6', unwrap_type(?NO_CONCURRENCY_KEY), ?CASCADE_TOKEN}).
 
 attribute_constraint ->
 	default value :
@@ -361,9 +369,9 @@ commit_transaction ->
     commit transaction :
     ?COMMIT_CLAUSE(?TRANSACTION_TOKEN).
 
-abort_transaction ->
-    abort transaction :
-    ?ABORT_CLAUSE(?TRANSACTION_TOKEN).
+rollback_transaction ->
+    rollback transaction :
+    ?ROLLBACK_CLAUSE(?TRANSACTION_TOKEN).
 
 %%--------------------------------------------------------------------
 %% quit program
@@ -427,34 +435,36 @@ show_index_test() ->
 	test_parser("SHOW INDEX TestIndex FROM TestTable").
 
 create_table_simple_test() ->
-	test_parser("CREATE AW TABLE Test (a VARCHAR, b INTEGER)"),
-	test_parser("CREATE AW TABLE Test (a VARCHAR)"),
-	test_parser("CREATE AW TABLE TestA (a VARCHAR);CREATE AW TABLE TestB (b INTEGER)").
+	test_parser("CREATE UPDATE-WINS TABLE Test (a VARCHAR, b INTEGER)"),
+	test_parser("CREATE UPDATE-WINS TABLE Test (a VARCHAR)"),
+	test_parser("CREATE DELETE-WINS TABLE TestA (a VARCHAR);CREATE DELETE-WINS TABLE TestB (b INTEGER)").
 
 create_table_pk_test() ->
-	test_parser("CREATE AW TABLE Test (a VARCHAR PRIMARY KEY, b INTEGER)"),
-	test_parser("CREATE AW TABLE Test (a INTEGER PRIMARY KEY, b INTEGER)"),
-	test_parser("CREATE AW TABLE Test (a BOOLEAN PRIMARY KEY, b INTEGER)").
+	test_parser("CREATE UPDATE-WINS TABLE Test (a VARCHAR PRIMARY KEY, b INTEGER)"),
+	test_parser("CREATE UPDATE-WINS TABLE Test (a INTEGER PRIMARY KEY, b INTEGER)"),
+	test_parser("CREATE UPDATE-WINS TABLE Test (a BOOLEAN PRIMARY KEY, b INTEGER)").
 
 create_table_def_test() ->
-	test_parser("CREATE AW TABLE Test (a VARCHAR, b INTEGER DEFAULT 5)"),
-	test_parser("CREATE AW TABLE Test (a VARCHAR, b BOOLEAN DEFAULT false)"),
-	test_parser("CREATE AW TABLE Test (a VARCHAR, b VARCHAR DEFAULT 'example')").
+	test_parser("CREATE UPDATE-WINS TABLE Test (a VARCHAR, b INTEGER DEFAULT 5)"),
+	test_parser("CREATE UPDATE-WINS TABLE Test (a VARCHAR, b BOOLEAN DEFAULT false)"),
+	test_parser("CREATE UPDATE-WINS TABLE Test (a VARCHAR, b VARCHAR DEFAULT 'example')").
 
 create_table_check_test() ->
-	test_parser("CREATE AW TABLE Test(a INTEGER, b COUNTER_INT CHECK (b > 0))"),
-	test_parser("CREATE AW TABLE Test(a INTEGER, b COUNTER_INT CHECK (b >= 0))"),
-	test_parser("CREATE AW TABLE Test(a INTEGER, b COUNTER_INT CHECK (b < 0))"),
-	test_parser("CREATE AW TABLE Test(a INTEGER, b COUNTER_INT CHECK (b <= 0))").
+	test_parser("CREATE UPDATE-WINS TABLE Test(a INTEGER, b COUNTER_INT CHECK (b > 0))"),
+	test_parser("CREATE UPDATE-WINS TABLE Test(a INTEGER, b COUNTER_INT CHECK (b >= 0))"),
+	test_parser("CREATE UPDATE-WINS TABLE Test(a INTEGER, b COUNTER_INT CHECK (b < 0))"),
+	test_parser("CREATE UPDATE-WINS TABLE Test(a INTEGER, b COUNTER_INT CHECK (b <= 0))").
 
 create_table_fk_test() ->
-	test_parser("CREATE AW TABLE Test (a VARCHAR, b INTEGER FOREIGN KEY UPDATE-WINS REFERENCES TestB(b))").
+	test_parser("CREATE UPDATE-WINS TABLE Test (a VARCHAR, b INTEGER FOREIGN KEY UPDATE-WINS REFERENCES TestB(b))"),
+	test_parser("CREATE DELETE-WINS TABLE Test (a VARCHAR, b INTEGER FOREIGN KEY REFERENCES TestB(b))").
 
 create_table_fk_cascade_test() ->
-    test_parser("CREATE RW TABLE TestA (a VARCHAR, b INTEGER FOREIGN KEY DELETE-WINS REFERENCES TestB(b) ON DELETE CASCADE)").
+    test_parser("CREATE DELETE-WINS TABLE TestA (a VARCHAR, b INTEGER FOREIGN KEY DELETE-WINS REFERENCES TestB(b) ON DELETE CASCADE)"),
+    test_parser("CREATE DELETE-WINS TABLE TestA (a VARCHAR, b INTEGER FOREIGN KEY REFERENCES TestB(b) ON DELETE CASCADE)").
 
 create_table_partition_test() ->
-    test_parser("CREATE AW TABLE Test (a VARCHAR, b INTEGER) PARTITION ON (b)").
+    test_parser("CREATE UPDATE-WINS TABLE Test (a VARCHAR, b INTEGER) PARTITION ON (b)").
 
 create_index_simple_test() ->
     test_parser("CREATE INDEX TestIdx ON Table (a)"),
@@ -510,7 +520,7 @@ select_where_test() ->
 transaction_test() ->
     test_parser("BEGIN TRANSACTION"),
     test_parser("COMMIT TRANSACTION"),
-    test_parser("ABORT TRANSACTION").
+    test_parser("ROLLBACK TRANSACTION").
 
 quit_test() ->
     test_parser("QUIT"),
