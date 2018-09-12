@@ -46,12 +46,12 @@ values({_TName, _Keys, Values}) -> Values.
 %% ====================================================================
 
 handle_defaults(Keys, Values, Table) ->
-	if
-		length(Keys) =:= length(Values) ->
-			Keys;
-		true ->
-			Defaults = column:s_filter_defaults(Table),
-			lists:filter(fun(Key) ->
-				not maps:is_key(Key, Defaults)
-		 	end, Keys)
-	end.
+  if
+    length(Keys) =:= length(Values) ->
+      Keys;
+    true ->
+      Defaults = column:s_filter_defaults(Table),
+      lists:filter(fun(Key) ->
+        not maps:is_key(Key, Defaults)
+  end, Keys)
+  end.

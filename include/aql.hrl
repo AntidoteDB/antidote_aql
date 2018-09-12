@@ -9,7 +9,7 @@
 -define(NO_CONCURRENCY, noconcurrency).
 
 % column
--define(C_NAMES, {names}).
+  -define(C_NAMES, {names}).
 -define(C_PK, {pk}).
 
 % AQL -> CRDT mappings
@@ -35,9 +35,9 @@
 
 -type queries() :: [aqlquery()].
 -type aqlquery() :: create_query()
-									| insert_query()
-									| update_query()
-									| select_query().
+| insert_query()
+| update_query()
+| select_query().
 
 -type create_query() :: {create, create_query_props()}.
 -type create_query_props() :: [create_policy() | create_name() | create_keys()].

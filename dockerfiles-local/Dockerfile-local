@@ -41,6 +41,16 @@ ADD dockerfiles-local/entrypoint.sh /
 
 RUN chmod a+x /opt/start_and_attach.sh \
 	&& chmod a+x /entrypoint.sh
+	
+# Distributed Erlang Port Mapper
+EXPOSE 4368
+# Ports for Antidote
+EXPOSE 8085 8086 8087 8099
+
+# Antidote RPC
+EXPOSE 9100
+
+VOLUME /opt/AQL/data
 
 # Distributed Erlang Port Mapper
 EXPOSE 4368
