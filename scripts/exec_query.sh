@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-if [ -z "$AQL_NAME" ]; then
-	export AQL_NAME='aql@127.0.0.1'
+if [ -z "$NODE_NAME" ]; then
+	export NODE_NAME='aql@127.0.0.1'
 fi
 
 QUERY=$(echo "$1" | sed -r 's/[*]/\\*/g') # $1 = query to be issued
