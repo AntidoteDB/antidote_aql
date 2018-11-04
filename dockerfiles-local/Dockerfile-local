@@ -2,6 +2,7 @@ FROM mweber/antidotedb
 
 MAINTAINER Pedro Lopes <pms.lopes@campus.fct.unl.pt>
 
+ENV AQL_REL "/opt/AQL"
 ENV HANDOFF_PORT "8099"
 ENV PB_PORT "8087"
 ENV PB_IP "0.0.0.0"
@@ -35,6 +36,9 @@ RUN cd /opt/AQL \
 
 RUN chmod a+x /opt/AQL/erl_scripts/create_cluster.erl \
 	&& chmod a+x /opt/AQL/erl_scripts/populate_index.erl
+	
+# Clean current antidote directory -- not needed
+RUN rm -rf /opt/antidote
 
 ADD dockerfiles-local/start_and_attach.sh /opt/
 ADD dockerfiles-local/entrypoint.sh /
