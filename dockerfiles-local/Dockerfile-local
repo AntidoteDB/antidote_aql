@@ -36,9 +36,6 @@ RUN cd /opt/AQL \
 
 RUN chmod a+x /opt/AQL/erl_scripts/create_cluster.erl \
 	&& chmod a+x /opt/AQL/erl_scripts/populate_index.erl
-	
-# Clean current antidote directory -- not needed
-RUN rm -rf /opt/antidote
 
 ADD dockerfiles-local/start_and_attach.sh /opt/
 ADD dockerfiles-local/entrypoint.sh /
