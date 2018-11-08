@@ -231,25 +231,23 @@ Updates an already-existent row on the specified table.
 
 ```SQL
 UPDATE Student
-SET Age ASSIGN 25
+SET Age = 25
 WHERE StudentID = 10000;
 ```
 
 Updates all rows in table `Students` where `StudentID` has value 1. The update
-sets column `Age` to value `25`. The operation keyword (e.g.
-`ASSIGN`) depends on the AQL datatype:
-* *VARCHAR*
-  * `ASSIGN` - sets the column(s) of type `VARCHAR` to the value specified.
-* *INTEGER*
-  * `ASSIGN` - sets the column(s) of type `INTEGER` or `INT` to the value specified.
+sets column `Age` to value `25`. All update operations are based on equalities, that have different expressions depending on the AQL datatype:
+* *VARCHAR*/*INTEGER*:
+  * `Col = val` sets the column(s) of type `VARCHAR`/`INTEGER` or `INT` to the value `val` specified (`val` must be a number for the integer datatype).
 * *COUNTER_INT*
-  * `INCREMENT` - increments the column(s) of type `COUNTER_INT` by the value specified.
-  * `DECREMENT` - decrements the column(s) of type `COUNTER_INT` by the value specified.
+  * `Col = Col + val` increments the column(s) of type `COUNTER_INT` by the value `val` specified.
+  * `Col = Col - val` decrements the column(s) of type `COUNTER_INT` by the value `val` specified.
 * *BOOLEAN*
-  * `ENABLE`- sets the boolean value to `true`
-  * `DISABLE`- sets the boolean value to `false`
+  * `Col = true` sets the boolean value to `true`.
+  * `Col = false`- sets the boolean value to `false`.
+  * In both cases, the boolean value to assign is not enclosed between single quotes.
   
-Just like in a SELECT operation, the where clause can only filter primary keys.
+Unlike the SELECT clause, the WHERE clause on the UPDATE statement can only filter primary keys.
   
 ### DELETE
 
@@ -259,8 +257,8 @@ Deletes a set of records from the specified table.
 DELETE FROM Persons Where StudentID = 20525;
 ```
 
-Just like in a SELECT operation, the where clause can only filter primary keys.
-If the `WHERE`clause is absent, all the records in the table are deleted.
+Just like in an UPDATE operation, the WHERE clause can only filter primary keys.
+If the WHERE clause is absent, all the records in the table are deleted.
 
 
 ### TRANSACTION
