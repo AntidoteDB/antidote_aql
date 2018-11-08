@@ -52,8 +52,8 @@ init_per_suite(Config) ->
     {bound_smaller_b, BoundSmallerB},
     {insert_greater, lists:concat(["INSERT INTO ", TNameGreater, " VALUES (~p, ~p, ~p)"])},
     {insert_smaller, lists:concat(["INSERT INTO ", TNameSmaller, " VALUES (~p, ~p, ~p)"])},
-    {update_greater, lists:concat(["UPDATE ", TNameGreater, " SET bcA ~s AND bcB ~s WHERE ID = ~p"])},
-    {update_smaller, lists:concat(["UPDATE ", TNameSmaller, " SET bcA ~s AND bcB ~s WHERE ID = ~p"])}
+    {update_greater, lists:concat(["UPDATE ", TNameGreater, " SET bcA = bcA ~s AND bcB = bcB ~s WHERE ID = ~p"])},
+    {update_smaller, lists:concat(["UPDATE ", TNameSmaller, " SET bcA = bcA ~s AND bcB = bcB ~s WHERE ID = ~p"])}
   ]).
 
 end_per_suite(Config) ->
@@ -110,14 +110,14 @@ greater_update_basic(Config) ->
   % inserts
   {ok, [], _Tx} = tutils:aql(?format(insert_greater, [Key, BoundA+2, BoundB+2], Config)),
   % increment
-  {ok, [], _Tx} = tutils:aql(?format(update_greater, ["INCREMENT 1", "INCREMENT 3", Key], Config)),
-  {ok, [], _Tx} = tutils:aql(?format(update_greater, ["INCREMENT 0", "INCREMENT 0", Key], Config)),
+  {ok, [], _Tx} = tutils:aql(?format(update_greater, ["+ 1", "+ 3", Key], Config)),
+  {ok, [], _Tx} = tutils:aql(?format(update_greater, ["+ 0", "+ 0", Key], Config)),
   [V1, V2] = tutils:read_keys(TName, Key, ["bcA", "bcB"]),
   ?assertEqual(BoundA+3, V1),
   ?assertEqual(BoundB+5, V2),
   % decrement
-  {ok, [], _Tx} = tutils:aql(?format(update_greater, ["DECREMENT 2", "DECREMENT 4", Key], Config)),
-  {ok, [], _Tx} = tutils:aql(?format(update_greater, ["DECREMENT 0", "DECREMENT 0", Key], Config)),
+  {ok, [], _Tx} = tutils:aql(?format(update_greater, ["- 2", "- 4", Key], Config)),
+  {ok, [], _Tx} = tutils:aql(?format(update_greater, ["- 0", "- 0", Key], Config)),
   [V3, V4] = tutils:read_keys(TName, Key, ["bcA", "bcB"]),
   ?assertEqual(BoundA+1, V3),
   ?assertEqual(BoundB+1, V4),
@@ -131,13 +131,13 @@ greater_update_fail(Config) ->
   % inserts
   {ok, [], _Tx} = tutils:aql(?format(insert_greater, [Key, BoundA+2, BoundB+2], Config)),
   % decrement 1
-  {ok, [Decrement1], _Tx} = tutils:aql(?format(update_greater, ["DECREMENT 3", "DECREMENT 3", Key], Config)),
+  {ok, [Decrement1], _Tx} = tutils:aql(?format(update_greater, ["- 3", "- 3", Key], Config)),
   ?assertEqual(?UPDATE_ERROR, Decrement1),
   [V1, V2] = tutils:read_keys(TName, Key, ["bcA", "bcB"]),
   ?assertEqual(BoundA+2, V1), % assert value does not change on fail
   ?assertEqual(BoundB+2, V2),
   % decrement 2
-  {ok, [Decrement2], _Tx} = tutils:aql(?format(update_greater, ["DECREMENT 4", "DECREMENT 4", Key], Config)),
+  {ok, [Decrement2], _Tx} = tutils:aql(?format(update_greater, ["- 4", "- 4", Key], Config)),
   ?assertEqual(?UPDATE_ERROR, Decrement2),
   [V1, V2] = tutils:read_keys(TName, Key, ["bcA", "bcB"]),
   ?assertEqual(BoundA+2, V1), % assert value does not change on fail
@@ -174,12 +174,12 @@ smaller_update_basic(Config) ->
   % inserts
   {ok, [], _Tx} = tutils:aql(?format(insert_smaller, [Key, BoundA-3, BoundB-3], Config)),
   % increment
-  {ok, [], _Tx} = tutils:aql(?format(update_smaller, ["INCREMENT 2", "INCREMENT 2", Key], Config)),
+  {ok, [], _Tx} = tutils:aql(?format(update_smaller, ["+ 2", "+ 2", Key], Config)),
   [V1, V2] = tutils:read_keys(TName, Key, ["bcA", "bcB"]),
   ?assertEqual(BoundA-1, V1),
   ?assertEqual(BoundB-1, V2),
   % decrement
-  {ok, [], _Tx} = tutils:aql(?format(update_smaller, ["DECREMENT 2", "DECREMENT 4", Key], Config)),
+  {ok, [], _Tx} = tutils:aql(?format(update_smaller, ["- 2", "- 4", Key], Config)),
   [V3, V4] = tutils:read_keys(TName, Key, ["bcA", "bcB"]),
   ?assertEqual(BoundA-3, V3),
   ?assertEqual(BoundB-5, V4),
@@ -193,12 +193,12 @@ smaller_update_fail(Config) ->
   % inserts
   {ok, [], _Tx} = tutils:aql(?format(insert_smaller, [Key, BoundA-2, BoundB-2], Config)),
   % decrement
-  {ok, [Decrement1], _Tx} = tutils:aql(?format(update_smaller, ["INCREMENT 3", "INCREMENT 3", Key], Config)),
+  {ok, [Decrement1], _Tx} = tutils:aql(?format(update_smaller, ["+ 3", "+ 3", Key], Config)),
   ?assertEqual(?UPDATE_ERROR, Decrement1),
   [V1, V2] = tutils:read_keys(TName, Key, ["bcA", "bcB"]),
   ?assertEqual(BoundA-2, V1), % assert value does not change on fail
   ?assertEqual(BoundB-2, V2),
-  {ok, [Decrement2], _Tx} = tutils:aql(?format(update_smaller, ["INCREMENT 3", "INCREMENT 3", Key], Config)),
+  {ok, [Decrement2], _Tx} = tutils:aql(?format(update_smaller, ["+ 3", "+ 3", Key], Config)),
   ?assertEqual(?UPDATE_ERROR, Decrement2),
   [V3, V4] = tutils:read_keys(TName, Key, ["bcA", "bcB"]),
   ?assertEqual(BoundA-2, V3), % assert value does not change on fail
@@ -220,9 +220,9 @@ update_key(?PARSER_GREATER) -> update_greater;
 update_key(?PARSER_LESSER) -> update_smaller.
 
 gen_reset_updates(Key, ?PARSER_GREATER, BcA, BcB) ->
-  gen_reset_updates(Key, "DECREMENT", BcA, BcB);
+  gen_reset_updates(Key, "-", BcA, BcB);
 gen_reset_updates(Key, ?PARSER_LESSER, BcA, BcB) ->
-  gen_reset_updates(Key, "INCREMENT", BcA, BcB);
+  gen_reset_updates(Key, "+", BcA, BcB);
 gen_reset_updates(Key, Op, BcA, BcB) ->
   [
     lists:concat([Op, " ", BcA]),

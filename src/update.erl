@@ -77,9 +77,17 @@ resolve_op(BoundObj, Column, ?ASSIGN_OP(_TChars), Value, TName, Tables, TxId) wh
   Op = fun crdt:assign_lww/1,
   resolve_op(Column, ?AQL_VARCHAR, Op, Value, BoundObj, TName, Tables, TxId);
 % integer -> assign
-resolve_op(BoundObj, Column, ?ASSIGN_OP(_TChars), Value, TName, Tables, TxId) ->
+resolve_op(BoundObj, Column, ?ASSIGN_OP(_TChars), Value, TName, Tables, TxId) when is_integer(Value) ->
   Op = fun crdt:set_integer/1,
   resolve_op(Column, ?AQL_INTEGER, Op, Value, BoundObj, TName, Tables, TxId);
+% boolean -> assign
+resolve_op(BoundObj, Column, ?ASSIGN_OP(_TChars), Value, TName, Tables, TxId) when is_boolean(Value) ->
+  Op =
+    case Value of
+      true -> fun crdt:enable_flag/1;
+      false -> fun crdt:disable_flag/1
+    end,
+  resolve_op(Column, ?AQL_BOOLEAN, Op, Value, BoundObj, TName, Tables, TxId);
 % counter -> increment
 resolve_op(BoundObj, Column, ?INCREMENT_OP(_TChars), Value, TName, Tables, TxId) ->
   {IncFun, DecFun} = counter_functions(increment, Column),

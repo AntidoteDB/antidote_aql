@@ -10,6 +10,8 @@ Greater = >
 Lesser = <
 GreaterEq = (>=)
 LesserEq = (<=)
+Plus = \+
+Minus = -
 CharValues = [A-Za-z]
 WildCard = \*
 IntegerValues = [0-9]
@@ -114,6 +116,8 @@ Rules.
 {Lesser} : {token, ?PARSER_LESSER}.
 {GreaterEq} : {token, ?PARSER_GEQ}.
 {LesserEq} : {token, ?PARSER_LEQ}.
+{Plus} : {token, ?PARSER_PLUS}.
+{Minus} : {token, ?PARSER_MINUS}.
 {WildCard} : {token, ?PARSER_WILDCARD}.
 {WhiteSpace}+ : skip_token.
 

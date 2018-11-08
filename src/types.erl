@@ -38,12 +38,12 @@ to_parser(Invalid) ->
   throw(lists:flatten(ErrorMsg)).
 
 to_insert_op(?AQL_INTEGER, _, OpParam) -> crdt:set_integer(OpParam);
-to_insert_op(?AQL_BOOLEAN, _, OpParam) ->
+to_insert_op(?AQL_BOOLEAN, _, OpParam) when is_atom(OpParam) ->
   case OpParam of
-    "true" ->
-      crdt:enable_flag();
-    _Else ->
-      crdt:disable_flag()
+    true ->
+      crdt:enable_flag(?IGNORE_OP);
+    false ->
+      crdt:disable_flag(?IGNORE_OP)
   end;
 to_insert_op(?AQL_COUNTER_INT, {?CHECK_TOKEN, _}, OpParam) -> crdt:increment_bcounter(OpParam);
 to_insert_op(?AQL_COUNTER_INT, _, OpParam) -> crdt:increment_counter(OpParam);
@@ -54,13 +54,13 @@ to_insert_op(Invalid, _Constraint, _OpParam) ->
 
 % Since CRDT_INTEGER is a LWW register type, we can ignore this case.
 %to_insert_op(?CRDT_INTEGER, OpParam) -> crdt:set_integer(OpParam);
-to_insert_op(?CRDT_BOOLEAN, OpParam) ->
-    case OpParam of
-        "true" ->
-            crdt:enable_flag();
-        _Else ->
-            crdt:disable_flag()
-    end;
+to_insert_op(?CRDT_BOOLEAN, OpParam) when is_atom(OpParam) ->
+  case OpParam of
+    true ->
+        crdt:enable_flag(?IGNORE_OP);
+    false ->
+        crdt:disable_flag(?IGNORE_OP)
+  end;
 to_insert_op(?CRDT_BCOUNTER_INT, OpParam) -> crdt:increment_bcounter(OpParam);
 to_insert_op(?CRDT_COUNTER_INT, OpParam) -> crdt:increment_counter(OpParam);
 to_insert_op(?CRDT_VARCHAR, OpParam) -> crdt:assign_lww(OpParam);

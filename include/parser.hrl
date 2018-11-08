@@ -148,6 +148,8 @@
 -define(PARSER_LESSER, {lesser, ignore}).
 -define(PARSER_GEQ, {greatereq, ignore}).
 -define(PARSER_LEQ, {lessereq, ignore}).
+-define(PARSER_PLUS, {plus, ignore}).
+-define(PARSER_MINUS, {minus, ignore}).
 -define(PARSER_WILDCARD, {wildcard, ignore}).
 
 -define(PARSER_SLIST, {start_list, ignore}).
