@@ -236,15 +236,15 @@ WHERE StudentID = 10000;
 ```
 
 Updates all rows in table `Students` where `StudentID` has value 1. The update
-sets column `Age` to value `25`. All update operations are based on equalities, that have different expressions depending on the AQL datatype:
+sets column `Age` to value `25`. All update operations on columns are based on equalities with different expressions depending on the column's datatype:
 * *VARCHAR*/*INTEGER*:
-  * `Col = val` sets the column(s) of type `VARCHAR`/`INTEGER` or `INT` to the value `val` specified (`val` must be a number for the integer datatype).
-* *COUNTER_INT*
-  * `Col = Col + val` increments the column(s) of type `COUNTER_INT` by the value `val` specified.
-  * `Col = Col - val` decrements the column(s) of type `COUNTER_INT` by the value `val` specified.
-* *BOOLEAN*
-  * `Col = true` sets the boolean value to `true`.
-  * `Col = false`- sets the boolean value to `false`.
+  * `Col = val` sets the column `Col` of type `VARCHAR`/`INTEGER` or `INT` to the value `val` specified (`val` must be a number for the integer datatype).
+* *COUNTER_INT*:
+  * `Col = Col + val` increments the column `Col` of type `COUNTER_INT` by the value `val` specified.
+  * `Col = Col - val` decrements the column `Col` of type `COUNTER_INT` by the value `val` specified.
+* *BOOLEAN*:
+  * `Col = true` sets the boolean column `Col` to `true`.
+  * `Col = false` sets the boolean column `Col` to `false`.
   * In both cases, the boolean value to assign is not enclosed between single quotes.
   
 Unlike the SELECT clause, the WHERE clause on the UPDATE statement can only filter primary keys.
