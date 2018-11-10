@@ -247,30 +247,19 @@ set_assignments ->
 	set_assignment :
 	['$1'].
 
-%assignment expression
+%assignment expression for varchar and boolean data types
 set_assignment ->
 	atom equality value :
 	{'$1', ?ASSIGN_OP('$2'), '$3'}.
 
-%increment/decrement expression
-%set_assignment ->
-%	atom increment :
-%	atom equality atom plus 1
-%	{'$1', ?INCREMENT('$2'), 1}.
-
+%assignment expressions for increments/decrements on counter data types
 set_assignment ->
-%	atom increment number_unwrap :
     atom equality atom plus number_unwrap :
-	{'$1', ?INCREMENT_OP('$4'), '$5'}.
-
-%set_assignment ->
-%	atom decrement :
-%	{'$1', '$2', 1}.
+	{counter_update_column('$1', '$3'), ?INCREMENT_OP('$4'), '$5'}.
 
 set_assignment ->
-%	atom decrement number_unwrap :
     atom equality atom minus number_unwrap :
-	{'$1', ?DECREMENT_OP('$4'), '$5'}.
+	{counter_update_column('$1', '$3'), ?DECREMENT_OP('$4'), '$5'}.
 
 %%--------------------------------------------------------------------
 %% create query
@@ -415,6 +404,10 @@ Erlang code.
 -include("types.hrl").
 
 unwrap_type(?PARSER_TYPE(_Type, Value)) -> Value.
+
+counter_update_column(Column, Column) -> Column;
+counter_update_column(_, _) ->
+    throw({error, {1, ?MODULE, "The column in the update must be the same on either side of the equality"}}).
 
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").

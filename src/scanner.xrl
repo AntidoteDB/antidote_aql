@@ -64,7 +64,7 @@ Rules.
 (transaction|TRANSACTION) : {token, ?TRANSACTION_KEY(TokenChars)}.
 
 % quit program related token
-(quit|QUIT) : {token, ?QUIT_CLAUSE(TokenChars)}.
+(quit|QUIT|exit|EXIT) : {token, ?QUIT_CLAUSE(TokenChars)}.
 
 % conflict resolution policies
 (update-wins|UPDATE-WINS) : {token, ?CRP_KEY(?ADD_WINS)}.
