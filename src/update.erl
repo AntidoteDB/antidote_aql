@@ -23,7 +23,7 @@ exec({Table, Tables}, Props, TxId) ->
   SetClause = set(Props),
   WhereClause = where(Props),
 
-  Keys = where:scan(TName, WhereClause, TxId),
+  Keys = where:scan(Table, WhereClause, TxId),
   VisibleKeys = lists:foldl(fun(Key, AccKeys) ->
     {ok, [Record]} = antidote_handler:read_objects(Key, TxId),
     case element:is_visible(Record, TName, Tables, TxId) of

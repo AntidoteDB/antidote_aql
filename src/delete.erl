@@ -17,9 +17,8 @@
 -endif.
 
 exec({Table, Tables}, Props, TxId) ->
-  TName = table(Props),
   Condition = where(Props),
-  Keys = where:scan(TName, Condition, TxId),
+  Keys = where:scan(Table, Condition, TxId),
   lists:foreach(fun(Key) ->
     case delete_cascade(Key, Table, Tables, TxId) of
       [] -> ok;

@@ -82,7 +82,6 @@ create_key_from_table(PKey, Table, TxId) ->
   case PartCol of
     [_] ->
       Index = index:p_keys(TName, TxId),
-      %% for now we only care about the first key of the list
       {_, BObj} = lists:keyfind(utils:to_atom(PKey), 1, Index),
       BObj;
     undefined ->
