@@ -48,7 +48,7 @@ insert into values
 delete
 %create
 create table partition crp primary foreign key references default check
-attribute_type crp cascade
+attribute_type cascade
 %update
 update set
 %tx
@@ -56,7 +56,7 @@ begin commit rollback transaction
 %types
 atom_value string number boolean
 %expression
-assign increment decrement conjunctive disjunctive
+plus minus conjunctive disjunctive
 %list
 sep start_list end_list semi_colon
 %quit
@@ -247,27 +247,19 @@ set_assignments ->
 	set_assignment :
 	['$1'].
 
-%assignment expression
+%assignment expression for varchar and boolean data types
 set_assignment ->
-	atom assign value :
-	{'$1', '$2', '$3'}.
+	atom equality value :
+	{'$1', ?ASSIGN_OP('$2'), '$3'}.
 
-%increment/decrement expression
+%assignment expressions for increments/decrements on counter data types
 set_assignment ->
-	atom increment :
-	{'$1', '$2', 1}.
-
-set_assignment ->
-	atom increment number_unwrap :
-	{'$1', '$2', '$3'}.
+    atom equality atom plus number_unwrap :
+	{counter_update_column('$1', '$3'), ?INCREMENT_OP('$4'), '$5'}.
 
 set_assignment ->
-	atom decrement :
-	{'$1', '$2', 1}.
-
-set_assignment ->
-	atom decrement number_unwrap :
-	{'$1', '$2', '$3'}.
+    atom equality atom minus number_unwrap :
+	{counter_update_column('$1', '$3'), ?DECREMENT_OP('$4'), '$5'}.
 
 %%--------------------------------------------------------------------
 %% create query
@@ -413,6 +405,10 @@ Erlang code.
 
 unwrap_type(?PARSER_TYPE(_Type, Value)) -> Value.
 
+counter_update_column(Column, Column) -> Column;
+counter_update_column(_, _) ->
+    throw({error, {1, ?MODULE, "The column in the update must be the same on either side of the equality"}}).
+
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
 -endif.
@@ -471,24 +467,24 @@ create_index_simple_test() ->
     test_parser("CREATE INDEX TestIdx ON Table (a, b)").
 
 update_simple_test() ->
-	test_parser("UPDATE Test SET name ASSIGN 'aaa'"),
-	test_parser("UPDATE Test SET name ASSIGN 'a';UPDATE Test SET name ASSIGN 'b'").
+	test_parser("UPDATE Test SET name = 'aaa'"),
+	test_parser("UPDATE Test SET name = 'a'; UPDATE Test SET name = 'b'").
 
 update_multiple_test() ->
-	test_parser("UPDATE Test SET name ASSIGN 'aaa' AND age INCREMENT 3"),
-	test_parser("UPDATE Test SET name ASSIGN 'aaa' AND age INCREMENT 3 AND loc ASSIGN 'en' WHERE loc = 'pt'").
+	test_parser("UPDATE Test SET name = 'aaa' AND age = age + 3"),
+	test_parser("UPDATE Test SET name = 'aaa' AND age = age + 3 AND loc = 'en' WHERE loc = 'pt'").
 
 update_assign_test() ->
-	test_parser("UPDATE Test SET name ASSIGN 'aaa' WHERE name = 'a'"),
-	test_parser("UPDATE Test SET age ASSIGN 50 WHERE name = 'aa'").
+	test_parser("UPDATE Test SET name = 'aaa' WHERE name = 'a'"),
+	test_parser("UPDATE Test SET age = 50 WHERE name = 'aa'").
 
 update_increment_test() ->
-	test_parser("UPDATE Test SET countCars INCREMENT WHERE model = 'b'"),
-	test_parser("UPDATE Test SET countCars INCREMENT 2 WHERE model = 'b'").
+	test_parser("UPDATE Test SET countCars = countCars + 1 WHERE model = 'b'"),
+	test_parser("UPDATE Test SET countCars = countCars + 2 WHERE model = 'b'").
 
 update_decrement_test() ->
-	test_parser("UPDATE Test SET countCars DECREMENT WHERE model = 'b'"),
-	test_parser("UPDATE Test SET countCars DECREMENT 2 WHERE model = 'b'").
+	test_parser("UPDATE Test SET countCars = countCars - 1 WHERE model = 'b'"),
+	test_parser("UPDATE Test SET countCars = countCars - 2 WHERE model = 'b'").
 
 insert_simple_test() ->
 	test_parser("INSERT INTO Test VALUES ('a', 5, 'b')"),

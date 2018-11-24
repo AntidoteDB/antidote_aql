@@ -2,6 +2,7 @@ FROM mweber/antidotedb
 
 MAINTAINER Pedro Lopes <pms.lopes@campus.fct.unl.pt>
 
+ENV AQL_REL "/opt/AQL"
 ENV HANDOFF_PORT "8099"
 ENV PB_PORT "8087"
 ENV PB_IP "0.0.0.0"

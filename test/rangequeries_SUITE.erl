@@ -38,7 +38,7 @@ init_per_suite(Config) ->
       {range_col, "Y"},
       {bcounter_col, "Z"},
       {bound_greater, 0},
-      {update_greater, lists:concat(["UPDATE ", TestTable2, " SET Z ~s WHERE X = ~s"])}]).
+      {update_greater, lists:concat(["UPDATE ", TestTable2, " SET Z = Z ~s WHERE X = ~s"])}]).
 
 end_per_suite(Config) ->
   %aql:stop(),
@@ -165,9 +165,9 @@ reset_counters([], _Comp, [], _Config) ->
   ok.
 
 gen_reset_updates(Key, ?PARSER_GREATER, BcA) ->
-  gen_reset_updates(Key, "DECREMENT", BcA);
+  gen_reset_updates(Key, "-", BcA);
 gen_reset_updates(Key, ?PARSER_LESSER, BcA) ->
-  gen_reset_updates(Key, "INCREMENT", BcA);
+  gen_reset_updates(Key, "+", BcA);
 gen_reset_updates(Key, Op, BcA) ->
   [
     lists:concat([Op, " ", BcA]),
