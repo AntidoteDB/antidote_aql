@@ -16,10 +16,9 @@
 -include_lib("eunit/include/eunit.hrl").
 -endif.
 
-exec({_Table, _Tables}, Props, TxId) ->
-	TName = table(Props),
+exec({Table, _Tables}, Props, TxId) ->
 	Condition = where(Props),
-	Keys = where:scan(TName, Condition, TxId),
+	Keys = where:scan(Table, Condition, TxId),
 	lists:foreach(fun (Key) ->
 		ok = antidote_handler:update_objects(crdt:ipa_update(Key, ipa:delete()), TxId)
 	end, Keys).
