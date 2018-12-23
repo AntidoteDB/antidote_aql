@@ -1,4 +1,4 @@
-# AQL [![Build Status](https://travis-ci.org/JPDSousa/AQL.svg?branch=master)](https://travis-ci.org/JPDSousa/AQL)
+# AQL [![Build Status](https://travis-ci.org/pedromslopes/AQL.svg?branch=new_features)](https://travis-ci.org/pedromslopes/AQL)
 
 
 An SQL-like interface for [AntidoteDB](https://github.com/SyncFree/antidote).
@@ -10,44 +10,53 @@ AQL can be used through Docker (recommended), or directly through rebar3.
 ### Docker
 
 To use AQL through Docker simply pull the image from Docker Hub
-[here](https://hub.docker.com/r/jpdsousa/aql_antidote/). If docker can't 
-pull the lastest version of the image, do it manually by:
+[here](https://hub.docker.com/r/pedromslopes/aql/). If docker can't 
+pull the latest version of the image, do it manually by:
 
 ```
-    docker pull jpdsousa/aql_antidote:<latest-version-available>
+    docker pull pedromslopes/aql:<latest-version-available>
 ```
 
-This image starts an antidoteDB server 
-(uses [this](https://hub.docker.com/r/mweber/antidotedb/) image) on
+This image starts an AntidoteDB server 
+(uses [this](https://hub.docker.com/r/pedromslopes/antidotedb/) image) on
 background and runs an AQL instance of top.
+Strictly speaking, AQL and AntidoteDB represent a single system, where AQL communicates
+with AntidoteDB via local calls.
 
 This is the recommended way of running AQL, at least for single-client use.
 
 ### Rebar3
-This project can also be installed "manually" through rebar3. In order to do so,
-clone this repository:
+This project can also be installed "manually" through Rebar3. In order to do so,
+clone this repository and checkout this branch:
 
 ```
-    $ git clone https://github.com/JPDSousa/AQL
+    $ git clone https://github.com/pedromslopes/AQL
+    $ cd AQL && git checkout new_features
 ```
 
 Open a terminal in the project folder (`cd AQL`) and then compile the project:
 
 ```
-    $ make compile
+    $ make release
 ```
 
-Now, to run the client, you must have one (or more) running instances of AntidoteDB.
-To start in shell mode run the following command:
+Now, to run the client, you may start in shell mode by running one of the following commands:
 
+```
+    $ make aqlshell
+```
+or
 ```
     $ make shell
 ```
+The first command starts a native AQL shell where you can issue AQL queries to the database. To see
+which queries you can use, read the section API bellow.
+The second command starts an Erlang shell where you can write native Erlang commands and call
+directly exported functions from the modules supported by the AQL application. Use this
+shell if you are aware of the AQL internal structure.
 
-You can also start in development mode with:
-```
-    $ make dev
-```
+Both commands start an HTTP server for communication with AQL in background. The
+server listens on the TCP port 3002.
 
 ## Getting started
 
@@ -55,7 +64,7 @@ AQL is an SQL-variant, designed to work with AntidoteDB API.
 
 ### Shell
 AQL provides a shell mode, which is the easiest way to use the
-client. In shell mode, you'll see a prompt like this:
+client. In AQL's shell mode (command `make aqlshell`), you'll see a prompt like this:
 ```
     AQL>
 ```
@@ -64,21 +73,30 @@ Use the prompt to input AQL statements.
 ### API
 
 The AQL API is pretty straightforward. There is a main module called
-`aqlparser` with a method `parse`, which takes a tuple as well as the AntidoteDB node long name. The two options
-available are:
-```Erlang
-{str, AQLCommand}
-```
-Which parses the `AQLCommand` and outputs the result.
-```Erlang
-{file, AQLFile}
-```
-Which takes a path to a file (no specific format) and parses its content as an
-AQL command.
+`aql` with two methods, the `query` and `read_file`.
+The `query` method has two headers:
+* `query(Query)` receives a query and outputs the result;
+* `query(Query, Transaction)` receives a query and a transaction descriptor and outputs the
+final results.
 
-For instance, to show all existing tables in the database through the API, use:
+Similarly, the `read_file` supports two headers as well:
+* `read_file(Filename)` receives a file name, reads and parses a file with AQL statements and returns the result of applying the statements on the database;
+* `read_file(Filename, Transaction)` receives a file name and a transaction descriptor reads and parses a file 
+
+Therefore, exist two ways of performing a query in AQL. For instance, consider a query to show
+all existing tables in the database, While using the Erlang shell mode (activated through
+the `make shell` command) this query can me submitted as the following:
 ```Erlang
-aqlparser:parse({str, "SHOW TABLES"}, 'antidote@127.0.0.1').
+aql:query("SHOW TABLES").
+```
+or
+```Erlang
+aql:query("SHOW TABLES;", TxId).
+```
+This latter example assumes you started a transaction previously (see next section).
+While using the native AQL shell (through the `make aqlshell`), this query is submitted on its raw form, like the following:
+```
+    AQL> SHOW TABLES;
 ```
 
 ## AQL Docs
@@ -93,6 +111,10 @@ AQL supports multiple SQL-like operations such as:
   * DELETE
 * Admin
   * SHOW TABLES/INDEX
+* Transactions
+  * BEGIN
+  * COMMIT
+  * ABORT
 
 AQL supports a limited set of types:
 * VARCHAR - common text data type (similar to SQL's VARCHAR)
@@ -108,13 +130,13 @@ Creates a new table. If the table already exists the new table will overwrite it
  (any concurrent conflicts will be resolved with a *Last Writer Wins* CRP).
 
 ```SQL
-CREATE @AW TABLE Student (
-	id INT PRIMARY KEY,
+CREATE UPDATE-WINS TABLE Student (
+	StudentID INT PRIMARY KEY,
 	Name VARCHAR,
 	Age INT DEFAULT 18,
-	YearsLeft COUNTER_INT CHECK GREATER 0,
-	Passport_id INTEGER FOREIGN KEY @FR REFERENCES Passport(id)
-);
+	YearsLeft COUNTER_INT CHECK (YearsLeft > 0),
+	Passport_id INTEGER FOREIGN KEY UPDATE-WINS REFERENCES Passport(id)
+) PARTITION ON (Age);
 ```
 
 #### Primary keys
@@ -125,16 +147,17 @@ Any datatype can be a primary key.
 
 Primary keys only guarantee uniqueness. Although, if two rows with the same 
 primary key are inserted (either concurrently or not), both insertions will be
-merged, and all columns columns will also be merged according to its datatypes.
+merged, and all columns will also be merged according to its datatypes.
 
 #### Check Constraints
 
 AQL also supports constraints on counters (`counter_int`). Assign numeric bounds
 to any `COUNTER_INT` column by:
+```SQL
+CHECK (column_name [ < | <= | > | >= ] value)
 ```
-CHECK [ GREATER | GEQ | SMALLER | SEQ] value
-```
-Where `value` is the respective bound.
+
+Where `column_name` is the column and `value` is the respective bound.
 
 #### Default Values
 
@@ -142,7 +165,7 @@ You can also define a default value for a record (not allowed in primary keys).
 Default values are used when no value is specified for a record.
 
 Syntax:
-```
+```SQL
 column_x data_type DEFAULT value
 ```
 
@@ -152,74 +175,103 @@ Where `value` is the default value.
 
 Foreign keys allow users to create custom relations between elements of different
 tables. To create a foreign key relation simply add to the column that will be 
-the foreign key: `FOREIGN KEY [ @FR | @IR ] REFERENCES _parentTable_(_parentColumn_)`, 
-where `_parentTable_` is the parent table name (e.g. `Passport`) and `_parentColumn_` is
+the foreign key: `FOREIGN KEY [ UPDATE-WINS | DELETE-WINS ] REFERENCES parentTable(parentColumn) [ ON DELETE CASCADE ]`, 
+where `parentTable` is the parent table name (e.g. `Passport`) and `parentColumn` is
 the parent column name (e.g. `id`). All foreign keys must point to columns with a 
 unique constraint, which is only guaranteed in primary keys.
 
-Force-revive (`@FR`) and Ignore-revive (`@IR`) are conflict resolution policies used
+Additionally you can define a row's behaviour upon a parent deletion through the notation
+`ON DELETE CASCADE`, which tells a row to be removed if its parent row is deleted.
+The absence of this notation implies that the parent cannot be deleted if one or more rows point to it.
+
+Update-wins (`UPDATE-WINS`) and Delete-wins (`DELETE-WINS`) are conflict resolution policies used
 to resolve any referential integrity related conflicts generated by concurrent operations.
-Force-revive will revive all records (deleted) involved in the conflict, while
-Ignore-Revive deletes all involved records in case of conflict.
+Update-wins will revive all rows (deleted) involved in the conflict, while
+Delete-wins deletes all involved rows in case of conflict. If none of these policies is specified,
+the table assumes strong semantics that preclude parent rows to be deleted concurrently with the
+update of child rows.
+
+#### Partitioning
+
+The CREATE TABLE statement allows to partition a table by column, which is most known as horizontal partitioning.
+Hence, to partition a table use:
+```SQL
+PARTITION ON (column_name);
+```
+, which indicates that the table will split its rows by the column `column_name`.
 
 ### SELECT
 
 SELECT is the main read operation in AQL (similar to SQL). The operation issues
 a read operation in the database engine (AntidoteDB).
-
 ```SQL
-SELECT * FROM Persons WHERE PersonID = 20;
+SELECT * FROM Student WHERE StudentID = 20;
 ```
 
-*Note:* This operation only supports reads per primary key (such as the one in the
- example). This is a temporary limitation.
+This operation supports conjunctions (`AND`) and disjunctions (`OR`), and parenthesis to group sub-queries.
+A sub-query may be a sequence of one or more comparisons on the form:
+```SQL
+column_name [ = | <> | < | <= | > | >= ] value
+```
 
 ### INSERT
 
 Inserts new records in a table. If a value with the primary key already exists it
  will be overwritten.
-
 ```SQL
-INSERT INTO (PersonID, LastName, FirstName, Address, City) VALUES (10, 'Last1', 'First1', 'Local1', 'City1')
+INSERT INTO (StudentID, Name, Age, YearsLeft, Passport_id) VALUES (10000, 'John', 'Smith', '24', 'ABC');
 ```
 
-The table columns must always be specified.
+The table columns may be omitted, in which case all columns will be considered on the insertion.
+*Note*: string values must always be between single quotes (`'`).
 
 ### UPDATE
 
 Updates an already-existent row on the specified table.
 
 ```SQL
-UPDATE Persons
-SET FirstName ASSIGN 'First2'
-WHERE PersonID = 1
+UPDATE Student
+SET Age = 25
+WHERE StudentID = 10000;
 ```
 
-Updates all rows in table `Persons` where `PersonID` has value 1. The update
-sets column `FirstName` to value `'First2'`. The operation keyword (e.g.
-`ASSIGN`) depends on the AQL datatype:
-* *VARCHAR*
-  * `ASSIGN` - sets the column(s) of type `VARCHAR` to the value specified.
-* *INTEGER*
-  * `ASSIGN` - sets the column(s) of type `INTEGER` or `INT` to the value specified.
-  * `INCREMENT` - increments the column(s) of type `INTEGER` by the value specified.
-  * `DECREMENT` - decrements the column(s) of type `INTEGER` by the value specified.
-* *COUNTER_INT*
-  * `INCREMENT` - increments the column(s) of type `COUNTER_INT` by the value specified.
-  * `DECREMENT` - decrements the column(s) of type `COUNTER_INT` by the value specified.
-* *BOOLEAN*
-  * `ENABLE`- sets the boolean value to `true`
-  * `DISABLE`- sets the boolean value to `false`
+Updates all rows in table `Students` where `StudentID` has value 1. The update
+sets column `Age` to value `25`. All update operations on columns are based on equalities with different expressions depending on the column's datatype:
+* *VARCHAR*/*INTEGER*:
+  * `Col = val` sets the column `Col` of type `VARCHAR`/`INTEGER` or `INT` to the value `val` specified (`val` must be a number for the integer datatype).
+* *COUNTER_INT*:
+  * `Col = Col + val` increments the column `Col` of type `COUNTER_INT` by the value `val` specified.
+  * `Col = Col - val` decrements the column `Col` of type `COUNTER_INT` by the value `val` specified.
+* *BOOLEAN*:
+  * `Col = true` sets the boolean column `Col` to `true`.
+  * `Col = false` sets the boolean column `Col` to `false`.
+  * In both cases, the boolean value to assign is not enclosed between single quotes.
   
-Just like in a SELECT operation, the where clause can only filter primary keys.
+Unlike the SELECT clause, the WHERE clause on the UPDATE statement can only filter primary keys.
   
 ### DELETE
 
 Deletes a set of records from the specified table.
 
 ```SQL
-DELETE FROM Persons Where PersonID = 2004525
+DELETE FROM Persons Where StudentID = 20525;
 ```
 
-Just like in a SELECT operation, the where clause can only filter primary keys.
-If the `WHERE`clause is absent, all the records in the table are deleted.
+Just like in an UPDATE operation, the WHERE clause can only filter primary keys.
+If the WHERE clause is absent, all the records in the table are deleted.
+
+
+### TRANSACTION
+
+Just like in SQL, AQL allows to execute a set of queries inside a transaction.
+```SQL
+BEGIN TRANSACTION;
+query_1;
+query_2;
+...
+query_n;
+[ COMMIT | ROLLBACK ] TRANSACTION;
+```
+
+At the end, the transaction can be committed or aborted.
+An ongoing transaction must always be terminated first before starting a new one.

@@ -19,3 +19,5 @@ antidote/
 
 .idea/
 aql.iml
+
+.dockerignore

@@ -10,18 +10,22 @@ show_query
 %select
 select_query projection select_fields
 %where
-where_clauses where_clause
+where_clauses where_clause comparison
 %insert
 insert_query insert_keys_clause insert_keys insert_values_clause insert_values
 %delete
 delete_query
 %create
-create_query create_keys attribute attribute_constraint
+create_query create_keys attribute attribute_constraint create_index_keys check_comparator
 attribute_name
 %update
 update_query set_clause set_assignments set_assignment
+%txs
+begin_transaction commit_transaction rollback_transaction
 %utils
 value atom number_unwrap
+%quit program
+quit_program
 .
 
 %%====================================================================
@@ -31,26 +35,32 @@ Terminals
 %show
 show tables
 %index
-index
+index indexes on
 %select
 select wildcard from
 %where
 where
+%comparison
+equality notequality greater lesser greatereq lessereq
 %insert
 insert into values
 %delete
 delete
 %create
-create table table_policy primary foreign key references default check
-attribute_type dep_policy
+create table partition crp primary foreign key references default check
+attribute_type cascade
 %update
 update set
+%tx
+begin commit rollback transaction
 %types
 atom_value string number boolean
 %expression
-assign increment decrement equality comparator conjunctive
+plus minus conjunctive disjunctive
 %list
 sep start_list end_list semi_colon
+%quit
+quit
 .
 
 %%====================================================================
@@ -64,11 +74,11 @@ Rootsymbol query.
 
 query -> statement : '$1'.
 
-query -> admin: '$1'.
-
-statement -> statement semi_colon statement :	lists:append('$1', '$3').
+statement -> statement semi_colon statement : lists:append('$1', '$3').
 
 statement -> statement semi_colon :	'$1'.
+
+statement -> admin : '$1'.
 
 statement -> select_query : ['$1'].
 
@@ -80,6 +90,21 @@ statement -> update_query :	['$1'].
 
 statement -> create_query :	['$1'].
 
+statement -> begin_transaction : ['$1'].
+
+statement -> commit_transaction : ['$1'].
+
+statement -> rollback_transaction : ['$1'].
+
+statement -> quit_program : ['$1'].
+
+comparison -> equality : '$1'.
+comparison -> notequality : '$1'.
+comparison -> greater : '$1'.
+comparison -> lesser : '$1'.
+comparison -> greatereq : '$1'.
+comparison -> lessereq : '$1'.
+
 admin -> show_query : ['$1'].
 
 %%--------------------------------------------------------------------
@@ -88,6 +113,14 @@ admin -> show_query : ['$1'].
 show_query ->
 	show index from atom :
 	?SHOW_CLAUSE({?INDEX_TOKEN, '$4'}).
+
+show_query ->
+    show index atom from atom :
+    ?SHOW_CLAUSE({?INDEX_TOKEN, '$3', '$5'}).
+
+show_query ->
+    show indexes from atom :
+    ?SHOW_CLAUSE({?INDEXES_TOKEN, '$4'}).
 
 show_query ->
 	show tables :
@@ -125,15 +158,32 @@ select_fields ->
 %%--------------------------------------------------------------------
 
 where_clauses ->
-   where_clauses conjunctive where_clause :
-   lists:append('$1', ['$3']).
+    where_clauses conjunctive where_clauses :
+    lists:append(['$1', ['$2'], '$3']).
 
- where_clauses ->
-	 where_clause :
-	 ['$1'].
+where_clauses ->
+    where_clauses disjunctive where_clauses :
+    lists:append(['$1', ['$2'], '$3']).
+
+where_clauses ->
+    start_list where_clauses conjunctive where_clauses end_list :
+    [lists:append(['$2', ['$3'], '$4'])].
+
+where_clauses ->
+    start_list where_clauses disjunctive where_clauses end_list :
+    [lists:append(['$2', ['$3'], '$4'])].
+
+where_clauses ->
+    where_clause :
+	['$1'].
+
+% Uncomment to support this
+%where_clauses ->
+%    start_list where_clause end_list :
+%    ['$2'].
 
 where_clause ->
-	atom equality value :
+	atom comparison value :
 	{'$1', '$2', '$3'}.
 
 %%--------------------------------------------------------------------
@@ -197,34 +247,34 @@ set_assignments ->
 	set_assignment :
 	['$1'].
 
-%assignment expression
+%assignment expression for varchar and boolean data types
 set_assignment ->
-	atom assign value :
-	{'$1', '$2', '$3'}.
+	atom equality value :
+	{'$1', ?ASSIGN_OP('$2'), '$3'}.
 
-%increment/decrement expression
+%assignment expressions for increments/decrements on counter data types
 set_assignment ->
-	atom increment :
-	{'$1', '$2', 1}.
-
-set_assignment ->
-	atom increment number_unwrap :
-	{'$1', '$2', '$3'}.
+    atom equality atom plus number_unwrap :
+	{counter_update_column('$1', '$3'), ?INCREMENT_OP('$4'), '$5'}.
 
 set_assignment ->
-	atom decrement :
-	{'$1', '$2', 1}.
-
-set_assignment ->
-	atom decrement number_unwrap :
-	{'$1', '$2', '$3'}.
+    atom equality atom minus number_unwrap :
+	{counter_update_column('$1', '$3'), ?DECREMENT_OP('$4'), '$5'}.
 
 %%--------------------------------------------------------------------
 %% create query
 %%--------------------------------------------------------------------
 create_query ->
-	create table_policy table atom start_list create_keys end_list :
-	?CREATE_CLAUSE(?T_TABLE('$4', crp:set_table_level(unwrap_type('$2'), crp:new()), '$6', [])).
+	create crp table atom start_list create_keys end_list :
+	?CREATE_CLAUSE(?T_TABLE('$4', crp:set_table_level(unwrap_type('$2'), crp:new()), '$6', [], [], undefined)).
+
+create_query ->
+    create crp table atom start_list create_keys end_list partition on start_list attribute_name end_list :
+    ?CREATE_CLAUSE(?T_TABLE('$4', crp:set_table_level(unwrap_type('$2'), crp:new()), '$6', [], [], ['$11'])).
+
+create_query ->
+    create index atom on atom start_list create_index_keys end_list :
+    ?CREATE_CLAUSE(?T_INDEX('$3', '$5', '$7')).
 
 create_keys ->
 	create_keys sep attribute :
@@ -247,20 +297,45 @@ attribute_constraint ->
 	?PRIMARY_TOKEN.
 
 attribute_constraint ->
-	foreign key dep_policy references atom start_list atom end_list :
-	?FOREIGN_KEY({'$5', '$7', unwrap_type('$3')}).
+	foreign key crp references atom start_list atom end_list :
+	?FOREIGN_KEY({'$5', '$7', unwrap_type('$3'), ?RESTRICT_TOKEN}).
+
+attribute_constraint ->
+    foreign key references atom start_list atom end_list :
+    ?FOREIGN_KEY({'$4', '$6', unwrap_type(?NO_CONCURRENCY_KEY), ?RESTRICT_TOKEN}).
+
+attribute_constraint ->
+	foreign key crp references atom start_list atom end_list on delete cascade :
+	?FOREIGN_KEY({'$5', '$7', unwrap_type('$3'), ?CASCADE_TOKEN}).
+
+attribute_constraint ->
+	foreign key references atom start_list atom end_list on delete cascade :
+	?FOREIGN_KEY({'$4', '$6', unwrap_type(?NO_CONCURRENCY_KEY), ?CASCADE_TOKEN}).
 
 attribute_constraint ->
 	default value :
 	?DEFAULT_KEY('$2').
 
 attribute_constraint ->
-	check comparator number_unwrap :
-	?CHECK_KEY({'$2', '$3'}).
+	check start_list attribute_name check_comparator number_unwrap end_list :
+	?CHECK_KEY({'$3', '$4', '$5'}).
 
 attribute_name ->
 	atom :
 	'$1'.
+
+check_comparator -> greater : ?GREATER_KEY.
+check_comparator -> lesser : ?LESSER_KEY.
+check_comparator -> greatereq : ?GREATEREQ_KEY.
+check_comparator -> lessereq : ?LESSEREQ_KEY.
+
+create_index_keys ->
+	create_index_keys sep atom :
+	lists:append('$1', ['$3']).
+
+create_index_keys ->
+	atom :
+	['$1'].
 
 %%--------------------------------------------------------------------
 %% delete
@@ -273,6 +348,29 @@ delete_query ->
 delete_query ->
 	delete from atom where where_clauses :
 	?DELETE_CLAUSE({'$3', '$5'}).
+
+%%--------------------------------------------------------------------
+%% transactions
+%%--------------------------------------------------------------------
+
+begin_transaction ->
+	begin transaction :
+	?BEGIN_CLAUSE(?TRANSACTION_TOKEN).
+
+commit_transaction ->
+    commit transaction :
+    ?COMMIT_CLAUSE(?TRANSACTION_TOKEN).
+
+rollback_transaction ->
+    rollback transaction :
+    ?ROLLBACK_CLAUSE(?TRANSACTION_TOKEN).
+
+%%--------------------------------------------------------------------
+%% quit program
+%%--------------------------------------------------------------------
+quit_program ->
+    quit :
+    ?QUIT_CLAUSE(?QUIT_TOKEN).
 
 %%--------------------------------------------------------------------
 %% utils
@@ -307,6 +405,10 @@ Erlang code.
 
 unwrap_type(?PARSER_TYPE(_Type, Value)) -> Value.
 
+counter_update_column(Column, Column) -> Column;
+counter_update_column(_, _) ->
+    throw({error, {1, ?MODULE, "The column in the update must be the same on either side of the equality"}}).
+
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
 -endif.
@@ -324,48 +426,65 @@ show_tables_test() ->
 	test_parser("SHOW TABLES").
 
 show_index_test() ->
-	test_parser("SHOW INDEX FROM TestTable").
+	test_parser("SHOW INDEX FROM TestTable"),
+	test_parser("SHOW INDEXES FROM TestTable"),
+	test_parser("SHOW INDEX TestIndex FROM TestTable").
 
 create_table_simple_test() ->
-	test_parser("CREATE @AW TABLE Test (a VARCHAR, b INTEGER)"),
-	test_parser("CREATE @AW TABLE Test (a VARCHAR)"),
-	test_parser("CREATE @AW TABLE TestA (a VARCHAR);CREATE @AW TABLE TestB (b INTEGER)").
+	test_parser("CREATE UPDATE-WINS TABLE Test (a VARCHAR, b INTEGER)"),
+	test_parser("CREATE UPDATE-WINS TABLE Test (a VARCHAR)"),
+	test_parser("CREATE DELETE-WINS TABLE TestA (a VARCHAR);CREATE DELETE-WINS TABLE TestB (b INTEGER)").
 
 create_table_pk_test() ->
-	test_parser("CREATE @AW TABLE Test (a VARCHAR PRIMARY KEY, b INTEGER)"),
-	test_parser("CREATE @AW TABLE Test (a INTEGER PRIMARY KEY, b INTEGER)"),
-	test_parser("CREATE @AW TABLE Test (a BOOLEAN PRIMARY KEY, b INTEGER)").
+	test_parser("CREATE UPDATE-WINS TABLE Test (a VARCHAR PRIMARY KEY, b INTEGER)"),
+	test_parser("CREATE UPDATE-WINS TABLE Test (a INTEGER PRIMARY KEY, b INTEGER)"),
+	test_parser("CREATE UPDATE-WINS TABLE Test (a BOOLEAN PRIMARY KEY, b INTEGER)").
 
 create_table_def_test() ->
-	test_parser("CREATE @AW TABLE Test (a VARCHAR, b INTEGER DEFAULT 5)"),
-	test_parser("CREATE @AW TABLE Test (a VARCHAR, b BOOLEAN DEFAULT false)"),
-	test_parser("CREATE @AW TABLE Test (a VARCHAR, b VARCHAR DEFAULT 'example')").
+	test_parser("CREATE UPDATE-WINS TABLE Test (a VARCHAR, b INTEGER DEFAULT 5)"),
+	test_parser("CREATE UPDATE-WINS TABLE Test (a VARCHAR, b BOOLEAN DEFAULT false)"),
+	test_parser("CREATE UPDATE-WINS TABLE Test (a VARCHAR, b VARCHAR DEFAULT 'example')").
 
 create_table_check_test() ->
-	test_parser("CREATE @AW TABLE Test(a INTEGER, b COUNTER_INT CHECK GREATER 0)").
+	test_parser("CREATE UPDATE-WINS TABLE Test(a INTEGER, b COUNTER_INT CHECK (b > 0))"),
+	test_parser("CREATE UPDATE-WINS TABLE Test(a INTEGER, b COUNTER_INT CHECK (b >= 0))"),
+	test_parser("CREATE UPDATE-WINS TABLE Test(a INTEGER, b COUNTER_INT CHECK (b < 0))"),
+	test_parser("CREATE UPDATE-WINS TABLE Test(a INTEGER, b COUNTER_INT CHECK (b <= 0))").
 
 create_table_fk_test() ->
-	test_parser("CREATE @AW TABLE Test (a VARCHAR, b INTEGER FOREIGN KEY @FR REFERENCES TestB(b))").
+	test_parser("CREATE UPDATE-WINS TABLE Test (a VARCHAR, b INTEGER FOREIGN KEY UPDATE-WINS REFERENCES TestB(b))"),
+	test_parser("CREATE DELETE-WINS TABLE Test (a VARCHAR, b INTEGER FOREIGN KEY REFERENCES TestB(b))").
+
+create_table_fk_cascade_test() ->
+    test_parser("CREATE DELETE-WINS TABLE TestA (a VARCHAR, b INTEGER FOREIGN KEY DELETE-WINS REFERENCES TestB(b) ON DELETE CASCADE)"),
+    test_parser("CREATE DELETE-WINS TABLE TestA (a VARCHAR, b INTEGER FOREIGN KEY REFERENCES TestB(b) ON DELETE CASCADE)").
+
+create_table_partition_test() ->
+    test_parser("CREATE UPDATE-WINS TABLE Test (a VARCHAR, b INTEGER) PARTITION ON (b)").
+
+create_index_simple_test() ->
+    test_parser("CREATE INDEX TestIdx ON Table (a)"),
+    test_parser("CREATE INDEX TestIdx ON Table (a, b)").
 
 update_simple_test() ->
-	test_parser("UPDATE Test SET name ASSIGN 'aaa'"),
-	test_parser("UPDATE Test SET name ASSIGN 'a';UPDATE Test SET name ASSIGN 'b'").
+	test_parser("UPDATE Test SET name = 'aaa'"),
+	test_parser("UPDATE Test SET name = 'a'; UPDATE Test SET name = 'b'").
 
 update_multiple_test() ->
-	test_parser("UPDATE Test SET name ASSIGN 'aaa' AND age INCREMENT 3"),
-	test_parser("UPDATE Test SET name ASSIGN 'aaa' AND age INCREMENT 3 AND loc ASSIGN 'en' WHERE loc = 'pt'").
+	test_parser("UPDATE Test SET name = 'aaa' AND age = age + 3"),
+	test_parser("UPDATE Test SET name = 'aaa' AND age = age + 3 AND loc = 'en' WHERE loc = 'pt'").
 
 update_assign_test() ->
-	test_parser("UPDATE Test SET name ASSIGN 'aaa' WHERE name = 'a'"),
-	test_parser("UPDATE Test SET age ASSIGN 50 WHERE name = 'aa'").
+	test_parser("UPDATE Test SET name = 'aaa' WHERE name = 'a'"),
+	test_parser("UPDATE Test SET age = 50 WHERE name = 'aa'").
 
 update_increment_test() ->
-	test_parser("UPDATE Test SET countCars INCREMENT WHERE model = 'b'"),
-	test_parser("UPDATE Test SET countCars INCREMENT 2 WHERE model = 'b'").
+	test_parser("UPDATE Test SET countCars = countCars + 1 WHERE model = 'b'"),
+	test_parser("UPDATE Test SET countCars = countCars + 2 WHERE model = 'b'").
 
 update_decrement_test() ->
-	test_parser("UPDATE Test SET countCars DECREMENT WHERE model = 'b'"),
-	test_parser("UPDATE Test SET countCars DECREMENT 2 WHERE model = 'b'").
+	test_parser("UPDATE Test SET countCars = countCars - 1 WHERE model = 'b'"),
+	test_parser("UPDATE Test SET countCars = countCars - 2 WHERE model = 'b'").
 
 insert_simple_test() ->
 	test_parser("INSERT INTO Test VALUES ('a', 5, 'b')"),
@@ -386,7 +505,21 @@ select_projection_test() ->
 	test_parser("SELECT a, b FROM Test").
 
 select_where_test() ->
-	test_parser("SELECT a FROM Test WHERE b =2"),
-	test_parser("SELECT a FROM Test WHERE b = 2 AND c =3 AND d= 4").
+	test_parser("SELECT a FROM Test WHERE b = 2"),
+	test_parser("SELECT a FROM Test WHERE b = 2 AND c = 3 AND d = 4"),
+	test_parser("SELECT a FROM Test WHERE b >= 2 OR c <= 3 AND d = 4"),
+	test_parser("SELECT a FROM Test WHERE b > 2 AND c < 3 OR d <> 4"),
+	test_parser("SELECT a FROM Test WHERE b = 2 AND (c <= 3 OR d = 4)"),
+	test_parser("SELECT a FROM Test WHERE (b >= 2 AND c = 3 OR d <> 4)"),
+	test_parser("SELECT a FROM Test WHERE (b <> 2 AND c < 3) OR d > 4").
+
+transaction_test() ->
+    test_parser("BEGIN TRANSACTION"),
+    test_parser("COMMIT TRANSACTION"),
+    test_parser("ROLLBACK TRANSACTION").
+
+quit_test() ->
+    test_parser("QUIT"),
+    test_parser("quit").
 
 -endif.

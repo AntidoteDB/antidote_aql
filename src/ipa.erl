@@ -8,7 +8,8 @@
 -include("aql.hrl").
 
 -export([new/0,
-          touch/0, touch_cascade/0, insert/0, delete/0, delete_cascade/0,
+          touch/0, touch_cascade/0, insert/0,
+          delete/0, delete_cascade/0,
           is_visible/1, is_visible/2,
           status/2]).
 
@@ -22,15 +23,16 @@ delete() -> d.
 delete_cascade() -> dc.
 
 is_visible(ExState) ->
-  is_visible(ExState, []).
+  is_visible(ExState, true).
 
-is_visible(_, [dc | _ImplicitState]) -> false;
-is_visible(ExplicitState, [tc | ImplicitState]) ->
+is_visible(_, [false | _ImplicitState]) -> false;
+is_visible(ExplicitState, [true | ImplicitState]) ->
   is_visible(ExplicitState, ImplicitState);
-is_visible(i, []) -> true;
-is_visible(t, []) -> true;
-is_visible(d, []) -> false;
-is_visible(_InvalidE, _InvalidI) -> 
+is_visible(_, false) -> false;
+is_visible(i, _) -> true;
+is_visible(t, _) -> true;
+is_visible(d, _) -> false;
+is_visible(_InvalidE, _InvalidI) ->
   err.
 
 status(_Rule, []) -> [];
@@ -63,12 +65,12 @@ new_test() ->
   ?assertEqual(i, new()).
 
 is_visible_ok_test() ->
-  ?assertEqual(is_visible(i, [tc, tc]), true),
-  ?assertEqual(is_visible(i, [dc, tc]), false),
-  ?assertEqual(is_visible(t, [tc, tc]), true),
-  ?assertEqual(is_visible(t, [dc, tc]), false),
-  ?assertEqual(is_visible(d, [tc, tc]), false),
-  ?assertEqual(is_visible(d, [dc, tc]), false).
+  ?assertEqual(is_visible(i, [true, true]), true),
+  ?assertEqual(is_visible(i, [false, true]), false),
+  ?assertEqual(is_visible(t, [true, true]), true),
+  ?assertEqual(is_visible(t, [false, true]), false),
+  ?assertEqual(is_visible(d, [true, true]), false),
+  ?assertEqual(is_visible(d, [false, true]), false).
 
 is_visible_err_test() ->
   ?assertEqual(is_visible(random_value, random_value), err).
@@ -78,9 +80,13 @@ status_test() ->
   List2 = [i, d, tc],
   List3 = [d, d, dc],
   List4 = [i, d, d],
+  List5 = [tc, i, d],
+  List6 = [dc, i, t],
   ?assertEqual(status([d, i, tc, dc, t], List1), d),
   ?assertEqual(status([d, tc, i, t, dc], List2), i),
   ?assertEqual(status([dc, d, tc, t, i], List3), d),
-  ?assertEqual(status([tc, dc, t, d, i], List4), i).
+  ?assertEqual(status([tc, dc, t, d, i], List4), i),
+  ?assertEqual(status([t, dc, tc, i, d], List5), d),
+  ?assertEqual(status([t, dc, tc, i, d], List6), i).
 
 -endif.

@@ -1,6 +1,14 @@
 #!/usr/bin/env bash
 
-if [ -z "$AQL_NAME" ]; then
-	export AQL_NAME='aql@127.0.0.1'
+if [ -z "$NODE_NAME" ]; then
+	export NODE_NAME='aql@127.0.0.1'
 fi
-erl -pa ./_build/default/lib/aql/ebin -name $AQL_NAME -setcookie antidote -noshell -eval "aqlparser:start_shell()"
+
+if [ -z "$AQL_REL" ]; then
+	# by default, this script will be executed from the Makefile
+	export AQL_REL=_build/default/rel/aql
+fi
+
+# echo "Using AQL node name: $NODE_NAME"
+
+$AQL_REL/bin/env start && sleep 5 && $AQL_REL/bin/env eval "aql:start_shell()"

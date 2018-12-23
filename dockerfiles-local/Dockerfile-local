@@ -1,0 +1,56 @@
+FROM mweber/antidotedb
+
+MAINTAINER Pedro Lopes <pms.lopes@campus.fct.unl.pt>
+
+ENV AQL_REL "/opt/AQL"
+ENV HANDOFF_PORT "8099"
+ENV PB_PORT "8087"
+ENV PB_IP "0.0.0.0"
+ENV PBSUB_PORT "8086"
+ENV LOGREADER_PORT "8085"
+ENV RING_STATE_DIR "data/ring"
+ENV PLATFORM_DATA_DIR "data"
+ENV NODE_NAME "aql@127.0.0.1"
+ENV SHORT_NAME "false"
+ENV DEBUG_MODE "false"
+
+#AQL
+#ADD _build/default/rel/aql /opt/AQL
+#ADD erl_scripts /opt/AQL/erl_scripts
+#ADD scripts /opt/AQL/scripts
+#ADD . /opt/AQL/
+ADD . /usr/src/AQL
+
+RUN set -xe \
+	&& cd /usr/src/AQL && rm -rf _build/default/rel \
+	&& make release \
+	&& cp -r _build/default/rel/aql /opt/AQL \
+	&& cp -r erl_scripts /opt/AQL/erl_scripts \
+	&& cp -r scripts /opt/AQL/scripts \
+	&& rm -rf /usr/src/AQL
+	
+RUN cd /opt/AQL \
+	&& rm -rf lib/eleveldb-* lib/erlzmq-* \
+	&& cp -r /opt/antidote/lib/eleveldb-* /opt/AQL/lib/ \
+	&& cp -r /opt/antidote/lib/erlzmq-* /opt/AQL/lib/
+
+RUN chmod a+x /opt/AQL/erl_scripts/create_cluster.erl \
+	&& chmod a+x /opt/AQL/erl_scripts/populate_index.erl
+
+ADD dockerfiles-local/start_and_attach.sh /opt/
+ADD dockerfiles-local/entrypoint.sh /
+
+RUN chmod a+x /opt/start_and_attach.sh \
+	&& chmod a+x /entrypoint.sh
+	
+# Distributed Erlang Port Mapper
+EXPOSE 4368
+# Ports for Antidote
+EXPOSE 8085 8086 8087 8099
+
+# Antidote RPC
+EXPOSE 9100
+
+VOLUME /opt/AQL/data
+
+ENTRYPOINT ["/entrypoint.sh", "/opt/start_and_attach.sh"]

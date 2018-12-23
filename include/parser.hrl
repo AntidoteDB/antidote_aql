@@ -12,6 +12,11 @@
 % index
 -define(INDEX_TOKEN, index).
 -define(INDEX_CLAUSE(TokenChars), {?INDEX_TOKEN, TokenChars}).
+-define(INDEXES_TOKEN, indexes).
+-define(INDEXES_CLAUSE(TokenChars), {?INDEXES_TOKEN, TokenChars}).
+% on
+-define(ON_TOKEN, on).
+-define(ON_KEY(TokenChars), {?ON_TOKEN, TokenChars}).
 
 % select
 -define(SELECT_TOKEN, select).
@@ -26,6 +31,9 @@
 %% and
 -define(CONJUNCTIVE_TOKEN, conjunctive).
 -define(CONJUNCTIVE_KEY(TokenChars), {?CONJUNCTIVE_TOKEN, TokenChars}).
+%% or
+-define(DISJUNCTIVE_TOKEN, disjunctive).
+-define(DISJUNCTIVE_KEY(TokenChars), {?DISJUNCTIVE_TOKEN, TokenChars}).
 
 % insert
 -define(INSERT_TOKEN, insert).
@@ -37,6 +45,9 @@
 % create
 -define(CREATE_TOKEN, create).
 -define(CREATE_CLAUSE(TokenChars), {?CREATE_TOKEN, TokenChars}).
+% partitioned
+-define(PARTITION_TOKEN, partition).
+-define(PARTITION_CLAUSE(TokenChars), {?PARTITION_TOKEN, TokenChars}).
 %% table
 -define(TABLE_TOKEN, table).
 -define(TABLE_KEY(TokenChars), {?TABLE_TOKEN, TokenChars}).
@@ -54,14 +65,18 @@
 -define(KEY_KEY(TokenChars), {?KEY_TOKEN, TokenChars}).
 -define(REFERENCES_TOKEN, references).
 -define(REFERENCES_KEY(TokenChars), {?REFERENCES_TOKEN, TokenChars}).
+-define(CASCADE_TOKEN, cascade).
+-define(CASCADE_CLAUSE(TokenChars), {?CASCADE_TOKEN, TokenChars}).
+-define(RESTRICT_TOKEN, restrict).
+
 %% check constraint
 -define(CHECK_TOKEN, check).
 -define(CHECK_KEY(TokenChars), {?CHECK_TOKEN, TokenChars}).
 -define(COMPARATOR_KEY(Comparator), {comparator, Comparator}).
--define(GREATER_TOKEN, greater).
--define(GREATER_KEY, ?COMPARATOR_KEY(?GREATER_TOKEN)).
--define(SMALLER_TOKEN, smaller).
--define(SMALLER_KEY, ?COMPARATOR_KEY(?SMALLER_TOKEN)).
+-define(GREATER_KEY, ?COMPARATOR_KEY(?PARSER_GREATER)).
+-define(GREATEREQ_KEY, ?COMPARATOR_KEY(?PARSER_GEQ)).
+-define(LESSER_KEY, ?COMPARATOR_KEY(?PARSER_LESSER)).
+-define(LESSEREQ_KEY, ?COMPARATOR_KEY(?PARSER_LEQ)).
 %% default value
 -define(DEFAULT_TOKEN, default).
 -define(DEFAULT_KEY(TokenChars), {?DEFAULT_TOKEN, TokenChars}).
@@ -69,12 +84,15 @@
 -define(ATTR_TYPE_TOKEN, attribute_type).
 -define(ATTR_KEY(AttrType), {?ATTR_TYPE_TOKEN, AttrType}).
 %% table policies
--define(TABLE_POLICY_TOKEN, table_policy).
--define(TABLE_POLICY_KEY(Crp), {?TABLE_POLICY_TOKEN, Crp}).
--define(DEP_POLICY_TOKEN, dep_policy).
--define(DEP_POLICY_KEY(Crp), {?DEP_POLICY_TOKEN, Crp}).
+%-define(TABLE_POLICY_TOKEN, table_policy).
+%-define(TABLE_POLICY_KEY(Crp), {?TABLE_POLICY_TOKEN, Crp}).
+%-define(DEP_POLICY_TOKEN, dep_policy).
+%-define(DEP_POLICY_KEY(Crp), {?DEP_POLICY_TOKEN, Crp}).
+-define(CRP_TOKEN, crp).
+-define(CRP_KEY(Crp), {?CRP_TOKEN, Crp}).
+-define(NO_CONCURRENCY_KEY, {?CRP_TOKEN, noconcurrency}).
 
-% udpate
+% update
 -define(UPDATE_TOKEN, update).
 -define(UPDATE_CLAUSE(TokenChars), {?UPDATE_TOKEN, TokenChars}).
 %% set
@@ -93,6 +111,23 @@
 -define(DELETE_TOKEN, delete).
 -define(DELETE_CLAUSE(TokenChars), {?DELETE_TOKEN, TokenChars}).
 
+% begin transaction
+-define(BEGIN_TOKEN, 'begin').
+-define(BEGIN_CLAUSE(TokenChars), {?BEGIN_TOKEN, TokenChars}).
+% commit transaction
+-define(COMMIT_TOKEN, commit).
+-define(COMMIT_CLAUSE(TokenChars), {?COMMIT_TOKEN, TokenChars}).
+% rollback transaction
+-define(ROLLBACK_TOKEN, rollback).
+-define(ROLLBACK_CLAUSE(TokenChars), {?ROLLBACK_TOKEN, TokenChars}).
+% transaction
+-define(TRANSACTION_TOKEN, transaction).
+-define(TRANSACTION_KEY(TokenChars), {?TRANSACTION_TOKEN, TokenChars}).
+
+% quit program
+-define(QUIT_TOKEN, quit).
+-define(QUIT_CLAUSE(TokenChars), {?QUIT_TOKEN, TokenChars}).
+
 %terms
 -define(PARSER_BOOLEAN_TOKEN, boolean).
 -define(PARSER_ATOM_TOKEN, atom_value).
@@ -108,6 +143,13 @@
 
 % extras
 -define(PARSER_EQUALITY, {equality, ignore}).
+-define(PARSER_NEQ, {notequality, ignore}).
+-define(PARSER_GREATER, {greater, ignore}).
+-define(PARSER_LESSER, {lesser, ignore}).
+-define(PARSER_GEQ, {greatereq, ignore}).
+-define(PARSER_LEQ, {lessereq, ignore}).
+-define(PARSER_PLUS, {plus, ignore}).
+-define(PARSER_MINUS, {minus, ignore}).
 -define(PARSER_WILDCARD, {wildcard, ignore}).
 
 -define(PARSER_SLIST, {start_list, ignore}).

@@ -1,5 +1,5 @@
 %% @author Joao
-%% @doc @todo Add description to select.
+%% @doc @todo Add description to insert.
 
 
 -module(insert).
@@ -16,88 +16,78 @@
 -export([exec/3]).
 
 -export([table/1,
-				keys/2,
-				values/1]).
+  keys/2,
+  values/1]).
+
+-export([touch_cascade/4]).
 
 exec({Table, Tables}, Props, TxId) ->
-	Keys = keys(Props, Table),
-	Values = values(Props),
-	Keys1 = handle_defaults(Keys, Values, Table),
-	AnnElement = element:new(Table),
-	{ok, Element} = element:put(Keys1, Values, AnnElement),
-	Element1 = element:build_fks(Element, TxId),
-	element:insert(Element1, TxId),
-	Pk = element:primary_key(Element1),
-	index:put(Pk, TxId),
-	% update foreign key references
-	%touch_cascade(Element1, Tables, TxId),
-	Fks = element:foreign_keys(foreign_keys:from_table(Table), Element1),
-	FksKV = read_fks(Fks, Tables, TxId, true),
-	lists:foreach(fun ({Fk, Data}) -> touch(Fk, Data, Tables, TxId) end, FksKV).
+  Keys = keys(Props, Table),
+  Values = values(Props),
+  Keys1 = handle_defaults(Keys, Values, Table),
+  AnnElement = element:new(Table),
+  {ok, Element} = element:put(Keys1, Values, AnnElement),
+  Element1 = element:set_version(Element, TxId),
+  Parents = element:parents(element:data(Element1), Table, Tables, TxId),
+
+  Element2 = element:build_fks(Element1, Parents),
+  ok = element:insert(Element2, TxId),
+
+  touch_cascade(Parents, Table, Tables, TxId),
+  ok.
 
 table({TName, _Keys, _Values}) -> TName.
 
 keys({_TName, Keys, _Values}, Table) ->
-	case Keys of
-		?PARSER_WILDCARD ->
-			column:s_names(Table);
-		_Else ->
-			Keys
-	end.
+  case Keys of
+    ?PARSER_WILDCARD ->
+      column:s_names(Table);
+    _Else ->
+      Keys
+  end.
 
 values({_TName, _Keys, Values}) -> Values.
+
+touch_cascade(Parents, Table, Tables, TxId) ->
+  Fks = table:shadow_columns(Table),
+  lists:foreach(fun(Fk) -> touch(Fk, Parents, Tables, TxId) end, Fks).
+
+%% ====================================================================
+%% Functions for inserts and updates
+%% ====================================================================
+
+touch(?T_FK(FkName, _, FkTabName, FkColName, _), Parents, Tables, TxId)
+  when length(FkName) == 1 ->
+  PTable = table:lookup(FkTabName, Tables),
+
+  [{_, ParentId}] = FkName,
+  {Parent, PParents} = dict:fetch({FkTabName, ParentId}, Parents),
+  Value = element:get_by_name(foreign_keys:to_cname(FkColName), Parent),
+
+  TKey = element:create_key_from_table(Value, PTable, TxId),
+  Policy = table:policy(PTable),
+  case crp:p_dep_level(Policy) of
+    ?ADD_WINS -> antidote_handler:update_objects(crdt:ipa_update(TKey, ipa:touch()), TxId);
+    _Else -> ok
+  end,
+
+  % touch parents
+  Fks = table:shadow_columns(PTable),
+  lists:foreach(fun(Fk) -> touch(Fk, PParents, Tables, TxId) end, Fks);
+touch(_, _, _, _) ->
+  ok.
 
 %% ====================================================================
 %% Internal functions
 %% ====================================================================
 
 handle_defaults(Keys, Values, Table) ->
-	if
-		length(Keys) =:= length(Values) ->
-			Keys;
-		true ->
-			Defaults = column:s_filter_defaults(Table),
-			lists:filter(fun(Key) ->
-				not maps:is_key(Key, Defaults)
-		 	end, Keys)
-	end.
-
-read_fks(Fks, _Tables, TxId, false) ->
-	lists:map(fun({_Col, {PTabName, _PTabAttr}, Value} = Fk) ->
-		TKey = element:create_key(Value, PTabName),
-		{ok, [Data]} = antidote:read_objects(TKey, TxId),
-		{Fk, Data}
-	end, Fks);
-read_fks(Fks, Tables, TxId, true) ->
-	lists:map(fun({_Col, {PTabName, _PTabAttr}, Value} = Fk) ->
-		TKey = element:create_key(Value, PTabName),
-		Table = table:lookup(PTabName, Tables),
-		{ok, [Data]} = antidote:read_objects(TKey, TxId),
-		case element:is_visible(Data, Table, TxId) of
-			false ->
-				throw(lists:concat(["Cannot find row ", Value, " in table ", PTabName]));
-			_Else ->
-				{Fk, Data}
-		end
-	end, Fks).
-
-touch({_Col, {PTabName, _PTabAttr}, Value}, Data, Tables, TxId) ->
-	TKey = element:create_key(Value, PTabName),
-	antidote:update_objects(crdt:ipa_update(TKey, ipa:touch()), TxId),
-	Table = table:lookup(PTabName, Tables),
-	% touch cascade
-	touch_cascade(Data, Table, Tables, TxId),
-	% touch parents
-	Fks = element:foreign_keys(foreign_keys:from_table(Table), Data, PTabName),
-	FksKV = read_fks(Fks, Tables, TxId, false),
-	lists:foreach(fun ({Fk, Data2}) -> touch(Fk, Data2, Tables, TxId) end, FksKV).
-
-touch_cascade(Data, Table, Tables, TxId) ->
-	TName = table:name(Table),
-	Refs = table:dependants(TName, Tables),
-	lists:foreach(fun({RefTName, RefCols}) ->
-		lists:foreach(fun(?T_FK(FkName, FkType, _TName, CName)) ->
-			Value = element:get(CName, types:to_crdt(FkType, ?IGNORE_OP), Data, Table),
-			index:tag(RefTName, FkName, Value, ipa:touch_cascade(), TxId)
-	 	end, RefCols)
-	end, Refs).
+  if
+    length(Keys) =:= length(Values) ->
+      Keys;
+    true ->
+      Defaults = column:s_filter_defaults(Table),
+      lists:filter(fun(Key) ->
+        not maps:is_key(Key, Defaults)
+  end, Keys)
+  end.

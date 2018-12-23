@@ -5,6 +5,10 @@
 -include("parser.hrl").
 -include("types.hrl").
 
+-define(INVALID_CHECK_CONST(Col),
+  lists:flatten(
+    io_lib:format("Column name in check constraint does not match column name '~p'", [Col]))).
+
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
 -endif.
@@ -43,13 +47,16 @@ handle_constraint(IsPk, IsFk, Else, Col, CName, Pks) ->
           {NewCol, Crp} = remove_dep_crp(Col),
           IsFk(NewCol, Crp);
         _Else ->
-          Else()
+          case column:is_check_valid(Col) of
+            true -> Else();
+            false -> throw(?INVALID_CHECK_CONST(CName))
+          end
       end
   end.
 
 remove_dep_crp(Col) ->
-  ?FOREIGN_KEY({TName, CName, Crp}) = column:constraint(Col),
-  {column:set_constraint(?FOREIGN_KEY({TName, CName}), Col), Crp}.
+  ?FOREIGN_KEY({TName, CName, Crp, DeleteRule}) = column:constraint(Col),
+  {column:set_constraint(?FOREIGN_KEY({TName, CName, DeleteRule}), Col), Crp}.
 
 build({Maps, Names, Pks, CRPs}) ->
   Build = maps:put(?C_NAMES, Names, Maps),

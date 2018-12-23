@@ -14,7 +14,10 @@
 				type/1,
 				is_primary_key/1,
 				is_default/1,
-				is_foreign_key/1]).
+				is_foreign_key/1,
+				is_restrict_fk/1,
+				is_cascade_fk/1,
+				is_check_valid/1]).
 
 -export([s_primary_key/1,
 				s_filter_defaults/1,
@@ -41,6 +44,17 @@ is_default(_) -> false.
 is_foreign_key(?T_COL(_, _, ?FOREIGN_KEY(_V))) -> true;
 is_foreign_key(_) -> false.
 
+is_restrict_fk(?T_COL(_, _, ?FOREIGN_KEY({_, _, ?RESTRICT_TOKEN}))) -> true;
+is_restrict_fk(_) -> false.
+
+is_cascade_fk(?T_COL(_, _, ?FOREIGN_KEY({_, _, ?CASCADE_TOKEN}))) -> true;
+is_cascade_fk(_) -> false.
+
+is_check_valid(?T_COL(ColName, _, ?CHECK_KEY({ColName, ?COMPARATOR_KEY(_), _}))) -> true;
+is_check_valid(?T_COL(_ColName1, _, ?CHECK_KEY({_ColName2, ?COMPARATOR_KEY(_), _}))) -> false;
+is_check_valid(_) -> true.
+
+
 %% ====================================================================
 %% Columns Utilities
 %% ====================================================================
@@ -65,7 +79,7 @@ s_get(Table, Column) when ?is_table(Table) ->
 	Columns = table:columns(Table),
 	s_get(Columns, Column);
 s_get(Columns, ColumnName) ->
-	ErrMsg = lists:concat(["Collumn ", ColumnName, " does not exist"]),
+	ErrMsg = lists:flatten(io_lib:format("Column ~p does not exist", [ColumnName])),
 	s_get(Columns, ColumnName, ErrMsg).
 
 s_get(Table, CName, ErrMsg) when ?is_table(Table) ->
@@ -93,8 +107,8 @@ s_names(Cols) when is_map(Cols) ->
 
 pk() -> ?PRIMARY_TOKEN.
 def() -> ?DEFAULT_KEY("Test").
-fk() -> ?FOREIGN_KEY({"TName", "TCol"}).
-check() -> ?CHECK_KEY({"<", 3}).
+fk() -> ?FOREIGN_KEY({"TName", "TCol", restrict}).
+check() -> ?CHECK_KEY({"TCol", "<", 3}).
 no() -> ?NO_CONSTRAINT.
 
 name_test() ->

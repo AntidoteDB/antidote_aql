@@ -1,4 +1,5 @@
 %% @author Joao
+%% @author Pedro Lopes
 %% @doc @todo Add description to tables.
 
 -module(table).
@@ -7,21 +8,24 @@
 -include("aql.hrl").
 -include("types.hrl").
 
--define(TABLE_META, ?BOUND_OBJECT('#tables', antidote_crdt_gmap, ?METADATA_BUCKET)).
--define(CRDT_TYPE, antidote_crdt_lwwreg).
+-define(TABLE_META, ?BOUND_OBJECT('#tables', antidote_crdt_map_go, ?METADATA_BUCKET)).
+-define(CRDT_TYPE, antidote_crdt_register_lww).
 
 -export([exec/2]).
 
 -export([read_tables/1,
-				write_table/2,
-				lookup/2, lookup/3,
-				dependants/2,
-				prepare_table/3]).
+         write_table/2,
+         lookup/2, lookup/3,
+         dependants/2,
+         prepare_table/3,
+         create_table_update/1]).
 
 -export([name/1,
-				policy/1,
-				columns/1,
-				shadow_columns/1]).
+         policy/1,
+         columns/1,
+	     shadow_columns/1,
+	     indexes/1,
+	     partition_col/1]).
 
 exec(Table, TxId) ->
 	write_table(Table, TxId).
@@ -31,14 +35,14 @@ exec(Table, TxId) ->
 %% ====================================================================
 
 read_tables(TxId) ->
-	{ok, [Tables]} = antidote:read_objects(?TABLE_META, TxId),
+	{ok, [Tables]} = antidote_handler:read_objects(?TABLE_META, TxId),
 	Tables.
 
 write_table(RawTable, TxId) ->
 	Tables = read_tables(TxId),
 	Table = prepare_table(RawTable, Tables, TxId),
 	TableUpdate = create_table_update(Table),
-	antidote:update_objects(TableUpdate, TxId).
+	ok = antidote_handler:update_objects(TableUpdate, TxId).
 
 prepare_table(Table, Tables, TxId) ->
 	{Table1, Crps} = prepare_cols(Table),
@@ -48,13 +52,13 @@ prepare_table(Table, Tables, TxId) ->
 			undefined -> Rule;
 			Rule -> Rule;
 			_Else ->
-				io:fwrite("Warning: Both 'Force-Revive' and 'Ignore-Revive' found. 'Ignore-Revive will prevail."),
+				io:fwrite("Warning: Two different foreign key semantics found. 'Delete-Wins' will prevail.~n"),
 				?REMOVE_WINS
 		end
  	end, undefined, Crps),
 	Ops = lists:foldl(fun({CName, _Rule}, CurrentOps) ->
 		Col = maps:get(CName, Cols),
-		?FOREIGN_KEY({T1TName, _T1CName}) = column:constraint(Col),
+		?FOREIGN_KEY({T1TName, _T1CName, _DeleteRule}) = column:constraint(Col),
 		T1Table = lookup(T1TName, Tables),
 		T1Policy = policy(T1Table),
 		T1Policy1 = crp:set_p_dep_level(DepRule, T1Policy),
@@ -68,12 +72,13 @@ prepare_table(Table, Tables, TxId) ->
 	case Ops of
 		[] -> ok;
 		_Else ->
-			antidote:update_objects(Ops, TxId)
+			ok = antidote_handler:update_objects(Ops, TxId)
 	end,
 	Policy = policy(Table1),
 	Policy1 = crp:set_dep_level(DepRule, Policy),
 	Table2 = set_policy(Policy1, Table1),
-	prepare_foreign_keys(Table2, Tables).
+	Table3 = prepare_foreign_keys(Table2, Tables),
+	set_indexes([], Table3).
 
 prepare_cols(Table) ->
 	RawCols = columns(Table),
@@ -84,18 +89,18 @@ prepare_cols(Table) ->
 prepare_foreign_keys(Table, Tables) ->
 	TName = table:name(Table),
 	FKs = foreign_keys:from_table(Table),
-	ShadowCols = lists:map(fun (?T_FK(FkName, FkType, T1TName, T1CName)) ->
-		ShFk = ?T_FK([{TName, FkName}], FkType, T1TName, T1CName),
-		Err1 = ["Table ", T1TName, " in foreign key reference does not exist."],
-		Err2 = ["Column ", T1CName, " does not exist in table ", T1TName],
-		TargetTable = lookup(T1TName, Tables, lists:concat(Err1)),
-		TargetCol = column:s_get(TargetTable, T1CName, lists:concat(Err2)),
+	ShadowCols = lists:map(fun (?T_FK(FkName, FkType, T1TName, T1CName, T1DeleteRule)) ->
+		ShFk = ?T_FK([{TName, FkName}], FkType, T1TName, T1CName, T1DeleteRule),
+		Err1 = io_lib:format("Table ~p in foreign key reference does not exist.", [T1TName]),
+		Err2 = io_lib:format("Column ~p does not exist in table ~p", [T1CName, T1TName]),
+		TargetTable = lookup(T1TName, Tables, lists:flatten(Err1)),
+		TargetCol = column:s_get(TargetTable, T1CName, lists:flatten(Err2)),
 		case column:is_primary_key(TargetCol) of
 			false -> throw("Foreign keys can only reference unique columns");
 			_Else ->
-				ParentFks = lists:map(fun(?T_FK(TFkName, TFKType, TFKTName, TFKTColName)) ->
+				ParentFks = lists:map(fun(?T_FK(TFkName, TFKType, TFKTName, TFKTColName, TFKDeleteRule)) ->
 					TFKName1 = lists:append([{TName, FkName}], TFkName),
-					?T_FK(TFKName1, TFKType, TFKTName, TFKTColName)
+					?T_FK(TFKName1, TFKType, TFKTName, TFKTColName, TFKDeleteRule)
 				end, shadow_columns(TargetTable)),
 				lists:append([ShFk], ParentFks)
 		end
@@ -118,7 +123,7 @@ lookup(Name, Tables, ErrMsg) ->
 	end.
 
 lookup(Name, Tables) when is_list(Tables) ->
-	ErrMsg = lists:concat(["No such table: ", Name]),
+	ErrMsg = lists:flatten(io_lib:format("No such table: ~p", [Name])),
 	lookup(Name, Tables, ErrMsg);
 lookup(Name, TxId) ->
 	Tables = read_tables(TxId),
@@ -140,7 +145,7 @@ dependants(TName, [{{T1TName, _}, Table} | Tables], Acc) ->
 	end;
 dependants(_TName, [], Acc) -> Acc.
 
-references(TName, [?T_FK(_, _, TName, _) = Fk | Fks], Acc) ->
+references(TName, [?T_FK(_, _, TName, _, _) = Fk | Fks], Acc) ->
 	references(TName, Fks, lists:append(Acc, [Fk]));
 references(TName, [_ | Fks], Acc) ->	references(TName, Fks, Acc);
 references(_TName, [], Acc) -> Acc.
@@ -149,22 +154,29 @@ references(_TName, [], Acc) -> Acc.
 %% Table Props functions
 %% ====================================================================
 
-name(?T_TABLE(Name, _Policy, _Cols, _SCols)) -> Name.
+name(?T_TABLE(Name, _Policy, _Cols, _SCols, _Idx, _PartCol)) -> Name.
 
-policy(?T_TABLE(_Name, Policy, _Cols, _SCols)) -> Policy.
+policy(?T_TABLE(_Name, Policy, _Cols, _SCols, _Idx, _PartCol)) -> Policy.
 
-set_policy(Policy, ?T_TABLE(Name, _Policy, Cols, SCols)) ->
-	?T_TABLE(Name, Policy, Cols, SCols).
+set_policy(Policy, ?T_TABLE(Name, _Policy, Cols, SCols, Idx, PartCol)) ->
+	?T_TABLE(Name, Policy, Cols, SCols, Idx, PartCol).
 
-columns(?T_TABLE(_Name, _Policy, Cols, _SCols)) -> Cols.
+columns(?T_TABLE(_Name, _Policy, Cols, _SCols, _Idx, _PartCol)) -> Cols.
 
-set_columns(Cols, ?T_TABLE(Name, Policy, _Cols, SCols)) ->
-	?T_TABLE(Name, Policy, Cols, SCols).
+set_columns(Cols, ?T_TABLE(Name, Policy, _Cols, SCols, Idx, PartCol)) ->
+	?T_TABLE(Name, Policy, Cols, SCols, Idx, PartCol).
 
-shadow_columns(?T_TABLE(_Name, _Policy, _Cols, SCols)) -> SCols.
+shadow_columns(?T_TABLE(_Name, _Policy, _Cols, SCols, _Idx, _PartCol)) -> SCols.
 
-set_shadow_columns(SCols, ?T_TABLE(Name, Policy, Cols, _SCols)) ->
-	?T_TABLE(Name, Policy, Cols, SCols).
+set_shadow_columns(SCols, ?T_TABLE(Name, Policy, Cols, _SCols, Idx, PartCol)) ->
+	?T_TABLE(Name, Policy, Cols, SCols, Idx, PartCol).
+
+indexes(?T_TABLE(_Name, _Policy, _Cols, _SCols, Idx, _PartCol)) -> Idx.
+
+set_indexes(Idx, ?T_TABLE(Name, Policy, Cols, SCols, _Idx, PartCol)) ->
+	?T_TABLE(Name, Policy, Cols, SCols, Idx, PartCol).
+
+partition_col(?T_TABLE(_Name, _Policy, _Cols, _SCols, _Idx, PartCol)) -> PartCol.
 
 %% ====================================================================
 %% Internal functions

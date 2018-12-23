@@ -1,4 +1,3 @@
-
 -module(where).
 
 -include("parser.hrl").
@@ -6,22 +5,24 @@
 
 -export([scan/3]).
 
-scan(TName, ?PARSER_WILDCARD, TxId) ->
-  index:keys(TName, TxId);
-scan(TName, Conditions, _TxId) ->
-  evaluate(TName, Conditions, []).
+scan(Table, ?PARSER_WILDCARD, TxId) ->
+  TName = table:name(Table),
+  Index = index:p_keys(TName, TxId),
+  lists:map(fun({_Key, BObj}) -> BObj end, Index);
+scan(Table, Conditions, TxId) ->
+  evaluate(Table, Conditions, TxId, []).
 
 %% ====================================================================
 %% Internal functions
 %% ====================================================================
 
-evaluate(TName, [{_ClValue, Arop, Value} | T], Acc) ->
-	case Arop of
-		?PARSER_EQUALITY ->
-			NewAcc = lists:flatten(Acc, [element:create_key(Value, TName)]),
-			evaluate(TName, T, NewAcc);
-		_Else ->
-			throw("Not supported yet! :)")
-	end;
-evaluate(_TName, [], Acc) ->
-	Acc.
+evaluate(Table, [{_ClValue, Arop, Value} | T], TxId, Acc) ->
+  case Arop of
+    ?PARSER_EQUALITY ->
+      NewAcc = lists:flatten(Acc, [element:create_key_from_table(Value, Table, TxId)]),
+      evaluate(Table, T, TxId, NewAcc);
+    _Else ->
+      throw("Not supported yet! :)")
+  end;
+evaluate(_Table, [], _TxId, Acc) ->
+  Acc.

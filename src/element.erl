@@ -1,4 +1,3 @@
-
 -module(element).
 
 -include("aql.hrl").
@@ -9,23 +8,32 @@
 -include_lib("eunit/include/eunit.hrl").
 -endif.
 
--define(CRDT_TYPE, antidote_crdt_gmap).
+-define(CRDT_TYPE, antidote_crdt_map_go).
 -define(EL_ANON, none).
+-define(STATE, '#st').
+-define(STATE_TYPE, antidote_crdt_register_mv).
+-define(VERSION, '#version').
+-define(VERSION_TYPE, antidote_crdt_register_lww).
 
 -export([primary_key/1, set_primary_key/2,
-        foreign_keys/1, foreign_keys/2, foreign_keys/3,
-        attributes/1,
-        data/1,
-        table/1]).
+  foreign_keys/1, foreign_keys/2, foreign_keys/3,
+  attributes/1,
+  data/1,
+  table/1,
+  parents/4]).
 
--export([create_key/2, st_key/0,
-        is_visible/2, is_visible/3]).
+-export([create_key/2, create_key/3,
+  create_key_from_data/2, create_key_from_table/3,
+  st_key/0, version_key/0, is_visible/3, is_visible/4]).
 
 -export([new/1, new/2,
-        put/3, build_fks/2,
-        get/2, get/3, get/4,
-        get_by_name/2,
-        insert/1, insert/2]).
+  put/3, set_version/2, build_fks/2, build_fks/3,
+  get/2, get/3, get/4,
+  get_by_name/2,
+  insert/1, insert/2, delete/2,
+  read_record/3, shared_read/3, exclusive_read/3]).
+
+-export([throwNoSuchRow/2]).
 
 %% ====================================================================
 %% Property functions
@@ -53,12 +61,55 @@ table({_BObj, Table, _Ops, _Data}) -> Table.
 %% Utils functions
 %% ====================================================================
 
+create_key({Key, Type, Bucket}, _TName) ->
+  {Key, Type, Bucket};
 create_key(Key, TName) ->
   KeyAtom = utils:to_atom(Key),
   crdt:create_bound_object(KeyAtom, ?CRDT_TYPE, TName).
 
+create_key(Key, TName, Prefix)
+  when is_integer(Prefix) andalso is_atom(TName) ->
+  KeyAtom = utils:to_atom(Key),
+  Bucket = lists:flatten(io_lib:format("~p@~s", [Prefix, TName])),
+  BucketAtom = utils:to_atom(Bucket),
+  crdt:create_bound_object(KeyAtom, ?CRDT_TYPE, BucketAtom).
+
+create_key_from_table({_K, _T, _B} = Key, _Table, _TxId) ->
+  Key;
+create_key_from_table(PKey, Table, TxId) ->
+  TName = table:name(Table),
+  PartCol = table:partition_col(Table),
+  case PartCol of
+    [_] ->
+      Index = index:p_keys(TName, TxId),
+      {_, BObj} = lists:keyfind(utils:to_atom(PKey), 1, Index),
+      BObj;
+    undefined ->
+      create_key(PKey, TName)
+  end.
+
+create_key_from_data(Data, Table)
+  when is_list(Data) andalso ?is_table(Table) ->
+  [?T_COL(PkName, PkType, _PkConst)] = column:s_primary_key(Table),
+  Key = get(PkName, types:to_crdt(PkType, ignore), Data, Table),
+  TName = table:name(Table),
+
+  PartCol = table:partition_col(Table),
+  case PartCol of
+    [Col] ->
+      ?T_COL(ColName, ColType, _ColConst) = column:s_get(Table, Col),
+      Value = get(ColName, types:to_crdt(ColType, ignore), Data, Table),
+      Prefix = utils:to_hash(Value),
+      create_key(Key, TName, Prefix);
+    undefined ->
+      create_key(Key, TName)
+  end.
+
 st_key() ->
-  ?MAP_KEY('#st', antidote_crdt_mvreg).
+  ?MAP_KEY(?STATE, ?STATE_TYPE).
+
+version_key() ->
+  ?MAP_KEY(?VERSION, ?VERSION_TYPE).
 
 explicit_state(Data, Rule) ->
   Value = proplists:get_value(st_key(), Data),
@@ -69,33 +120,27 @@ explicit_state(Data, Rule) ->
       ipa:status(Rule, Value)
   end.
 
-is_visible(Element, TxId) when is_tuple(Element) ->
+is_visible(Element, Tables, TxId) when is_tuple(Element) ->
   Data = data(Element),
-  Table = table(Element),
-  is_visible(Data, Table, TxId).
+  TName = table:name(table(Element)),
+  is_visible(Data, TName, Tables, TxId).
 
-is_visible([], _Table, _TxId) -> false;
-is_visible(Data, Table, TxId) ->
-  TName = table:name(Table),
+is_visible([], _TName, _Tables, _TxId) -> false;
+is_visible(Data, TName, Tables, TxId) ->
+  Table = table:lookup(TName, Tables),
   Policy = table:policy(Table),
   Rule = crp:get_rule(Policy),
   ExplicitState = explicit_state(Data, Rule),
-  case length(Data) of
-    1 ->
-      ipa:is_visible(ExplicitState);
-    _Else ->
-      Fks = table:shadow_columns(Table),
-      ImplicitState = lists:map(fun(?T_FK(FkName, FkType, _, _)) ->
-        FkValue = element:get(foreign_keys:to_cname(FkName), types:to_crdt(FkType, ?IGNORE_OP), Data, Table),
-        FkState = index:tag_read(TName, FkName, FkValue, TxId),
-        ipa:status(Rule, FkState)
-      end, Fks),
-      ipa:is_visible(ExplicitState, ImplicitState)
-  end.
+  ipa:is_visible(ExplicitState) andalso
+    implicit_state(Table, Data, Tables, TxId).
 
 throwNoSuchColumn(ColName, TableName) ->
-  throw(lists:concat(["Column ", ColName,
-    " does not exist in table ", TableName])).
+  MsgFormat = io_lib:format("Column ~p does not exist in table ~p", [ColName, TableName]),
+  throw(lists:flatten(MsgFormat)).
+
+throwNoSuchRow(Key, TableName) ->
+  MsgFormat = io_lib:format("Cannot find row ~p in table ~p", [utils:to_atom(Key), TableName]),
+  throw(lists:flatten(MsgFormat)).
 
 %% ====================================================================
 %% API functions
@@ -115,7 +160,7 @@ new(Key, Table) ->
 load_defaults(Element) ->
   Columns = attributes(Element),
   Defaults = column:s_filter_defaults(Columns),
-  maps:fold(fun (CName, Column, Acc) ->
+  maps:fold(fun(CName, Column, Acc) ->
     {?DEFAULT_TOKEN, Value} = column:constraint(Column),
     Constraint = {?DEFAULT_TOKEN, Value},
     append(CName, Value, column:type(Column), Constraint, Acc)
@@ -138,7 +183,8 @@ put(ColName, Value, Element) ->
       ColType = column:type(Col),
       Constraint = column:constraint(Col),
       Element1 = set_if_primary(Col, Value, Element),
-      append(ColName, Value, ColType, Constraint, Element1)
+      Element2 = set_if_partition(Col, Value, Element1),
+      append(ColName, Value, ColType, Constraint, Element2)
   end.
 
 set_if_primary(Col, Value, Element) ->
@@ -150,40 +196,89 @@ set_if_primary(Col, Value, Element) ->
       Element
   end.
 
-build_fks(Element, TxId) ->
+set_if_partition(?T_COL(Col, _, _), Value, Element) ->
+  Table = table(Element),
+  case table:partition_col(Table) of
+    [Col] ->
+      ?BOUND_OBJECT(Key, _Type, _Bucket) = primary_key(Element),
+      TName = table:name(Table),
+      HashValue = utils:to_hash(Value),
+      set_primary_key(Element, create_key(Key, TName, HashValue));
+    _ ->
+      Element
+  end.
+
+set_version(Element, TxId) ->
+  VersionKey = version_key(),
+  CurrOps = ops(Element),
+  ElemData = data(Element),
+
+  Key = primary_key(Element),
+  {ok, [CurrData]} = antidote_handler:read_objects(Key, TxId),
+  Version = case CurrData of
+              [] -> 1;
+              _Else ->
+                proplists:get_value(VersionKey, CurrData) + 1
+            end,
+
+  VersionOp = crdt:assign_lww(Version),
+
+  Element1 = set_data(Element, lists:append(ElemData, [{VersionKey, Version}])),
+  set_ops(Element1, utils:proplists_upsert(VersionKey, VersionOp, CurrOps)).
+
+build_fks(Element, Tables, TxId) ->
   Data = data(Element),
   Table = table(Element),
+  Parents = parents(Data, Table, Tables, TxId),
+  build_fks(Element, Parents).
+
+build_fks(Element, Parents) ->
+  Table = table(Element),
   Fks = table:shadow_columns(Table),
-  Parents = parents(Data, Fks, Table, TxId),
-  lists:foldl(fun(?T_FK(FkName, FkType, _, _), AccElement) ->
+  lists:foldl(fun(?T_FK(FkName, _, FkTable, FkColName, _), AccElement) ->
     case length(FkName) of
-      1 -> AccElement;
+      1 ->
+        [{_, ParentId}] = FkName,
+        {Parent, _} = dict:fetch({FkTable, ParentId}, Parents),
+        Value = get_by_name(foreign_keys:to_cname(FkColName), Parent),
+        ParentVersion = get_by_name(?VERSION, Parent),
+        append(FkName, {Value, ParentVersion}, ?AQL_VARCHAR, ?IGNORE_OP, AccElement);
       _Else ->
-        [{_, ParentId} | ParentCol] = FkName,
-        Parent = dict:fetch(ParentId, Parents),
-        Value = get_by_name(foreign_keys:to_cname(ParentCol), Parent),
-        append(FkName, Value, FkType, ?IGNORE_OP, AccElement)
+        %[{_, ParentId} | ParentCol] = FkName,
+        %Parent = dict:fetch({FkTable, ParentId}, Parents),
+        %Value = get_by_name(ParentCol, Parent),
+        %append(FkName, Value, ?AQL_VARCHAR, ?IGNORE_OP, AccElement)
+        AccElement
     end
   end, Element, Fks).
 
-parents(Data, Fks, Table, TxId) ->
-  lists:foldl(fun(?T_FK(Name, Type, TTName, _), Dict) ->
+parents(Data, Table, Tables, TxId) ->
+  Fks = table:shadow_columns(Table),
+  lists:foldl(fun(?T_FK(Name, Type, TTName, _, _), Dict) ->
     case Name of
       [ShCol] ->
         {_FkTable, FkName} = ShCol,
         Value = get(FkName, types:to_crdt(Type, ?IGNORE_OP), Data, Table),
-        Key = create_key(Value, TTName),
-        {ok, [Parent]} = antidote:read_objects(Key, TxId),
-        dict:store(FkName, Parent, Dict);
-      _Else -> Dict
+        RefTable = table:lookup(TTName, Tables),
+        Parent = shared_read(Value, RefTable, TxId),
+        case element:is_visible(Parent, TTName, Tables, TxId) of
+          false ->
+            throwNoSuchRow(Value, TTName);
+          _Else ->
+            dict:store({TTName, FkName},
+              {Parent, parents(Parent, RefTable, Tables, TxId)},
+              Dict)
+        end;
+      _Else ->
+        Dict
     end
   end, dict:new(), Fks).
 
 
 get_by_name(ColName, [{{ColName, _Type}, Value} | _]) ->
-	Value;
+  Value;
 get_by_name(ColName, [_KV | Data]) ->
-	get_by_name(ColName, Data);
+  get_by_name(ColName, Data);
 get_by_name(_ColName, []) -> undefined.
 
 get(ColName, Element) ->
@@ -204,7 +299,7 @@ get(ColName, Crdt, Data, Table) when is_atom(Crdt) ->
       throwNoSuchColumn(ColName, TName);
     _Else ->
       Value
-    end;
+  end;
 get(ColName, Cols, Data, TName) ->
   Col = maps:get(ColName, Cols),
   AQL = column:type(Col),
@@ -217,14 +312,14 @@ insert(Element) ->
   crdt:map_update(Key, Ops).
 insert(Element, TxId) ->
   Op = insert(Element),
-  antidote:update_objects(Op, TxId).
+  antidote_handler:update_objects(Op, TxId).
 
 append(Key, Value, AQL, Constraint, Element) ->
   Data = data(Element),
   Ops = ops(Element),
   OffValue = apply_offset(Key, AQL, Constraint, Value),
   OpKey = ?MAP_KEY(Key, types:to_crdt(AQL, Constraint)),
-  OpVal = types:to_insert_op(AQL, OffValue),
+  OpVal = types:to_insert_op(AQL, Constraint, OffValue),
   case OpVal of
     ?IGNORE_OP ->
       Element;
@@ -235,11 +330,11 @@ append(Key, Value, AQL, Constraint, Element) ->
 
 apply_offset(Key, AQL, Constraint, Value) when is_atom(Key) ->
   case {AQL, Constraint} of
-    {?AQL_COUNTER_INT, ?CHECK_KEY({?COMPARATOR_KEY(Comp), Offset})} ->
+    {?AQL_COUNTER_INT, ?CHECK_KEY({Key, ?COMPARATOR_KEY(Comp), Offset})} ->
       bcounter:to_bcounter(Key, Value, Offset, Comp);
     _Else -> Value
   end;
-apply_offset(_Key,_AQL, _Constraint, Value) -> Value.
+apply_offset(_Key, _AQL, _Constraint, Value) -> Value.
 
 foreign_keys(Fks, Element) when is_tuple(Element) ->
   Data = data(Element),
@@ -247,10 +342,87 @@ foreign_keys(Fks, Element) when is_tuple(Element) ->
   foreign_keys(Fks, Data, TName).
 
 foreign_keys(Fks, Data, TName) ->
-  lists:map(fun({{CName, CType}, {FkTable, FkAttr}}) ->
+  lists:map(fun(?T_FK(CName, CType, FkTable, FkAttr, DeleteRule)) ->
     Value = get(CName, types:to_crdt(CType, ?IGNORE_OP), Data, TName),
-    {{CName, CType}, {FkTable, FkAttr}, Value}
+    {{CName, CType}, {FkTable, FkAttr}, DeleteRule, Value}
   end, Fks).
+
+implicit_state(Table, RecordData, Tables, TxId) ->
+  FKs = table:shadow_columns(Table),
+  implicit_state(Table, RecordData, Tables, FKs, TxId).
+
+implicit_state(Table, Data, Tables, [?T_FK(FKName, _, FKTName, _, _) | Fks], TxId)
+  when length(FKName) == 1 ->
+  Policy = table:policy(Table),
+
+  FKTable = table:lookup(FKTName, Tables),
+  IsVisible =
+    case crp:dep_level(Policy) of
+      ?REMOVE_WINS ->
+        {_, RefVersion, RefData} = get_parent_info(Data, Table, FKName, FKTable, TxId),
+        FkVersion = get(?VERSION, ?VERSION_TYPE, RefData, FKTable),
+        FkVersion =:= RefVersion andalso
+          is_visible(RefData, FKTName, Tables, TxId);
+      _ ->
+        case crp:dep_level(table:policy(FKTable)) of
+          ?REMOVE_WINS ->
+            {_, _, RefData} = get_parent_info(Data, Table, FKName, FKTable, TxId),
+            is_visible(RefData, FKTName, Tables, TxId);
+          _ ->
+            true
+        end
+    end,
+
+  IsVisible andalso implicit_state(Table, Data, Tables, Fks, TxId);
+implicit_state(Table, Data, Tables, [_Fk | Fks], TxId) ->
+  true andalso implicit_state(Table, Data, Tables, Fks, TxId);
+implicit_state(_Table, _Data, _Tables, [], _TxId) ->
+  true.
+
+get_parent_info(Record, Table, FKName, FKTable, TxId) ->
+  {RefValue, RefVersion} = element:get(FKName, ?CRDT_VARCHAR, Record, Table),
+  FKData = read_record(RefValue, FKTable, TxId),
+  case FKData of
+    [] ->
+      throwNoSuchRow(RefValue, table:name(FKTable));
+    _ ->
+      {RefValue, RefVersion, FKData}
+  end.
+
+delete(ObjKey, TxId) ->
+  StateOp = crdt:field_map_op(element:st_key(), crdt:assign_lww(ipa:delete())),
+  Update = crdt:map_update(ObjKey, StateOp),
+  ok = antidote_handler:update_objects(Update, TxId),
+  false.
+
+read_record(Key, Table, TxId) ->
+  BoundKey = create_key_from_table(Key, Table, TxId),
+  {ok, [Object]} = antidote_handler:read_objects(BoundKey, TxId),
+  Object.
+
+shared_read(Key, Table, TxId) ->
+  BoundKey = create_key_from_table(Key, Table, TxId),
+  TPolicy = table:policy(Table),
+  case crp:p_dep_level(TPolicy) of
+    ?NO_CONCURRENCY ->
+      lock_manager:acquire_shared_lock(BoundKey, TxId);
+    _ ->
+      ok
+  end,
+  {ok, [Object]} = antidote_handler:read_objects(BoundKey, TxId),
+  Object.
+
+exclusive_read(Key, Table, TxId) ->
+  BoundKey = create_key_from_table(Key, Table, TxId),
+  TPolicy = table:policy(Table),
+  case crp:p_dep_level(TPolicy) of
+    ?NO_CONCURRENCY ->
+      lock_manager:acquire_exclusive_lock(BoundKey, TxId);
+    _ ->
+      ok
+  end,
+  {ok, [Object]} = antidote_handler:read_objects(BoundKey, TxId),
+  Object.
 
 %%====================================================================
 %% Eunit tests

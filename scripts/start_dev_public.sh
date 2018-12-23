@@ -2,5 +2,5 @@
 
 MY_IP=$(curl v4.ifconfig.co)
 
-export AQL_NAME="aql@$MY_IP"
+export IP=$MY_IP
 make dev

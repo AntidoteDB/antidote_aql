@@ -1,4 +1,6 @@
 %%%-------------------------------------------------------------------
+%% @author Joao
+%% @author Pedro Lopes
 %% @doc aqlparser public API
 %% @end
 %%%-------------------------------------------------------------------
@@ -7,107 +9,221 @@
 
 -include("aql.hrl").
 -include("parser.hrl").
+-include("types.hrl").
+
+%-define(DEFAULT_NODE, 'antidote@127.0.0.1').
 
 %% Application callbacks
--export([parse/2, start_shell/0]).
+-export([parse/1, parse/2, start_shell/0]).
 
 %%====================================================================
 %% API
 %%====================================================================
 
--spec parse(input(), node()) -> queryResult() | {err, term()}.
-parse({str, Query}, Node) ->
+-spec parse(input()) -> queryResult() | {err, term()}.
+parse(Input) ->
+  parse(Input, undefined).
+
+-spec parse(input(), term()) -> queryResult() | {err, term()}.
+parse({str, "\n"}, Tx) ->
+	{ok, Tx};
+parse({str, Query}, Tx) ->
 	TokensRes = scanner:string(Query),
 	case TokensRes of
 		{ok, Tokens, _} ->
 			ParseRes = parser:parse(Tokens),
 			case ParseRes of
 				{ok, ParseTree} ->
-					try exec(ParseTree, [], Node) of
-						Ok -> Ok
-					catch
-						Reason ->
-							%io:fwrite("Syntax Error: ~p~n", [Reason]),
-							{error, Reason}
-					end;
+					exec(ParseTree, [], Tx);
 				_Else ->
 					ParseRes
 			end;
 		_Else ->
 			TokensRes
 	end;
-parse({file, Filename}, Node) ->
+parse({file, Filename}, Tx) ->
 	{ok, File} = file:read_file(Filename),
 	Content = unicode:characters_to_list(File),
-	parse({str, Content}, Node).
+	parse({str, Content}, Tx).
 
 start_shell() ->
 	io:fwrite("Welcome to the AQL Shell.~n"),
-	read_and_exec().
+	read_and_exec(undefined).
 
-read_and_exec() ->
-	Line = io:get_line("AQL>"),
-	{ok, Res} = parse({str, Line}, 'antidote@127.0.0.1'),
-	io:fwrite("~p~n", [Res]),
-	read_and_exec().
+read_and_exec(Tx) ->
+	Line = io:get_line("AQL> "),
+	case parse({str, Line}, Tx) of
+		{ok, Res, quit} ->
+			io:fwrite("~p~n", [Res]);
+		{ok, Res, RetTx} ->
+			io:fwrite("~p~n", [Res]),
+			read_and_exec(RetTx);
+		{error, Msg} ->
+			io:fwrite("~p~n", [{error, Msg}]),
+			read_and_exec(undefined);
+		{ok, RetTx} ->
+			read_and_exec(RetTx);
+		Else ->
+			io:fwrite("~p~n", [Else]),
+			read_and_exec(undefined)
+	end.
 
 %%====================================================================
 %% Internal functions
 %%====================================================================
 
-exec([Query | Tail], Acc, Node) ->
-	Res = exec(Query, Node),
+exec([Query | Tail], Acc, Tx) ->
+	Res = exec(Query, Tx),
 	case Res of
 		ok ->
-			exec(Tail, Acc, Node);
-		{ok, NewNode} ->
-			exec(Tail, Acc, NewNode);
-		_Else ->
-			exec(Tail, lists:append(Acc, [Res]), Node)
+			exec(Tail, Acc, Tx);
+		{ok, quit} ->
+			case Tx of
+				undefined -> ok;
+				_ -> abort_transaction(undefined, Tx)
+			end,
+			{ok, lists:append(Acc, [Res]), quit};
+		{ok, {begin_tx, Tx2}} ->
+			exec(Tail, lists:append(Acc, [Res]), Tx2);
+		{ok, {commit_tx, Tx2}} ->
+			CommitRes = commit_transaction({ok, commit_tx}, Tx2),
+			exec(Tail, lists:append(Acc, [CommitRes]), undefined);
+		{ok, {abort_tx, Tx2}} ->
+			AbortRes = abort_transaction({ok, abort_tx}, Tx2),
+			exec(Tail, lists:append(Acc, [AbortRes]), undefined);
+		%{ok, NewNode} ->
+		%	exec(Tail, Acc, NewNode, Tx);
+		{error, Msg, _AbortedTx} ->
+			exec(Tail, lists:append(Acc, [{error, Msg}]), undefined);
+		Res ->
+			exec(Tail, lists:append(Acc, [Res]), Tx)
 	end;
-exec([], Acc, _Node) ->
-	{ok, Acc}.
+exec([], Acc, Tx) ->
+	{ok, Acc, Tx}.
 
 commit_transaction(Res, Tx) ->
-	CommitRes = antidote:commit_transaction(Tx),
+	CommitRes = antidote_handler:commit_transaction(Tx),
+	ok = antidote_handler:release_locks(es_locks, Tx),
 	case CommitRes of
 		{ok, _CT} ->
 			Res;
+    {error, Reason} ->
+      {error, Reason};
 		_Else ->
 			{error, CommitRes}
 	end.
 
-exec(Query, Node) when is_atom(Node) ->
-	{ok, Tx} = antidote:start_transaction(Node),
-	Res = exec(Query, Tx),
-	case Res of
-		{error, _} ->
+abort_transaction(Res, Tx) ->
+	AbortRes = antidote_handler:abort_transaction(Tx),
+	ok = antidote_handler:release_locks(es_locks, Tx),
+	case AbortRes of
+		ok ->
 			Res;
+    {error, Reason} ->
+      {error, Reason};
 		_Else ->
-			commit_transaction(Res, Tx)
+			{error, AbortRes}
+	end.
+
+exec(?BEGIN_CLAUSE(?TRANSACTION_TOKEN), PassedTx) ->
+	case PassedTx of
+		undefined ->
+			{ok, Tx} = antidote_handler:start_transaction(),
+			{ok, {begin_tx, Tx}};
+		_Else ->
+			{error, "There's already an ongoing transaction"}
 	end;
-exec(?SHOW_CLAUSE(?TABLES_TOKEN), Tx) ->
+exec(?COMMIT_CLAUSE(?TRANSACTION_TOKEN), PassedTx) ->
+	case PassedTx of
+		undefined ->
+			{error, "There's no current ongoing transaction"};
+		_Else ->
+			{ok, {commit_tx, PassedTx}}
+	end;
+exec(?ROLLBACK_CLAUSE(?TRANSACTION_TOKEN), PassedTX) ->
+	case PassedTX of
+		undefined ->
+			{error, "There's no current ongoing transaction"};
+		_Else ->
+			{ok, {abort_tx, PassedTX}}
+	end;
+exec(?QUIT_CLAUSE(_), _PassedTx) ->
+    {ok, quit};
+
+exec(Query, undefined) ->
+	{ok, Tx} = antidote_handler:start_transaction(),
+	try
+		execute(Query, Tx)
+	of
+		{error, _} = Res ->
+			Res;
+		Else ->
+			commit_transaction(Else, Tx)
+	catch
+		_:Exception ->
+      Error = antidote_handler:handleUpdateError(Exception),
+      abort_transaction(ignore, Tx),
+			{error, Error, Tx}
+		%Reason ->
+    %  abort_transaction(ignore, Tx),
+    %  {error, Reason, Tx}
+	end;
+exec(Query, PassedTx) ->
+  try
+		execute(Query, PassedTx)
+  of
+		Res -> Res
+  catch
+		_:Exception ->
+      Error = antidote_handler:handleUpdateError(Exception),
+			abort_transaction(ignore, PassedTx),
+			{error, Error, PassedTx}
+    %Reason ->
+    %  abort_transaction(ignore, PassedTx),
+    %  {error, Reason, PassedTx}
+  end.
+
+execute(?SHOW_CLAUSE(?TABLES_TOKEN), Tx) ->
 	Tables = table:read_tables(Tx),
 	TNames = lists:map(fun({{Name, _Type}, _Value}) -> Name end, Tables),
 	io:fwrite("Tables: ~p~n", [TNames]),
 	TNames;
-exec(?SHOW_CLAUSE({?INDEX_TOKEN, TName}), Tx) ->
-	Keys = index:keys(TName, Tx),
-	lists:foreach(fun({Key, _Type, _TName}) ->
-		io:fwrite("{key: ~p, table: ~p}~n", [Key, TName])
+execute(?SHOW_CLAUSE({?INDEX_TOKEN, TName}), Tx) ->
+	Keys = index:p_keys(TName, Tx),
+	lists:foreach(fun({Key, BObj}) ->
+		{_Key, _Type, Bucket} = BObj,
+		io:fwrite("{key: ~p, table: ~p}~n", [Key, Bucket])
 	end, Keys),
 	Keys;
-exec(?CREATE_CLAUSE(Table), Tx) ->
+execute(?SHOW_CLAUSE({?INDEX_TOKEN, IndexName, TName}), Tx) ->
+	FormattedIndex = index:s_keys_formatted(TName, IndexName, Tx),
+	lists:foreach(fun({IndexedVal, PKeys}) ->
+		PKValOnly = lists:map(fun({Key, _Type, _Bucket}) -> Key end, PKeys),
+		io:fwrite("{column value: ~p, primary keys: ~p}~n", [IndexedVal, PKValOnly])
+	end, FormattedIndex),
+	FormattedIndex;
+execute(?SHOW_CLAUSE({?INDEXES_TOKEN, TName}), Tx) ->
+	Tables = table:read_tables(Tx),
+	Table = table:lookup(TName, Tables),
+	Indexes = table:indexes(Table),
+	lists:foreach(fun(?T_INDEX(Name, _TName, Cols)) ->
+		io:fwrite("{index name: ~p, columns: ~p}~n", [Name, Cols])
+	end, Indexes),
+	Indexes;
+
+execute(?CREATE_CLAUSE(Table), Tx) when ?is_table(Table) ->
 	eval("Create Table", Table, table, Tx);
-exec(?INSERT_CLAUSE(Insert), Tx) ->
+execute(?CREATE_CLAUSE(Index), Tx) when ?is_index(Index) ->
+	eval("Create Index", Index, index, Tx);
+execute(?INSERT_CLAUSE(Insert), Tx) ->
 	eval("Insert", Insert, insert, Tx);
-exec(?DELETE_CLAUSE(Delete), Tx) ->
+execute(?DELETE_CLAUSE(Delete), Tx) ->
 	eval("Delete", Delete, delete, Tx);
-exec({?UPDATE_TOKEN, Update}, Tx) ->
+execute({?UPDATE_TOKEN, Update}, Tx) ->
 	eval("Update", Update, update, Tx);
-exec({?SELECT_TOKEN, Select}, Tx) ->
+execute({?SELECT_TOKEN, Select}, Tx) ->
 	eval("Select", Select, select, Tx);
-exec(_Invalid, _Node) ->
+execute(_Invalid, _Node) ->
 	throw("Invalid query").
 
 eval(QName, Props, M, Tx) ->
@@ -136,10 +252,10 @@ eval_status(Query, Status) ->
 		{error, Msg} ->
 			%io:fwrite("[Err] ~p: ~p~n", [AQuery, Msg]),
 			{error, Msg};
-		{badrpc, Msg} ->
-			{Error, Desc} = antidote:handleBadRpc(Msg),
-			%io:fwrite("[Err] ~p: ~p~n", [Error, Desc]),
-			{error, Desc};
+		%{badrpc, Msg} ->
+		%	{_Error, Desc} = antidote_handler:handleBadRpc(Msg),
+		%	%io:fwrite("[Err] ~p: ~p~n", [Error, Desc]),
+		%	{error, Desc};
 		Msg ->
 			%io:fwrite("[????] ~p: ~p~n", [AQuery, Msg]),
 			Msg
