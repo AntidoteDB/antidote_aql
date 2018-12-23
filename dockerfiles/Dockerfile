@@ -1,8 +1,8 @@
-FROM mweber/antidotedb
+FROM antidotedb/antidote
 
-MAINTAINER Joao Sousa <jpd.sousa@campus.fct.unl.pt>
+MAINTAINER Pedro Lopes <pms.lopes@campus.fct.unl.pt>
 
-ENV AQL_REPO "git://github.com/JPDSousa/AQL.git"
+ENV AQL_REPO "git://github.com/pedromslopes/AQL.git"
 ENV AQL_BRANCH "master"
 ENV AQL_NAME "aql@127.0.0.1"
 
