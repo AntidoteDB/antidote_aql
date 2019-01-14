@@ -6,7 +6,7 @@ notifications:
     on_success: never
     on_failure: always
 otp_release:
-  - 19.0
+  - 21.0
 install:
   - make compile
   - make release
