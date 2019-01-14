@@ -1,4 +1,4 @@
-# AQL [![Build Status](https://travis-ci.org/pedromslopes/AQL.svg?branch=new_features)](https://travis-ci.org/pedromslopes/AQL)
+# AQL [![Build Status](https://travis-ci.org/pedromslopes/AQL.svg?branch=master)](https://travis-ci.org/pedromslopes/AQL)
 
 
 An SQL-like interface for [AntidoteDB](https://github.com/SyncFree/antidote).
@@ -31,7 +31,7 @@ clone this repository and checkout this branch:
 
 ```
     $ git clone https://github.com/pedromslopes/AQL
-    $ cd AQL && git checkout new_features
+    $ cd AQL && git checkout master
 ```
 
 Open a terminal in the project folder (`cd AQL`) and then compile the project:
