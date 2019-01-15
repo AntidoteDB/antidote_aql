@@ -192,7 +192,7 @@ release_locks(Type, TxId) ->
   Res = antidote:release_locks(Type, TxId),
   Res.
 
-handleUpdateError({{badmatch, {error, no_permissions}}, _}) ->
+handleUpdateError({{{badmatch, {error, no_permissions}}, _}, _}) ->
   %{error, {{badmatch,{error,no_permissions}}
   "A numeric invariant has been breached.";
 handleUpdateError(Msg) ->
