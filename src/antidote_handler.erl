@@ -103,8 +103,6 @@ commit_transaction(TxId) ->
   catch
     _:Exception ->
       {error, Exception}
-    %Reason ->
-    %  {error, Reason}
   end.
 
 -spec abort_transaction(txid()) -> {ok, vectorclock()} | {error, reason()}.
@@ -117,8 +115,6 @@ abort_transaction(TxId) ->
   catch
     _:Exception ->
       {error, Exception}
-    %Reason ->
-    %  {error, Reason}
   end.
 
 -spec read_objects(bound_objects(), txid()) -> {ok, [term()]}.
@@ -193,7 +189,6 @@ release_locks(Type, TxId) ->
   Res.
 
 handleUpdateError({{{badmatch, {error, no_permissions}}, _}, _}) ->
-  %{error, {{badmatch,{error,no_permissions}}
   "A numeric invariant has been breached.";
 handleUpdateError(Msg) ->
   Msg.
