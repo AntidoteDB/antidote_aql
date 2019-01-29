@@ -33,6 +33,8 @@
 -type bucket() :: atom().
 -type bound_object() :: {key(), crdt_type(), bucket()}.
 -type bound_objects() :: [bound_object()] | bound_object().
+-type op_name() :: atom().
+-type op_param() :: term().
 -type vectorclock() :: term(). % check antidote project
 -type snapshot_time() :: vectorclock() | ignore.
 
@@ -57,11 +59,7 @@
 -type column_name() :: atom() | list().
 -type projection_filter() :: {projection, [column_name()]}.
 
--type comparison() :: atom().
--type value() :: term().
--type condition() :: {column_name(), comparison(), value()}.
-
--type conditions_filter() :: {conditions, [condition()]}.
+-type conditions_filter() :: {conditions, [term()]}.
 
 %% ====================================================================
 %% API functions
@@ -105,7 +103,7 @@ commit_transaction(TxId) ->
       {error, Exception}
   end.
 
--spec abort_transaction(txid()) -> {ok, vectorclock()} | {error, reason()}.
+-spec abort_transaction(txid()) -> ok | {error, reason()}.
 abort_transaction(TxId) ->
   try
     %call(abort_transaction, [TxId])
@@ -117,14 +115,14 @@ abort_transaction(TxId) ->
       {error, Exception}
   end.
 
--spec read_objects(bound_objects(), txid()) -> {ok, [term()]}.
+-spec read_objects([bound_object()] | bound_object(), txid()) -> {ok, [term()]}.
 read_objects(Objects, TxId) when is_list(Objects) ->
   %call(read_objects, [Objects, TxId]);
   antidote:read_objects(Objects, TxId);
 read_objects(Object, Ref) ->
   read_objects([Object], Ref).
 
--spec update_objects(bound_objects(), txid()) -> ok | {error, reason()}.
+-spec update_objects([{bound_object(), op_name(), op_param()} | {bound_object(), {op_name(), op_param()}}] | bound_object(), txid()) -> ok | {error, reason()}.
 update_objects(Objects, TxId) when is_list(Objects) ->
   %call(update_objects, [Objects, TxId]);
   antidote:update_objects(Objects, TxId);
@@ -136,14 +134,14 @@ query_objects(Filter, TxId) ->
   %call(query_objects, [Filter, TxId]).
   antidote:query_objects(Filter, TxId).
 
--spec get_locks([key()], txid()) -> {ok, [snapshot_time()]} | {missing_locks, [key()]} | {locks_in_use, [txid()]}.
+-spec get_locks([key()], txid()) -> ok.
 get_locks(Locks, TxId) ->
   %Res = call(get_locks, [?LOCK_WAIT_TIME, Locks, TxId]),
   Res = antidote:get_locks(?LOCK_WAIT_TIME, Locks, TxId),
   case Res of
     {ok, _} -> ok;
-    {missing_locks, Keys} ->
-      ErrorMsg = io_lib:format("One or more locks are missing: ~p", [Keys]),
+    {locks_not_available, Keys} ->
+      ErrorMsg = io_lib:format("One or more locks are not available: ~p", [Keys]),
       throw(lists:flatten(ErrorMsg));
     {locks_in_use, UsedLocks} ->
       FilterNotThisTx =
@@ -153,20 +151,17 @@ get_locks(Locks, TxId) ->
         _ ->
           ErrorMsg = io_lib:format("One or more exclusive locks are being used by other transactions: ~p", [FilterNotThisTx]),
           throw(lists:flatten(ErrorMsg))
-      end;
-    {locks_not_available, NALocks} ->
-      ErrorMsg = io_lib:format("One or more locks are not available: ~p", [NALocks]),
-      throw(lists:flatten(ErrorMsg))
+      end
   end.
 
--spec get_locks([key()], [key()], txid()) -> {ok, [snapshot_time()]} | {missing_locks, [key()]} | {locks_in_use, [txid()]}.
+-spec get_locks([key()], [key()], txid()) -> ok.
 get_locks(SharedLocks, ExclusiveLocks, TxId) ->
   %Res = call(get_locks, [?LOCK_WAIT_TIME_ES, SharedLocks, ExclusiveLocks, TxId]),
   Res = antidote:get_locks(?LOCK_WAIT_TIME_ES, SharedLocks, ExclusiveLocks, TxId),
   case Res of
     {ok, _} -> ok;
-    {missing_locks, Keys} ->
-      ErrorMsg = io_lib:format("One or more locks are missing: ~p", [Keys]),
+    {locks_not_available, Keys} ->
+      ErrorMsg = io_lib:format("One or more locks are not available: ~p", [Keys]),
       throw(lists:flatten(ErrorMsg));
     {locks_in_use, {UsedExclusive, _UsedShared}} ->
       FilterNotThisTx =
@@ -176,10 +171,7 @@ get_locks(SharedLocks, ExclusiveLocks, TxId) ->
         _ ->
           ErrorMsg = io_lib:format("One or more exclusive locks are being used by other transactions: ~p", [FilterNotThisTx]),
           throw(lists:flatten(ErrorMsg))
-      end;
-    {locks_not_available, {NAExclusive, _NAShared}} ->
-      ErrorMsg = io_lib:format("One or more exclusive locks are not available: ~p", [NAExclusive]),
-      throw(lists:flatten(ErrorMsg))
+      end
   end.
 
 -spec release_locks(locks | es_locks, txid()) -> ok.

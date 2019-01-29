@@ -18,15 +18,17 @@ handle('POST', [<<"aql">>], Req) ->
       io:format("Received query: ~p~n", [Query]),
       Result = aql:query(binary_to_list(Query)),
       case Result of
+        {ok, QueryRes} ->
+          Encoded = jsx:encode(QueryRes),
+          io:format("Response: ~p~n", [Encoded]),
+          {ok, [], Encoded};
         {ok, QueryRes, _Tx} ->
           Encoded = jsx:encode(QueryRes),
           io:format("Response: ~p~n", [Encoded]),
           {ok, [], Encoded};
-        {error, Message} ->
+        {error, Message, _} ->
           ErrorMsg = lists:concat(["Error: ", Message]),
-          {500, [], list_to_binary(ErrorMsg)};
-        _Else ->
-          {ok, [], jsx:encode(Result)}
+          {500, [], list_to_binary(ErrorMsg)}
       end
   end;
 
