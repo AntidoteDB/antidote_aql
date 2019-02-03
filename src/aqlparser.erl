@@ -20,11 +20,11 @@
 %% API
 %%====================================================================
 
--spec parse(input()) -> queryResult() | {err, term()}.
+-spec parse(input()) -> {ok, term(), term()} | {ok, term()} | {error, term(), term()}.
 parse(Input) ->
   parse(Input, undefined).
 
--spec parse(input(), term()) -> queryResult() | {err, term()}.
+-spec parse(input(), term()) -> {ok, term(), term()} | {ok, term()} | {error, term(), term()} | {error, term()}.
 parse({str, "\n"}, Tx) ->
 	{ok, Tx};
 parse({str, Query}, Tx) ->
@@ -58,14 +58,14 @@ read_and_exec(Tx) ->
 		{ok, Res, RetTx} ->
 			io:fwrite("~p~n", [Res]),
 			read_and_exec(RetTx);
+		{error, Msg, _} ->
+			io:fwrite("~p~n", [{error, Msg}]),
+			read_and_exec(undefined);
 		{error, Msg} ->
 			io:fwrite("~p~n", [{error, Msg}]),
 			read_and_exec(undefined);
 		{ok, RetTx} ->
-			read_and_exec(RetTx);
-		Else ->
-			io:fwrite("~p~n", [Else]),
-			read_and_exec(undefined)
+			read_and_exec(RetTx)
 	end.
 
 %%====================================================================
@@ -108,21 +108,17 @@ commit_transaction(Res, Tx) ->
 		{ok, _CT} ->
 			Res;
     {error, Reason} ->
-      {error, Reason};
-		_Else ->
-			{error, CommitRes}
+      {error, Reason}
 	end.
 
 abort_transaction(Res, Tx) ->
 	AbortRes = antidote_handler:abort_transaction(Tx),
 	ok = antidote_handler:release_locks(es_locks, Tx),
 	case AbortRes of
-		ok ->
+    ok ->
 			Res;
     {error, Reason} ->
-      {error, Reason};
-		_Else ->
-			{error, AbortRes}
+      {error, Reason}
 	end.
 
 exec(?BEGIN_CLAUSE(?TRANSACTION_TOKEN), PassedTx) ->
@@ -226,14 +222,12 @@ execute({?SELECT_TOKEN, Select}, Tx) ->
 execute(_Invalid, _Node) ->
 	throw("Invalid query").
 
+eval(QName, Props, table, Tx) ->
+  Status = table:exec(Props, Tx),
+  eval_status(QName, Status);
 eval(QName, Props, M, Tx) ->
-	case M of
-		table ->
-			Status = M:exec(Props, Tx);
-		_Else ->
-			Tables = get_table_from_query(M, Props, Tx),
-			Status = M:exec(Tables, Props, Tx)
-	end,
+  Tables = get_table_from_query(M, Props, Tx),
+  Status = M:exec(Tables, Props, Tx),
 	eval_status(QName, Status).
 
 

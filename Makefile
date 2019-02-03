@@ -52,3 +52,10 @@ test:
 ct:
 	chmod +x $(SCRIPTS)/run_ct.sh; sync
 	$(SCRIPTS)/run_ct.sh $(TEST_LOGS) $(NODE_NAME) $(COOKIE)
+
+# style checks
+lint:
+	$(REBAR) as lint lint
+
+dialyzer:
+	$(REBAR) dialyzer

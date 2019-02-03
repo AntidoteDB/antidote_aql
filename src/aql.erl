@@ -37,7 +37,7 @@
 -export([query/1, query/2]).
 -export([read_file/1, read_file/2]).
 
--spec start() -> ok.
+-spec start() -> {'ok', [atom()]}.
 start() ->
   {ok, _} = application:ensure_all_started(aql).
 
@@ -50,11 +50,11 @@ start_shell() ->
   start(),
   aqlparser:start_shell().
 
--spec query(query()) -> {ok, term(), term()} | {ok, term()}.
+-spec query(query()) -> {ok, term(), term()} | {ok, term()} | {error, term(), term()}.
 query(Query) ->
   aqlparser:parse({str, Query}).
 
--spec query(query(), term()) -> {ok, term(), term()} | {ok, term()}.
+-spec query(query(), term()) -> {ok, term(), term()} | {ok, term()} | {error, term(), term()}.
 query(Query, Transaction) ->
   aqlparser:parse({str, Query}, Transaction).
 
