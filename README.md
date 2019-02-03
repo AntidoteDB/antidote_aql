@@ -17,9 +17,8 @@ pull the latest version of the image, do it manually by:
     docker pull pedromslopes/aql:<latest-version-available>
 ```
 
-This image starts an AntidoteDB server 
-(uses [this](https://hub.docker.com/r/pedromslopes/antidotedb/) image) on
-background and runs an AQL instance of top.
+This image starts an AntidoteDB server on
+background and runs an AQL instance on top of it.
 Strictly speaking, AQL and AntidoteDB represent a single system, where AQL communicates
 with AntidoteDB via local calls.
 
@@ -30,7 +29,7 @@ This project can also be installed "manually" through Rebar3. In order to do so,
 clone this repository and checkout this branch:
 
 ```
-    $ git clone https://github.com/pedromslopes/AQL
+    $ git clone https://github.com/AntidoteDB/antidote_aql
     $ cd AQL && git checkout master
 ```
 
