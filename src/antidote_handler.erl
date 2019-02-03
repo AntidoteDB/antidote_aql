@@ -7,8 +7,6 @@
 
 -define(LOCK_WAIT_TIME, 0).
 -define(LOCK_WAIT_TIME_ES, 0).
-%-define(LOCK_WAIT_TIME, 10).
-%-define(LOCK_WAIT_TIME_ES, 10).
 
 -define(NODE, 'antidote@127.0.0.1').
 
@@ -27,12 +25,11 @@
 | antidote_crdt_set_rw
 | antidote_crdt_flag_ew
 | antidote_crdt_flag_dw
-| antidote_crdt_index
-| antidote_crdt_index_p.
+| antidote_crdt_index_p
+| antidote_crdt_index_s.
 
 -type bucket() :: atom().
 -type bound_object() :: {key(), crdt_type(), bucket()}.
--type bound_objects() :: [bound_object()] | bound_object().
 -type op_name() :: atom().
 -type op_param() :: term().
 -type vectorclock() :: term(). % check antidote project

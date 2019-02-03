@@ -24,7 +24,7 @@
 parse(Input) ->
   parse(Input, undefined).
 
--spec parse(input(), term()) -> {ok, term(), term()} | {ok, term()} | {error, term(), term()}.
+-spec parse(input(), term()) -> {ok, term(), term()} | {ok, term()} | {error, term(), term()} | {error, term()}.
 parse({str, "\n"}, Tx) ->
 	{ok, Tx};
 parse({str, Query}, Tx) ->
@@ -59,6 +59,9 @@ read_and_exec(Tx) ->
 			io:fwrite("~p~n", [Res]),
 			read_and_exec(RetTx);
 		{error, Msg, _} ->
+			io:fwrite("~p~n", [{error, Msg}]),
+			read_and_exec(undefined);
+		{error, Msg} ->
 			io:fwrite("~p~n", [{error, Msg}]),
 			read_and_exec(undefined);
 		{ok, RetTx} ->

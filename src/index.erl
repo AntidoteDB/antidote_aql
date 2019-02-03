@@ -8,8 +8,8 @@
 -include("types.hrl").
 -include("parser.hrl").
 
--define(INDEX_CRDT, antidote_crdt_index_p).
--define(SINDEX_CRDT, antidote_crdt_index).
+-define(PINDEX_CRDT, antidote_crdt_index_p).
+-define(SINDEX_CRDT, antidote_crdt_index_s).
 -define(INDEX_ENTRY_DT, antidote_crdt_register_lww).
 -define(ITAG_CRDT, antidote_crdt_map_go).
 -define(ITAG_KEY_CRDT, antidote_crdt_register_mv).
@@ -68,7 +68,7 @@ table({_Name, TName, _Cols}) -> TName.
 cols({_Name, _TName, Cols}) -> Cols.
 
 primary_index(TName, TxId) ->
-  BoundObject = crdt:create_bound_object(p_name(TName), ?INDEX_CRDT, ?METADATA_BUCKET),
+  BoundObject = crdt:create_bound_object(p_name(TName), ?PINDEX_CRDT, ?METADATA_BUCKET),
   {ok, [Res]} = antidote_handler:read_objects(BoundObject, TxId),
   Res.
 
@@ -78,7 +78,7 @@ secondary_index(TName, IndexName, TxId) ->
   Res.
 
 p_keys(TName, TxId) ->
-  BoundObject = crdt:create_bound_object(p_name(TName), ?INDEX_CRDT, ?METADATA_BUCKET),
+  BoundObject = crdt:create_bound_object(p_name(TName), ?PINDEX_CRDT, ?METADATA_BUCKET),
   {ok, [Res]} = antidote_handler:read_objects(BoundObject, TxId),
   lists:map(fun({Key, BoundObj}) ->
     {utils:to_atom(Key), BoundObj}
@@ -121,7 +121,7 @@ s_name(TName, IndexName) ->
   list_to_atom(NameStr).
 
 p_put({Key, _Map, TName} = ObjBoundKey) ->
-  BoundObject = crdt:create_bound_object(p_name(TName), ?INDEX_CRDT, ?METADATA_BUCKET),
+  BoundObject = crdt:create_bound_object(p_name(TName), ?PINDEX_CRDT, ?METADATA_BUCKET),
   AssignKey = crdt:assign_lww(Key),
   crdt:map_update(BoundObject, {?INDEX_ENTRY_DT, ObjBoundKey, AssignKey}).
 
@@ -192,7 +192,7 @@ name_test() ->
 put_test() ->
   BoundObject = crdt:create_bound_object(key, map, test),
   Update = {?INDEX_ENTRY_DT, BoundObject, crdt:assign_lww(key)},
-  Expected = crdt:map_update({'#_test', ?INDEX_CRDT, ?METADATA_BUCKET}, Update),
+  Expected = crdt:map_update({'#_test', ?PINDEX_CRDT, ?METADATA_BUCKET}, Update),
   ?assertEqual(Expected, p_put(BoundObject)).
 
 tag_name_test() ->
