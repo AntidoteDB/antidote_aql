@@ -188,4 +188,4 @@ handleUpdateError(Msg) ->
 
 % TODO keep for local testing (i.e. tests that don't use the application)
 %call(Function, Args) ->
-%	rpc:call(?NODE, antidote, Function, Args).
+% rpc:call(?NODE, antidote, Function, Args).

@@ -11,6 +11,7 @@ install:
   - make compile
   - make release
   - make dialyzer
+  - make lint
 before_script:
   - epmd -daemon
 script:

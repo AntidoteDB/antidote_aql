@@ -132,13 +132,13 @@ prepare_filter(Table, Projection, Conditions) ->
 %% Instead, what is really sent to Antidote is a function that
 %% internally tries to approach the following visibility conditions:
 %% - In an update-wins dependency policy:
-%% 			(state(row.pk) <> d AND
-%% 			 state(row.fk_col1) <> d AND
-%% 			 state(row.fk_col2) <> d ...)
+%%      (state(row.pk) <> d AND
+%%       state(row.fk_col1) <> d AND
+%%       state(row.fk_col2) <> d ...)
 %% - In a delete-wins dependency policy:
-%% 			(state(row.pk) <> d AND
-%% 			 ref_state(row.fk_col1) <> d AND ref_version(row.fk_col1) = version(row.fk_col1) AND
-%% 			 ref_state(row.fk_col2) <> d AND ref_version(row.fk_col2) = version(row.fk_col2) ...)
+%%      (state(row.pk) <> d AND
+%%       ref_state(row.fk_col1) <> d AND ref_version(row.fk_col1) = version(row.fk_col1) AND
+%%       ref_state(row.fk_col2) <> d AND ref_version(row.fk_col2) = version(row.fk_col2) ...)
 visibility_condition(Table) ->
   Policy = table:policy(Table),
   Rule = crp:get_rule(Policy),
