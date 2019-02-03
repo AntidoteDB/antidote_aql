@@ -1,5 +1,5 @@
 %%%-------------------------------------------------------------------
-%%% @author pedrolopes
+%%% @author Pedro Lopes
 %%% @copyright (C) 2018, <COMPANY>
 %%% @doc
 %%%

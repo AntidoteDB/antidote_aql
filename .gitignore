@@ -8,6 +8,8 @@ ebin
 rel/example_project
 .concrete/DEV_MODE
 .rebar
+src/scanner.erl
+src/parser.erl
 
 LICENSE
 

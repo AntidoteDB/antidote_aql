@@ -1,5 +1,5 @@
 %%%-------------------------------------------------------------------
-%%% @author pedrolopes
+%%% @author Pedro Lopes
 %%% @doc The AQL interface, responsible for the AQL application.
 %%%      The AQL application is composed on an HTTP server, responsible
 %%%      for receiving queries via an HTTP endpoint.

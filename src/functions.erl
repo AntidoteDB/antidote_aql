@@ -1,5 +1,5 @@
 %%%-------------------------------------------------------------------
-%%% @author pedrolopes
+%%% @author Pedro Lopes
 %%% @doc An Erlang module for the (future) use of built-in functions
 %%%      in queries.
 %%% @end

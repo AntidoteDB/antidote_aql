@@ -1,5 +1,5 @@
 %% @author joao
-%% @author pedrolopes
+%% @author Pedro Lopes
 %% @doc @todo Add description to objects.
 
 -module(crdt).
