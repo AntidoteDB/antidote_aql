@@ -19,7 +19,7 @@ ENV AQL_BRANCH "master"
 #AQL
 RUN cd /usr/src \
   && git clone $AQL_REPO \
-  && cd AQL \
+  && cd antidote_aql \
   && git checkout $AQL_BRANCH \
   && make release \
   && cp -r _build/default/rel/aql /opt/AQL \

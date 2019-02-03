@@ -1,6 +1,6 @@
 #!/bin/sh
 set -ex
-git clone https://github.com/pedromslopes/antidote.git 
+git clone https://github.com/AntidoteDB/antidote.git
 cd antidote
-git checkout aql_oriented_features
+git checkout aql
 make rel

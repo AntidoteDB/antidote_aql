@@ -10,6 +10,7 @@ otp_release:
 install:
   - make compile
   - make release
+  - make dialyzer
 before_script:
   - epmd -daemon
 script:

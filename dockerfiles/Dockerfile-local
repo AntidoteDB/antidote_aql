@@ -18,21 +18,6 @@ ENV DEBUG_MODE "false"
 ADD _build/default/rel/aql /opt/AQL
 ADD erl_scripts /opt/AQL/erl_scripts
 ADD scripts /opt/AQL/scripts
-#ADD . /opt/AQL/
-#ADD . /usr/src/AQL
-
-#RUN set -xe \
-	#&& cd /usr/src/AQL && rm -rf _build/default/rel \
-	#&& make release \
-	#&& cp -r _build/default/rel/aql /opt/AQL \
-	#&& cp -r erl_scripts /opt/AQL/erl_scripts \
-	#&& cp -r scripts /opt/AQL/scripts \
-	#&& rm -rf /usr/src/AQL
-	
-#RUN cd /opt/AQL \
-#	&& rm -rf lib/eleveldb-* lib/erlzmq-* \
-#	&& cp -r /opt/antidote/lib/eleveldb-* /opt/AQL/lib/ \
-#	&& cp -r /opt/antidote/lib/erlzmq-* /opt/AQL/lib/
 
 RUN chmod a+x /opt/AQL/erl_scripts/create_cluster.erl \
   && chmod a+x /opt/AQL/erl_scripts/populate_index.erl
