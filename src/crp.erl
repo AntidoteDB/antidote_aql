@@ -1,13 +1,11 @@
 %%%-------------------------------------------------------------------
-%%% @author joao
-%%% @copyright (C) 2017, <COMPANY>
-%%% @doc
-%%%
+%%% @author João Sousa, Pedro Lopes
+%%% @doc A module to handle Conflict-Resolution Policies (CRP). These
+%%%      CRPs are defined per table basis.
 %%% @end
-%%% Created : 16. ago 2017 11:10
 %%%-------------------------------------------------------------------
+
 -module(crp).
--author("joao").
 
 -define(ERR_UW_DW, "A table with 'Update-Wins' foreign keys cannot be linked to a table with 'Delete-Wins' foreign keys").
 
@@ -15,14 +13,12 @@
 -include("types.hrl").
 
 %% API
--export([
-  new/0,
+-export([new/0,
   table_level/1, set_table_level/2,
   dep_level/1, set_dep_level/2,
   p_dep_level/1, set_p_dep_level/2,
   get_rule/1
 ]).
-
 
 new() ->
   ?T_CRP(undefined, undefined, undefined).

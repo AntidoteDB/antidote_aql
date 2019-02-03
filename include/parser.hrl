@@ -1,6 +1,6 @@
-% -----------------------------------------------------------------------------
-% --------------------------------- Lexer ------------------------------------
-% -----------------------------------------------------------------------------
+%% ===================================================================
+%% Lexer
+%% ===================================================================
 
 % show
 -define(SHOW_TOKEN, show).
@@ -84,10 +84,6 @@
 -define(ATTR_TYPE_TOKEN, attribute_type).
 -define(ATTR_KEY(AttrType), {?ATTR_TYPE_TOKEN, AttrType}).
 %% table policies
-%-define(TABLE_POLICY_TOKEN, table_policy).
-%-define(TABLE_POLICY_KEY(Crp), {?TABLE_POLICY_TOKEN, Crp}).
-%-define(DEP_POLICY_TOKEN, dep_policy).
-%-define(DEP_POLICY_KEY(Crp), {?DEP_POLICY_TOKEN, Crp}).
 -define(CRP_TOKEN, crp).
 -define(CRP_KEY(Crp), {?CRP_TOKEN, Crp}).
 -define(NO_CONCURRENCY_KEY, {?CRP_TOKEN, noconcurrency}).
@@ -124,11 +120,11 @@
 -define(TRANSACTION_TOKEN, transaction).
 -define(TRANSACTION_KEY(TokenChars), {?TRANSACTION_TOKEN, TokenChars}).
 
-% quit program
+% quit console
 -define(QUIT_TOKEN, quit).
 -define(QUIT_CLAUSE(TokenChars), {?QUIT_TOKEN, TokenChars}).
 
-%terms
+% terms
 -define(PARSER_BOOLEAN_TOKEN, boolean).
 -define(PARSER_ATOM_TOKEN, atom_value).
 -define(PARSER_STRING_TOKEN, string).

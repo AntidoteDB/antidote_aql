@@ -1,11 +1,3 @@
-%%%-------------------------------------------------------------------
-%%% @author Pedro Lopes
-%%% @copyright (C) 2018, <COMPANY>
-%%% @doc
-%%%
-%%% @end
-%%% Created : 18. jun 2018 17:09
-%%%-------------------------------------------------------------------
 -module(secondary_indexes_SUITE).
 
 -include_lib("aql.hrl").
@@ -26,7 +18,6 @@
 -export([insert_data_after/1, insert_data_before/1, bcounter_index/1]).
 
 init_per_suite(Config) ->
-  %aql:start(),
   TestTable = "TableAIdx",
   TestTable2 = "TableBCIdx",
   {ok, [], _Tx} = tutils:aql(lists:concat(["CREATE UPDATE-WINS TABLE ", TestTable,
@@ -35,14 +26,13 @@ init_per_suite(Config) ->
     " (X VARCHAR PRIMARY KEY, Z COUNTER_INT CHECK (Z > 0));"])),
   lists:append(Config,
     [{table, TestTable},
-     {bcounter_table, TestTable2},
-     {indexed_col, "Y"},
-     {bcounter_col, "Z"},
-     {bound_greater, 0},
-     {update_greater, lists:concat(["UPDATE ", TestTable2, " SET Z = Z ~s WHERE X = ~s"])}]).
+      {bcounter_table, TestTable2},
+      {indexed_col, "Y"},
+      {bcounter_col, "Z"},
+      {bound_greater, 0},
+      {update_greater, lists:concat(["UPDATE ", TestTable2, " SET Z = Z ~s WHERE X = ~s"])}]).
 
 end_per_suite(Config) ->
-  %aql:stop(),
   Config.
 
 init_per_testcase(_Case, Config) ->
@@ -90,7 +80,6 @@ bcounter_index(Config) ->
 
   IndexData = tutils:read_index(TestTable, IdxName),
   ok = assert_index(IndexData, 4, [5, 10, 15, 20], [[a, e], [b, c], [d], [f, g]]),
-  %ok = assert_index(IndexData, 4, [4, 9, 14, 19], [[a, e], [b, c], [d], [f, g]]),
 
   Keys = ['a', 'b', 'c', 'd', 'e', 'f', 'g'],
   Bounds = [5, 10, 10, 15, 5, 20, 20],
@@ -111,8 +100,6 @@ insert_data(TableName) ->
 
 assert_index(IndexData, _ExpLen, IdxValues, ExpEntries)
   when length(IdxValues) == length(ExpEntries) ->
-
-  %?assertEqual(ExpLen, length(IndexData)),
   assert_multi(IndexData, IdxValues, ExpEntries).
 
 assert_multi(IndexData, [Val | ValList], [ExpEntry | ExpEntryList]) ->

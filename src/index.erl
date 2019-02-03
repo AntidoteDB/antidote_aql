@@ -1,6 +1,8 @@
-%% @author Joao
-%% @author Pedro Lopes
-%% @doc @todo Add description to index.
+%%%-------------------------------------------------------------------
+%%% @author João Sousa, Pedro Lopes
+%%% @doc A module to manage index data structures.
+%%% @end
+%%%-------------------------------------------------------------------
 
 -module(index).
 
@@ -15,7 +17,6 @@
 -define(ITAG_KEY_CRDT, antidote_crdt_register_mv).
 -define(INDEX_PREFIX, "#_").
 -define(SINDEX_PREFIX, "#2i_").
--define(TAG_TOKEN, "#__").
 
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
@@ -41,20 +42,14 @@
   tag_read/4]).
 
 exec({Table, _Tables}, Props, TxId) ->
-  %IndexName = index(Props),
   TableName = table(Props),
   IndexCols = cols(Props),
   TIndexes = table:indexes(Table),
-  %case has_index(TIndexes, IndexName) of
-  %  true ->
-  %    throw(lists:concat(["The index ", IndexName, " already exists on table ", TableName]));
-  %  _Else ->
-  %    ok
-  %end,
+  %% todo check if the index already exists?
   case check_keys(Table, IndexCols) of
     [] -> ok;
     List ->
-      ErrorMsg = io_lib:format("The columns ~p do not exist in table ~p", [List, TableName]),
+      ErrorMsg = io_lib:format("Columns ~p do not exist in table ~p", [List, TableName]),
       throw(lists:flatten(ErrorMsg))
   end,
   Table2 = set_table_index(lists:append(TIndexes, [Props]), Table),
@@ -77,6 +72,7 @@ secondary_index(TName, IndexName, TxId) ->
   {ok, [Res]} = antidote_handler:read_objects(BoundObject, TxId),
   Res.
 
+%% Reads a primary index
 p_keys(TName, TxId) ->
   BoundObject = crdt:create_bound_object(p_name(TName), ?PINDEX_CRDT, ?METADATA_BUCKET),
   {ok, [Res]} = antidote_handler:read_objects(BoundObject, TxId),
@@ -94,7 +90,8 @@ s_keys_formatted(TName, IndexName, TxId) ->
   Tables = table:read_tables(TxId),
   Table = table:lookup(TName, Tables),
   IndexData = s_keys(TName, IndexName, TxId),
-  {_IndexName, _TableName, [Column]} = lookup_index(IndexName, Table), %% todo support more than one column
+  %% todo support composite index to allow more than one column per index
+  {_IndexName, _TableName, [Column]} = lookup_index(IndexName, Table),
   Col = column:s_get(Table, Column),
   Type = column:type(Col),
   Cons = column:constraint(Col),
@@ -103,11 +100,12 @@ s_keys_formatted(TName, IndexName, TxId) ->
       lists:map(fun({EntryKey, EntryVal}) ->
         AQLCounterValue = bcounter:from_bcounter(Comp, EntryKey, Offset),
         {AQLCounterValue, EntryVal}
-                end, IndexData);
+      end, IndexData);
     _Else ->
       IndexData
   end.
 
+%% Builds the name of a primary index
 p_name(TName) ->
   TNameStr = utils:to_list(TName),
   NameStr = lists:concat([?INDEX_PREFIX, TNameStr]),
@@ -157,12 +155,9 @@ tag_read(TName, CName, Value, TxId) ->
   SubKey = tag_subkey(Value),
   proplists:get_value(SubKey, Map).
 
-%% ====================================================================
+%% ===================================================================
 %% Private functions
-%% ====================================================================
-
-%has_index(Indexes, IndexName) ->
-%  lists:keymember(IndexName, 1, Indexes).
+%% ===================================================================
 
 check_keys(Table, Cols) ->
   TCols = column:s_names(Table),

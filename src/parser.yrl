@@ -366,7 +366,7 @@ rollback_transaction ->
     ?ROLLBACK_CLAUSE(?TRANSACTION_TOKEN).
 
 %%--------------------------------------------------------------------
-%% quit program
+%% quit console
 %%--------------------------------------------------------------------
 quit_program ->
     quit :

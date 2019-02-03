@@ -1,3 +1,9 @@
+%%%-------------------------------------------------------------------
+%%% @author João Sousa, Pedro Lopes
+%%% @doc A module to handle AQL where clauses.
+%%% @end
+%%%-------------------------------------------------------------------
+
 -module(where).
 
 -include("parser.hrl").
@@ -22,7 +28,7 @@ evaluate(Table, [{_ClValue, Arop, Value} | T], TxId, Acc) ->
       NewAcc = lists:flatten(Acc, [element:create_key_from_table(Value, Table, TxId)]),
       evaluate(Table, T, TxId, NewAcc);
     _Else ->
-      throw("Not supported yet! :)")
+      throw("Not supported yet")
   end;
 evaluate(_Table, [], _TxId, Acc) ->
   Acc.

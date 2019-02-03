@@ -1,13 +1,4 @@
-%%%-------------------------------------------------------------------
-%%% @author joao
-%%% @copyright (C) 2017, <COMPANY>
-%%% @doc
-%%%
-%%% @end
-%%% Created : 19. ago 2017 14:18
-%%%-------------------------------------------------------------------
 -module(aql_SUITE).
--author("joao").
 
 -include_lib("aql.hrl").
 -include_lib("parser.hrl").
@@ -25,17 +16,16 @@
 
 %% API
 -export([select_all/1,
-        insert_artist/1,
-        insert_with_default_artist/1,
-        insert_duplicate/1,
-        delete_album/1,
-        delete_non_existent_album/1,
-        commit_transaction/1,
-        abort_transaction/1,
-        error_transaction/1]).
+  insert_artist/1,
+  insert_with_default_artist/1,
+  insert_duplicate/1,
+  delete_album/1,
+  delete_non_existent_album/1,
+  commit_transaction/1,
+  abort_transaction/1,
+  error_transaction/1]).
 
 init_per_suite(Config) ->
-  %aql:start(),
   TNameArtist = "ArtistTest",
   TNameAlbum = "AlbumTest",
   TNameTrack = "TrackTest",
@@ -72,7 +62,6 @@ init_per_suite(Config) ->
   ]).
 
 end_per_suite(Config) ->
-  %aql:stop(),
   Config.
 
 init_per_testcase(_Case, Config) ->

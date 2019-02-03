@@ -1,6 +1,8 @@
-%% @author Joao
-%% @doc @todo Add description to insert.
-
+%%%-------------------------------------------------------------------
+%%% @author João Sousa, Pedro Lopes
+%%% @doc A module to handle AQL insert operations.
+%%% @end
+%%%-------------------------------------------------------------------
 
 -module(insert).
 
@@ -10,9 +12,9 @@
 -include("parser.hrl").
 -include("types.hrl").
 
-%% ====================================================================
+%% ===================================================================
 %% API functions
-%% ====================================================================
+%% ===================================================================
 -export([exec/3]).
 
 -export([table/1,
@@ -52,9 +54,9 @@ touch_cascade(Parents, Table, Tables, TxId) ->
   Fks = table:shadow_columns(Table),
   lists:foreach(fun(Fk) -> touch(Fk, Parents, Tables, TxId) end, Fks).
 
-%% ====================================================================
+%% ===================================================================
 %% Functions for inserts and updates
-%% ====================================================================
+%% ===================================================================
 
 touch(?T_FK(FkName, _, FkTabName, FkColName, _), Parents, Tables, TxId)
   when length(FkName) == 1 ->
@@ -77,9 +79,9 @@ touch(?T_FK(FkName, _, FkTabName, FkColName, _), Parents, Tables, TxId)
 touch(_, _, _, _) ->
   ok.
 
-%% ====================================================================
+%% ===================================================================
 %% Internal functions
-%% ====================================================================
+%% ===================================================================
 
 handle_defaults(Keys, Values, Table) ->
   if
@@ -89,5 +91,5 @@ handle_defaults(Keys, Values, Table) ->
       Defaults = column:s_filter_defaults(Table),
       lists:filter(fun(Key) ->
         not maps:is_key(Key, Defaults)
-  end, Keys)
+      end, Keys)
   end.

@@ -1,10 +1,3 @@
-%%%-------------------------------------------------------------------
-%%% @author Pedro Lopes
-%%% @doc
-%%%
-%%% @end
-%%% Created : 25. jun 2018 10:14
-%%%-------------------------------------------------------------------
 -module(rangequeries_SUITE).
 
 -include_lib("aql.hrl").
@@ -25,7 +18,6 @@
 -export([basic_range_queries/1, bcounter_range_queries/1]).
 
 init_per_suite(Config) ->
-  %aql:start(),
   TestTable = "TableA",
   TestTable2 = "TableBC",
   {ok, [], _Tx} = tutils:aql(lists:concat(["CREATE UPDATE-WINS TABLE ", TestTable,
@@ -41,7 +33,6 @@ init_per_suite(Config) ->
       {update_greater, lists:concat(["UPDATE ", TestTable2, " SET Z = Z ~s WHERE X = ~s"])}]).
 
 end_per_suite(Config) ->
-  %aql:stop(),
   Config.
 
 init_per_testcase(_Case, Config) ->
@@ -109,9 +100,9 @@ bcounter_range_queries(Config) ->
   reset_counters(Keys, ?PARSER_GREATER, Bounds, Config).
 
 
-%% ====================================================================
+%% ===================================================================
 %% Internal functions
-%% ====================================================================
+%% ===================================================================
 
 insert_data(TableName) ->
   {ok, [], _Tx} = tutils:insert_single(TableName, "'a', 5"),

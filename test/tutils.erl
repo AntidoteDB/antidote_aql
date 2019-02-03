@@ -1,27 +1,23 @@
-
-
 -module(tutils).
-
-%-define(TEST_SERVER, 'antidote@127.0.0.1').
 
 -include_lib("eunit/include/eunit.hrl").
 -include("types.hrl").
 
 -export([aql/1, aql/2,
-          create_single_table/2,
-          create_fk_table/2, create_fk_table/4, create_fk_table/5,
-          create_dc_fk_table/2, create_dc_fk_table/4, create_dc_fk_table/5,
-          create_index/3,
-          insert_single/2,
-          delete_by_key/2,
-          read_keys/4, read_keys/3, read_keys/1, read_index/2,
-          print_state/2,
-          select_all/1]).
+  create_single_table/2,
+  create_fk_table/2, create_fk_table/4, create_fk_table/5,
+  create_dc_fk_table/2, create_dc_fk_table/4, create_dc_fk_table/5,
+  create_index/3,
+  insert_single/2,
+  delete_by_key/2,
+  read_keys/4, read_keys/3, read_keys/1, read_index/2,
+  print_state/2,
+  select_all/1]).
 
 -export([assertState/3,
-          assertExists/1, assertExists/2,
-          assertNotExists/1, assertNotExists/2,
-          assert_table_policy/2]).
+  assertExists/1, assertExists/2,
+  assertNotExists/1, assertNotExists/2,
+  assert_table_policy/2]).
 
 aql(Aql) ->
   aql(Aql, undefined).
@@ -50,7 +46,7 @@ create_fk_table(Name, TPointer, CPointer, TablePolicy, FK_Policy) ->
   aql(lists:concat(Query)).
 
 create_dc_fk_table(Name, TPointer, CPointer, TablePolicy, FK_Policy) ->
-  Query = ["CREATE ", TablePolicy," TABLE ", Name,
+  Query = ["CREATE ", TablePolicy, " TABLE ", Name,
     " (ID INT PRIMARY KEY, ", TPointer, " INT FOREIGN KEY ", FK_Policy, " REFERENCES ",
     TPointer, "(", CPointer, ") ",
     "ON DELETE CASCADE)"],
@@ -75,8 +71,6 @@ assertState(State, TName, Key) ->
   {ok, [Res]} = antidote_handler:read_objects(AQLKey, TxId),
   Actual = element:is_visible(Res, TName, Tables, TxId),
   antidote_handler:commit_transaction(TxId),
-  %ct:log(info, lists:concat(["State: ", State])),
-  %ct:log(info, lists:concat(["Actual: ", Actual])),
   ?assertEqual(State, Actual).
 
 print_state(TName, Key) ->
@@ -91,9 +85,9 @@ print_state(TName, Key) ->
     FkValue = element:get(foreign_keys:to_cname(FkName), types:to_crdt(FkType, ignore), Data, Table),
     Tag = index:tag_read(TNameAtom, FkName, FkValue, TxId),
     io:fwrite("Tag(~p): ~p -> ~p~n", [FkValue, index:tag_name(TNameAtom, FkName), Tag])
-  end, table:shadow_columns(Table)),
+                end, table:shadow_columns(Table)),
   io:fwrite("Final: ~p~n", [element:is_visible(Data, TName, Tables, TxId)]),
-antidote_handler:commit_transaction(TxId).
+  antidote_handler:commit_transaction(TxId).
 
 select_all(TName) ->
   aql(lists:concat(["SELECT * FROM ", TName])).

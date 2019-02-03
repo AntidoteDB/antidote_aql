@@ -1,8 +1,9 @@
 %%%-------------------------------------------------------------------
 %%% @author Pedro Lopes
 %%% @doc The AQL interface, responsible for the AQL application.
-%%%      The AQL application is composed on an HTTP server, responsible
-%%%      for receiving queries via an HTTP endpoint.
+%%%      The AQL application is composed of a HTTP server, responsible
+%%%      for receiving queries via an HTTP endpoint. Alternatively,
+%%%      operations may be issued to the application via RPC.
 %%%
 %%%      Interface:
 %%%      - start():
@@ -12,17 +13,20 @@
 %%%           Stops the AQL application;
 %%%      - start_shell():
 %%%           Starts the AQL shell with default configuration;
-%%%      - start_shell(node):
-%%%           Starts the AQL shell configured with the name of an
-%%%           Antidote node;
-%%%      - query(query, node):
-%%%           Issues a query to an Antidote node.
+%%%      - query(Query):
+%%%           Issues a query to the AQL.
 %%%           The query is performed on a single transaction,
 %%%           and committed or aborted after realization;
-%%%      - query(query, node, transaction):
-%%%           Issues a query to an Antidote node, on a given
+%%%      - query(Query, Transaction):
+%%%           Issues a query to the AQL, on a given
+%%%           transaction;
+%%%      - read_file(Filename):
+%%%           Reads a bath of queries from a file and issues them to
+%%%           the AQL. Each query is executed in an individual
 %%%           transaction.
-%%%
+%%%      - read_file(Filename, Transaction):
+%%%           Reads a bath of queries from a file and issues them to
+%%%           the AQL. The batch is executed in a single transaction.
 %%% @end
 %%%-------------------------------------------------------------------
 -module(aql).

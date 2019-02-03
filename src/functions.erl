@@ -1,9 +1,9 @@
 %%%-------------------------------------------------------------------
 %%% @author Pedro Lopes
-%%% @doc An Erlang module for the (future) use of built-in functions
-%%%      in queries.
+%%% @doc A module to handle built-in functions in queries.
 %%% @end
 %%%-------------------------------------------------------------------
+
 -module(functions).
 
 %% API

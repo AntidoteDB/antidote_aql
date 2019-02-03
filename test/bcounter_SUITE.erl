@@ -1,4 +1,3 @@
-
 -module(bcounter_SUITE).
 
 -include_lib("aql.hrl").
@@ -12,22 +11,21 @@
 -define(INSERT_ERROR(ExpecVal, Col), "Invalid value " ++ ExpecVal ++ " for column " ++ Col).
 
 -export([init_per_suite/1,
-          end_per_suite/1,
-          init_per_testcase/2,
-          end_per_testcase/2,
-          all/0]).
+  end_per_suite/1,
+  init_per_testcase/2,
+  end_per_testcase/2,
+  all/0]).
 
 -export([greater_insert_basic/1, greater_insert_fail/1,
-        greater_update_basic/1, greater_update_fail/1,
-        smaller_insert_basic/1, smaller_insert_fail/1,
-        smaller_update_basic/1, smaller_update_fail/1]).
+  greater_update_basic/1, greater_update_fail/1,
+  smaller_insert_basic/1, smaller_insert_fail/1,
+  smaller_update_basic/1, smaller_update_fail/1]).
 
-%% ====================================================================
+%% ===================================================================
 %% CT config functions
-%% ====================================================================
+%% ===================================================================
 
 init_per_suite(Config) ->
-  %aql:start(),
   TNameGreater = "BCGreater",
   TNameSmaller = "BCSmaller",
   BoundGreaterA = 0,
@@ -35,13 +33,13 @@ init_per_suite(Config) ->
   BoundSmallerA = 5,
   BoundSmallerB = 15,
   Query = ["CREATE UPDATE-WINS TABLE ", TNameGreater, " (ID INT PRIMARY KEY, ",
-  "bcA COUNTER_INT CHECK (bcA > ", BoundGreaterA, "), ",
-  "bcB COUNTER_INT CHECK (bcB > ", BoundGreaterB, ")",
-  ");",
-  "CREATE UPDATE-WINS TABLE ", TNameSmaller, " (ID INT PRIMARY KEY, ",
-  "bcA COUNTER_INT CHECK (bcA < ", BoundSmallerA, "), ",
-  "bcB COUNTER_INT CHECK (bcB < ", BoundSmallerB, ")",
-  ");"],
+    "bcA COUNTER_INT CHECK (bcA > ", BoundGreaterA, "), ",
+    "bcB COUNTER_INT CHECK (bcB > ", BoundGreaterB, ")",
+    ");",
+    "CREATE UPDATE-WINS TABLE ", TNameSmaller, " (ID INT PRIMARY KEY, ",
+    "bcA COUNTER_INT CHECK (bcA < ", BoundSmallerA, "), ",
+    "bcB COUNTER_INT CHECK (bcB < ", BoundSmallerB, ")",
+    ");"],
   {ok, [], _Tx} = tutils:aql(lists:concat(Query)),
   lists:append(Config, [
     {tname_greater, TNameGreater},
@@ -57,7 +55,6 @@ init_per_suite(Config) ->
   ]).
 
 end_per_suite(Config) ->
-  %aql:stop(),
   Config.
 
 init_per_testcase(_Case, Config) ->
@@ -67,21 +64,21 @@ end_per_testcase(_, _) ->
   ok.
 
 all() ->
-  [greater_insert_basic,  greater_insert_fail,
-  greater_update_basic, greater_update_fail,
-  smaller_insert_basic, smaller_insert_fail,
-  smaller_update_basic, smaller_update_fail].
+  [greater_insert_basic, greater_insert_fail,
+    greater_update_basic, greater_update_fail,
+    smaller_insert_basic, smaller_insert_fail,
+    smaller_update_basic, smaller_update_fail].
 
-%% ====================================================================
+%% ===================================================================
 %% Test functions
-%% ====================================================================
+%% ===================================================================
 
 greater_insert_basic(Config) ->
   Key = 1,
   BoundA = ?value(bound_greater_a, Config),
   BoundB = ?value(bound_greater_b, Config),
-  BcA = BoundA+2,
-  BcB = BoundB+1,
+  BcA = BoundA + 2,
+  BcB = BoundB + 1,
   {ok, [], _Tx} = tutils:aql(?format(insert_greater, [Key, BcA, BcB], Config)),
   [V1, V2] = tutils:read_keys(?value(tname_greater, Config), Key, ["bcA, bcB"]),
   ?assertEqual(BcA, V1),
@@ -94,9 +91,9 @@ greater_insert_basic(Config) ->
 greater_insert_fail(Config) ->
   BoundA = ?value(bound_greater_a, Config),
   BoundB = ?value(bound_greater_b, Config),
-  {_, [{error, Msg1}], _} = tutils:aql(?format(insert_greater, [10, BoundA, BoundB+1], Config)),
-  {_, [{error, Msg2}], _} = tutils:aql(?format(insert_greater, [11, BoundA+1, BoundB], Config)),
-  {_, [{error, Msg3}], _} = tutils:aql(?format(insert_greater, [12, BoundA, BoundB-1], Config)),
+  {_, [{error, Msg1}], _} = tutils:aql(?format(insert_greater, [10, BoundA, BoundB + 1], Config)),
+  {_, [{error, Msg2}], _} = tutils:aql(?format(insert_greater, [11, BoundA + 1, BoundB], Config)),
+  {_, [{error, Msg3}], _} = tutils:aql(?format(insert_greater, [12, BoundA, BoundB - 1], Config)),
 
   ?assertEqual(?INSERT_ERROR("0", "bcA"), Msg1),
   ?assertEqual(?INSERT_ERROR("10", "bcB"), Msg2),
@@ -108,20 +105,20 @@ greater_update_basic(Config) ->
   BoundB = ?value(bound_greater_b, Config),
   Key = 20,
   % inserts
-  {ok, [], _Tx} = tutils:aql(?format(insert_greater, [Key, BoundA+2, BoundB+2], Config)),
+  {ok, [], _Tx} = tutils:aql(?format(insert_greater, [Key, BoundA + 2, BoundB + 2], Config)),
   % increment
   {ok, [], _Tx} = tutils:aql(?format(update_greater, ["+ 1", "+ 3", Key], Config)),
   {ok, [], _Tx} = tutils:aql(?format(update_greater, ["+ 0", "+ 0", Key], Config)),
   [V1, V2] = tutils:read_keys(TName, Key, ["bcA", "bcB"]),
-  ?assertEqual(BoundA+3, V1),
-  ?assertEqual(BoundB+5, V2),
+  ?assertEqual(BoundA + 3, V1),
+  ?assertEqual(BoundB + 5, V2),
   % decrement
   {ok, [], _Tx} = tutils:aql(?format(update_greater, ["- 2", "- 4", Key], Config)),
   {ok, [], _Tx} = tutils:aql(?format(update_greater, ["- 0", "- 0", Key], Config)),
   [V3, V4] = tutils:read_keys(TName, Key, ["bcA", "bcB"]),
-  ?assertEqual(BoundA+1, V3),
-  ?assertEqual(BoundB+1, V4),
-  reset_counters(Key, ?PARSER_GREATER, BoundA+1, BoundB+1, Config).
+  ?assertEqual(BoundA + 1, V3),
+  ?assertEqual(BoundB + 1, V4),
+  reset_counters(Key, ?PARSER_GREATER, BoundA + 1, BoundB + 1, Config).
 
 greater_update_fail(Config) ->
   TName = ?value(tname_greater, Config),
@@ -129,37 +126,37 @@ greater_update_fail(Config) ->
   BoundB = ?value(bound_greater_b, Config),
   Key = 30,
   % inserts
-  {ok, [], _Tx} = tutils:aql(?format(insert_greater, [Key, BoundA+2, BoundB+2], Config)),
+  {ok, [], _Tx} = tutils:aql(?format(insert_greater, [Key, BoundA + 2, BoundB + 2], Config)),
   % decrement 1
   {ok, [Decrement1], _Tx} = tutils:aql(?format(update_greater, ["- 3", "- 3", Key], Config)),
   ?assertEqual(?UPDATE_ERROR, Decrement1),
   [V1, V2] = tutils:read_keys(TName, Key, ["bcA", "bcB"]),
-  ?assertEqual(BoundA+2, V1), % assert value does not change on fail
-  ?assertEqual(BoundB+2, V2),
+  ?assertEqual(BoundA + 2, V1), % assert value does not change on fail
+  ?assertEqual(BoundB + 2, V2),
   % decrement 2
   {ok, [Decrement2], _Tx} = tutils:aql(?format(update_greater, ["- 4", "- 4", Key], Config)),
   ?assertEqual(?UPDATE_ERROR, Decrement2),
   [V1, V2] = tutils:read_keys(TName, Key, ["bcA", "bcB"]),
-  ?assertEqual(BoundA+2, V1), % assert value does not change on fail
-  ?assertEqual(BoundB+2, V2),
-  reset_counters(Key, ?PARSER_GREATER, BoundA+2, BoundB+2, Config).
+  ?assertEqual(BoundA + 2, V1), % assert value does not change on fail
+  ?assertEqual(BoundB + 2, V2),
+  reset_counters(Key, ?PARSER_GREATER, BoundA + 2, BoundB + 2, Config).
 
 smaller_insert_basic(Config) ->
   TName = ?value(tname_smaller, Config),
   Key = 1,
   BoundA = ?value(bound_smaller_a, Config),
   BoundB = ?value(bound_smaller_b, Config),
-  {ok, [], _Tx} = tutils:aql(?format(insert_smaller, [Key, BoundA-1, BoundB-1], Config)),
+  {ok, [], _Tx} = tutils:aql(?format(insert_smaller, [Key, BoundA - 1, BoundB - 1], Config)),
   [V1, V2] = tutils:read_keys(TName, Key, ["bcA", "bcB"]),
-  ?assertEqual(BoundA-1, V1),
-  ?assertEqual(BoundB-1, V2),
-  reset_counters(Key, ?PARSER_LESSER, BoundA-1, BoundB-1, Config).
+  ?assertEqual(BoundA - 1, V1),
+  ?assertEqual(BoundB - 1, V2),
+  reset_counters(Key, ?PARSER_LESSER, BoundA - 1, BoundB - 1, Config).
 
 smaller_insert_fail(Config) ->
   BoundA = ?value(bound_smaller_a, Config),
   BoundB = ?value(bound_smaller_b, Config),
-  {_, [{error, Msg1}], _} = tutils:aql(?format(insert_smaller, [10, BoundA, BoundB-1], Config)),
-  {_, [{error, Msg2}], _} = tutils:aql(?format(insert_smaller, [11, BoundA-1, BoundB], Config)),
+  {_, [{error, Msg1}], _} = tutils:aql(?format(insert_smaller, [10, BoundA, BoundB - 1], Config)),
+  {_, [{error, Msg2}], _} = tutils:aql(?format(insert_smaller, [11, BoundA - 1, BoundB], Config)),
   {_, [{error, Msg3}], _} = tutils:aql(?format(insert_smaller, [12, BoundA, BoundB], Config)),
 
   ?assertEqual(?INSERT_ERROR("5", "bcA"), Msg1),
@@ -172,18 +169,18 @@ smaller_update_basic(Config) ->
   BoundB = ?value(bound_smaller_b, Config),
   Key = 20,
   % inserts
-  {ok, [], _Tx} = tutils:aql(?format(insert_smaller, [Key, BoundA-3, BoundB-3], Config)),
+  {ok, [], _Tx} = tutils:aql(?format(insert_smaller, [Key, BoundA - 3, BoundB - 3], Config)),
   % increment
   {ok, [], _Tx} = tutils:aql(?format(update_smaller, ["+ 2", "+ 2", Key], Config)),
   [V1, V2] = tutils:read_keys(TName, Key, ["bcA", "bcB"]),
-  ?assertEqual(BoundA-1, V1),
-  ?assertEqual(BoundB-1, V2),
+  ?assertEqual(BoundA - 1, V1),
+  ?assertEqual(BoundB - 1, V2),
   % decrement
   {ok, [], _Tx} = tutils:aql(?format(update_smaller, ["- 2", "- 4", Key], Config)),
   [V3, V4] = tutils:read_keys(TName, Key, ["bcA", "bcB"]),
-  ?assertEqual(BoundA-3, V3),
-  ?assertEqual(BoundB-5, V4),
-  reset_counters(Key, ?PARSER_LESSER, BoundA-3, BoundB-5, Config).
+  ?assertEqual(BoundA - 3, V3),
+  ?assertEqual(BoundB - 5, V4),
+  reset_counters(Key, ?PARSER_LESSER, BoundA - 3, BoundB - 5, Config).
 
 smaller_update_fail(Config) ->
   TName = ?value(tname_smaller, Config),
@@ -191,23 +188,23 @@ smaller_update_fail(Config) ->
   BoundB = ?value(bound_smaller_b, Config),
   Key = 30,
   % inserts
-  {ok, [], _Tx} = tutils:aql(?format(insert_smaller, [Key, BoundA-2, BoundB-2], Config)),
+  {ok, [], _Tx} = tutils:aql(?format(insert_smaller, [Key, BoundA - 2, BoundB - 2], Config)),
   % decrement
   {ok, [Decrement1], _Tx} = tutils:aql(?format(update_smaller, ["+ 3", "+ 3", Key], Config)),
   ?assertEqual(?UPDATE_ERROR, Decrement1),
   [V1, V2] = tutils:read_keys(TName, Key, ["bcA", "bcB"]),
-  ?assertEqual(BoundA-2, V1), % assert value does not change on fail
-  ?assertEqual(BoundB-2, V2),
+  ?assertEqual(BoundA - 2, V1), % assert value does not change on fail
+  ?assertEqual(BoundB - 2, V2),
   {ok, [Decrement2], _Tx} = tutils:aql(?format(update_smaller, ["+ 3", "+ 3", Key], Config)),
   ?assertEqual(?UPDATE_ERROR, Decrement2),
   [V3, V4] = tutils:read_keys(TName, Key, ["bcA", "bcB"]),
-  ?assertEqual(BoundA-2, V3), % assert value does not change on fail
-  ?assertEqual(BoundB-2, V4),
-  reset_counters(Key, ?PARSER_LESSER, BoundA-2, BoundB-2, Config).
+  ?assertEqual(BoundA - 2, V3), % assert value does not change on fail
+  ?assertEqual(BoundB - 2, V4),
+  reset_counters(Key, ?PARSER_LESSER, BoundA - 2, BoundB - 2, Config).
 
-%% ====================================================================
+%% ===================================================================
 %% Utils functions
-%% ====================================================================
+%% ===================================================================
 
 reset_counters(Key, Comp, BcA, BcB, Config) ->
   {InvBcA, InvBcB} = invert(Comp, BcA, BcB, Config),

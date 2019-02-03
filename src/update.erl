@@ -1,3 +1,9 @@
+%%%-------------------------------------------------------------------
+%%% @author João Sousa, Pedro Lopes
+%%% @doc A module to handle AQL update operations.
+%%% @end
+%%%-------------------------------------------------------------------
+
 -module(update).
 
 -include("aql.hrl").

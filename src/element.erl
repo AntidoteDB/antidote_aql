@@ -1,3 +1,12 @@
+%%%-------------------------------------------------------------------
+%%% @author João Sousa, Pedro Lopes
+%%% @doc Row creation handler. This module is based on the creation
+%%%      of an element that holds all data to be sent to Antidote for
+%%%      creating/updating a row in the database.
+%%%      It also manages and asserts row visibility.
+%%% @end
+%%%-------------------------------------------------------------------
+
 -module(element).
 
 -include("aql.hrl").
@@ -35,9 +44,9 @@
 
 -export([throwNoSuchRow/2]).
 
-%% ====================================================================
+%% ===================================================================
 %% Property functions
-%% ====================================================================
+%% ===================================================================
 
 ops({_BObj, _Table, Ops, _Data}) -> Ops.
 set_ops({BObj, Table, _Ops, Data}, Ops) -> ?T_ELEMENT(BObj, Table, Ops, Data).
@@ -57,9 +66,9 @@ set_data({BObj, Table, Ops, _Data}, Data) -> ?T_ELEMENT(BObj, Table, Ops, Data).
 
 table({_BObj, Table, _Ops, _Data}) -> Table.
 
-%% ====================================================================
+%% ===================================================================
 %% Utils functions
-%% ====================================================================
+%% ===================================================================
 
 create_key({Key, Type, Bucket}, _TName) ->
   {Key, Type, Bucket};
@@ -142,9 +151,9 @@ throwNoSuchRow(Key, TableName) ->
   MsgFormat = io_lib:format("Cannot find row ~p in table ~p", [utils:to_atom(Key), TableName]),
   throw(lists:flatten(MsgFormat)).
 
-%% ====================================================================
+%% ===================================================================
 %% API functions
-%% ====================================================================
+%% ===================================================================
 
 new(Table) when ?is_table(Table) ->
   new(?EL_ANON, Table).
@@ -244,10 +253,6 @@ build_fks(Element, Parents) ->
         ParentVersion = get_by_name(?VERSION, Parent),
         append(FkName, {Value, ParentVersion}, ?AQL_VARCHAR, ?IGNORE_OP, AccElement);
       _Else ->
-        %[{_, ParentId} | ParentCol] = FkName,
-        %Parent = dict:fetch({FkTable, ParentId}, Parents),
-        %Value = get_by_name(ParentCol, Parent),
-        %append(FkName, Value, ?AQL_VARCHAR, ?IGNORE_OP, AccElement)
         AccElement
     end
   end, Element, Fks).
@@ -273,7 +278,6 @@ parents(Data, Table, Tables, TxId) ->
         Dict
     end
   end, dict:new(), Fks).
-
 
 get_by_name(ColName, [{{ColName, _Type}, Value} | _]) ->
   Value;

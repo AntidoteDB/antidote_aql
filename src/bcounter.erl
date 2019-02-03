@@ -1,3 +1,9 @@
+%%%-------------------------------------------------------------------
+%%% @author João Sousa, Pedro Lopes
+%%% @doc Bounded counter CRDT specific module to calculate output and
+%%%      input counter values.
+%%% @end
+%%%-------------------------------------------------------------------
 
 -module(bcounter).
 
@@ -8,9 +14,9 @@
 -endif.
 
 -export([to_bcounter/3,
-        to_bcounter/4,
-        from_bcounter/3,
-        value/1]).
+  to_bcounter/4,
+  from_bcounter/3,
+  value/1]).
 
 to_bcounter(Value, Offset, Comp) ->
   apply_offset_value(Comp, Offset, Value).
@@ -44,9 +50,9 @@ value({Incs, Decs}) ->
   DecsList = orddict:to_list(Decs),
   SumIncs = lists:foldl(fun sum/2, 0, IncsList),
   SumDecs = lists:foldl(fun sum/2, 0, DecsList),
-  SumIncs-SumDecs.
+  SumIncs - SumDecs.
 
-sum({_Ids, Value}, Acc) -> Value+Acc.
+sum({_Ids, Value}, Acc) -> Value + Acc.
 
 %%====================================================================
 %% Eunit tests

@@ -1,3 +1,9 @@
+%%%-------------------------------------------------------------------
+%%% @author João Sousa, Pedro Lopes
+%%% @doc A module used to build AQL columns on table creation and to
+%%%      validate column constraints.
+%%% @end
+%%%-------------------------------------------------------------------
 
 -module(columns_builder).
 
@@ -14,8 +20,8 @@
 -endif.
 
 -export([new/0,
-        put_raw/2,
-        build/1]).
+  put_raw/2,
+  build/1]).
 
 new() ->
   create(maps:new(), [], [], []).
@@ -27,14 +33,19 @@ put_raw(Col, {Maps, Names, Pks, CRPs}) ->
   Name = column:name(Col),
   NewNames = lists:append(Names, [Name]),
   NewMaps = maps:put(Name, Col, Maps),
-  handle_constraint(fun(NewPks) ->
-    create(NewMaps, NewNames, NewPks, CRPs)
-  end, fun(NewCol, Crp) ->
-    NewMaps1 = maps:put(Name, NewCol, Maps),
-    create(NewMaps1, NewNames, Pks, lists:append(CRPs, [{Name, Crp}]))
-  end, fun() ->
-    create(NewMaps, NewNames, Pks, CRPs)
-  end, Col, Name, Pks).
+  handle_constraint(
+    fun(NewPks) ->
+      create(NewMaps, NewNames, NewPks, CRPs)
+    end,
+    fun(NewCol, Crp) ->
+      NewMaps1 = maps:put(Name, NewCol, Maps),
+      create(NewMaps1, NewNames, Pks, lists:append(CRPs, [{Name, Crp}]))
+    end,
+    fun() ->
+      create(NewMaps, NewNames, Pks, CRPs)
+    end,
+    Col, Name, Pks
+  ).
 
 handle_constraint(IsPk, IsFk, Else, Col, CName, Pks) ->
   case column:is_primary_key(Col) of

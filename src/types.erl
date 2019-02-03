@@ -1,24 +1,18 @@
-
+%%%-------------------------------------------------------------------
+%%% @author João Sousa, Pedro Lopes
+%%% @doc A module to handle AQL data types.
+%%% @end
+%%%-------------------------------------------------------------------
 
 -module(types).
 
 -include("aql.hrl").
 -include_lib("parser.hrl").
 
--export([%to_aql/1,
-        to_crdt/2,
-        to_parser/1,
-        to_insert_op/3,
-        to_insert_op/2]).
-
-%%to_aql(?CRDT_INTEGER) -> ?AQL_INTEGER;
-%%to_aql(?CRDT_BOOLEAN) -> ?AQL_BOOLEAN;
-%%to_aql(?CRDT_BCOUNTER_INT) -> ?AQL_COUNTER_INT;
-%%to_aql(?CRDT_COUNTER_INT) -> ?AQL_COUNTER_INT;
-%%to_aql(?CRDT_VARCHAR) -> ?AQL_VARCHAR;
-%%to_aql(Invalid) ->
-%%  ErrorMsg = io_lib:format("No mapping available for: ~p", [Invalid]),
-%%  throw(lists:flatten(ErrorMsg)).
+-export([to_crdt/2,
+  to_parser/1,
+  to_insert_op/3,
+  to_insert_op/2]).
 
 to_crdt(?AQL_INTEGER, _) -> ?CRDT_INTEGER;
 to_crdt(?AQL_BOOLEAN, _) -> ?CRDT_BOOLEAN;
@@ -52,18 +46,19 @@ to_insert_op(Invalid, _Constraint, _OpParam) ->
   ErrorMsg = io_lib:format("No mapping available for: ~p", [Invalid]),
   throw(lists:flatten(ErrorMsg)).
 
-% Since CRDT_INTEGER is a LWW register type, we can ignore this case.
+% Since an integer data type is mapped into a LWW-Register CRDT,
+% we can ignore the case below.
 %to_insert_op(?CRDT_INTEGER, OpParam) -> crdt:set_integer(OpParam);
 to_insert_op(?CRDT_BOOLEAN, OpParam) when is_atom(OpParam) ->
   case OpParam of
     true ->
-        crdt:enable_flag(?IGNORE_OP);
+      crdt:enable_flag(?IGNORE_OP);
     false ->
-        crdt:disable_flag(?IGNORE_OP)
+      crdt:disable_flag(?IGNORE_OP)
   end;
 to_insert_op(?CRDT_BCOUNTER_INT, OpParam) -> crdt:increment_bcounter(OpParam);
 to_insert_op(?CRDT_COUNTER_INT, OpParam) -> crdt:increment_counter(OpParam);
 to_insert_op(?CRDT_VARCHAR, OpParam) -> crdt:assign_lww(OpParam);
 to_insert_op(Invalid, _OpParam) ->
-    ErrorMsg = io_lib:format("No mapping available for: ~p", [Invalid]),
-    throw(lists:flatten(ErrorMsg)).
+  ErrorMsg = io_lib:format("No mapping available for: ~p", [Invalid]),
+  throw(lists:flatten(ErrorMsg)).

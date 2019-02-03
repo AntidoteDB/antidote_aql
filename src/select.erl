@@ -1,6 +1,8 @@
-%% @author Joao
-%% @author Pedro Lopes
-%% @doc @todo Add description to select.
+%%%-------------------------------------------------------------------
+%%% @author João Sousa, Pedro Lopes
+%%% @doc A module to handle AQL select operations.
+%%% @end
+%%%-------------------------------------------------------------------
 
 -module(select).
 
@@ -18,9 +20,9 @@
 -include_lib("eunit/include/eunit.hrl").
 -endif.
 
-%% ====================================================================
+%% ===================================================================
 %% API functions
-%% ====================================================================
+%% ===================================================================
 -export([exec/3]).
 
 -export([table/1,
@@ -28,7 +30,6 @@
   where/1]).
 
 exec({Table, _Tables}, Select, TxId) ->
-  %TName = table:name(Table),
   Cols = table:columns(Table),
   Projection = projection(Select),
   case validate_projection(Projection, column:s_names(Cols)) of
@@ -45,16 +46,6 @@ exec({Table, _Tables}, Select, TxId) ->
         {error, Msg} ->
           {error, Msg}
       end
-    %Keys = where:scan(TName, Condition, TxId),
-    %case Keys of
-    %	[] -> {ok, []};
-    %	_Else ->
-    %		{ok, Results} = antidote:read_objects(Keys, TxId),
-    %		VisibleResults = filter_visible(Results, TName, Tables, TxId),
-    %		ProjectionResult = project(Projection, VisibleResults, [], Cols),
-    %		ActualRes = apply_offset(ProjectionResult, Cols, []),
-    %		{ok, ActualRes}
-    %end.
   end.
 
 table({TName, _Projection, _Where}) -> TName.
@@ -63,9 +54,9 @@ projection({_TName, Projection, _Where}) -> Projection.
 
 where({_TName, _Projection, Where}) -> Where.
 
-%% ====================================================================
+%% ===================================================================
 %% Private functions
-%% ====================================================================
+%% ===================================================================
 validate_projection(?PARSER_WILDCARD, Columns) ->
   {ok, Columns};
 validate_projection(Projection, Columns) ->
@@ -84,7 +75,6 @@ validate_projection(Projection, Columns) ->
       ErrMsg = lists:flatten(io_lib:format("Column ~p does not exist", [Invalid])),
       {error, ErrMsg}
   end.
-
 
 send_offset(?PARSER_WILDCARD, _Cols, Acc) -> Acc;
 send_offset([{disjunctive, _} = Cond | Conds], Cols, Acc) ->
@@ -136,7 +126,8 @@ prepare_filter(Table, Projection, Conditions) ->
   ConditionsField = ?T_FILTER(conditions, Conjunctions),
   [TablesField, ProjectionField, ConditionsField].
 
-%% The idea is to build additional conditions that concern visibility.
+%% The top-level idea behind this function is to build additional conditions
+%% that concern visibility.
 %% Intuitively, these conditions would be sent to the Antidote node.
 %% Instead, what is really sent to Antidote is a function that
 %% internally tries to approach the following visibility conditions:

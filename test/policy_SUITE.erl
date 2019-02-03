@@ -1,13 +1,4 @@
-%%%-------------------------------------------------------------------
-%%% @author joao
-%%% @copyright (C) 2017, <COMPANY>
-%%% @doc
-%%%
-%%% @end
-%%% Created : 17. ago 2017 16:01
-%%%-------------------------------------------------------------------
 -module(policy_SUITE).
--author("joao").
 
 -include_lib("aql.hrl").
 -include_lib("parser.hrl").
@@ -17,22 +8,20 @@
 -include_lib("eunit/include/eunit.hrl").
 
 -export([init_per_suite/1,
-        end_per_suite/1,
-        init_per_testcase/2,
-        end_per_testcase/2,
-        all/0]).
+  end_per_suite/1,
+  init_per_testcase/2,
+  end_per_testcase/2,
+  all/0]).
 
 %% API
 -export([one_level/1,
-        two_levels/1,
-        three_levels/1]).
+  two_levels/1,
+  three_levels/1]).
 
 init_per_suite(Config) ->
-  %aql:start(),
   Config.
 
 end_per_suite(Config) ->
-  %aql:stop(),
   Config.
 
 init_per_testcase(_Case, Config) ->

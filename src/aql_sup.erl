@@ -1,6 +1,7 @@
 %%%-------------------------------------------------------------------
-%% @doc aql top level supervisor.
-%% @end
+%%% @author João Sousa, Pedro Lopes
+%%% @doc AQL application top-level supervisor.
+%%% @end
 %%%-------------------------------------------------------------------
 
 -module(aql_sup).
@@ -26,7 +27,7 @@ start_link() ->
 %% Supervisor callbacks
 %%====================================================================
 
-%% Child :: {Id,StartFunc,Restart,Shutdown,Type,Modules}
+%% Child :: {Id, StartFunc, Restart, Shutdown, Type, Modules}
 init([]) ->
   ElliOpts = [{callback, aql_http_handler}, {port, 3002}],
   ElliSpec = {
@@ -38,7 +39,3 @@ init([]) ->
     [elli]},
 
   {ok, {{one_for_one, 5, 10}, [ElliSpec]}}.
-
-%%====================================================================
-%% Internal functions
-%%====================================================================

@@ -1,10 +1,3 @@
-%%%-------------------------------------------------------------------
-%%% @author Pedro Lopes
-%%% @doc
-%%%
-%%% @end
-%%% Created : 02. jul 2018 17:06
-%%%-------------------------------------------------------------------
 -module(ref_integrity_SUITE).
 
 -define(FK_POLICY_AW, "UPDATE-WINS").
@@ -37,11 +30,9 @@
 -export([]).
 
 init_per_suite(Config) ->
-  %aql:start(),
   Config.
 
 end_per_suite(Config) ->
-  %aql:stop(),
   Config.
 
 init_per_testcase(dc_update_wins, Config) ->
@@ -124,9 +115,9 @@ restrict_delete(_Config) ->
   {Res3, _, _} = tutils:aql("DELETE FROM TestRefA WHERE ID = 1"),
   ?assertEqual(ok, Res3).
 
-%% ====================================================================
+%% ===================================================================
 %% Internal functions
-%% ====================================================================
+%% ===================================================================
 
 create_tables(TablePolicy, DepPolicy) ->
   {ok, [], _Tx} = tutils:create_single_table("TestRefA", TablePolicy),

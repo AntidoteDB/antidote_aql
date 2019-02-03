@@ -1,7 +1,8 @@
-%% @author joao
-%% @author Pedro Lopes
-%% @doc @todo Add description to antidote.
-
+%%%-------------------------------------------------------------------
+%%% @author João Sousa, Pedro Lopes
+%%% @doc A handler to request data to the underlying Antidote node.
+%%% @end
+%%%-------------------------------------------------------------------
 
 -module(antidote_handler).
 
@@ -16,12 +17,10 @@
 | antidote_crdt_counter_fat
 | antidote_crdt_map_go
 | antidote_crdt_set_go
-% | antidote_crdt_integer = deprecated
 | antidote_crdt_register_lww
 | antidote_crdt_map_rr
 | antidote_crdt_register_mv
 | antidote_crdt_set_aw
-% | antidote_crdt_rga = deprecated
 | antidote_crdt_set_rw
 | antidote_crdt_flag_ew
 | antidote_crdt_flag_dw
@@ -58,9 +57,9 @@
 
 -type conditions_filter() :: {conditions, [term()]}.
 
-%% ====================================================================
+%% ===================================================================
 %% API functions
-%% ====================================================================
+%% ===================================================================
 -export([start_transaction/0, start_transaction/2,
   read_objects/2,
   commit_transaction/1, abort_transaction/1,
@@ -183,9 +182,9 @@ handleUpdateError(Msg) ->
   Msg.
 
 
-%% ====================================================================
+%% ===================================================================
 %% Internal functions
-%% ====================================================================
+%% ===================================================================
 
 % TODO keep for local testing (i.e. tests that don't use the application)
 %call(Function, Args) ->

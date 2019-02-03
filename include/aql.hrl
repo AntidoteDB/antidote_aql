@@ -9,7 +9,7 @@
 -define(NO_CONCURRENCY, noconcurrency).
 
 % column
-  -define(C_NAMES, {names}).
+-define(C_NAMES, {names}).
 -define(C_PK, {pk}).
 
 % AQL -> CRDT mappings

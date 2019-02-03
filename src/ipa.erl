@@ -1,3 +1,10 @@
+%%%-------------------------------------------------------------------
+%%% @author João Sousa, Pedro Lopes
+%%% @doc A module to handle Invariant-Preserving Applications
+%%%      properties. The IPA approach is based upon the use of
+%%%      visibility tokens.
+%%% @end
+%%%-------------------------------------------------------------------
 
 -module(ipa).
 
@@ -8,10 +15,10 @@
 -include("aql.hrl").
 
 -export([new/0,
-          touch/0, touch_cascade/0, insert/0,
-          delete/0, delete_cascade/0,
-          is_visible/1, is_visible/2,
-          status/2]).
+  touch/0, touch_cascade/0, insert/0,
+  delete/0, delete_cascade/0,
+  is_visible/1, is_visible/2,
+  status/2]).
 
 new() ->
   insert().
