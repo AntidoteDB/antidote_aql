@@ -65,7 +65,7 @@ server listens on the TCP port 3002.
 
 ## Getting started
 
-AQL is an SQL-variant, designed to work with AntidoteDB API.
+AQL is a SQL-variant, designed to work with AntidoteDB API.
 
 ### Shell
 
