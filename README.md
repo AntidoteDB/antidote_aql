@@ -1,7 +1,7 @@
 # AQL [![Build Status](https://travis-ci.org/AntidoteDB/antidote_aql.svg?branch=master)](https://travis-ci.org/AntidoteDB/antidote_aql)
 
 
-An SQL-like interface for the [AntidoteDB data store](https://github.com/AntidoteDB/antidote).
+A SQL-like interface for the [AntidoteDB data store](https://github.com/AntidoteDB/antidote).
 
 ## Installation
 
